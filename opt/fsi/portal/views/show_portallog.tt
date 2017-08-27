@@ -1,0 +1,33 @@
+<form action="showportallog" method=post>
+[% INCLUDE 'layouts/global.tt' %]   
+[% INCLUDE 'headerline/showportallog.tt' %] 
+
+[% IF session.logged_in %]
+      <div>
+         </br>
+         <table>
+           <tbody>
+               <tr class="fsitableheader">
+               </tr>
+           </tbody>
+         </table>
+         <table>
+           <tbody>
+              <tr class="fsitableheader">
+                 <td style="width: 100%" align="center";"><div>Show log file: [% file %]</div></td>
+              </tr>
+           </tbody>
+         </table>
+         [% USE urlhost = String %]
+         [% urlhost=request.host %] 
+         [% sshhost=urlhost.remove(':3000') %]
+         [% IF tail == "yes" %]
+            <object width="1240px" height="685px" data="http://[% sshhost %]/fsitail/log.html#logs/[% file %]"></object> 
+         [% ELSE %]
+            <object width="1240px" height="685px" data="http://[% sshhost %]/fsitail/logs/[% file %]"></object> 
+         [% END %]
+         
+      </div>
+</form>
+
+[% END %]

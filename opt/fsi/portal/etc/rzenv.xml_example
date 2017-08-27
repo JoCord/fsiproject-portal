@@ -1,0 +1,927 @@
+##
+##  portal config file
+##
+
+# Comments allowed, but lost if the fsi portal rewrite the config file 
+
+
+# RZ Example
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<rz Develop>                                                                  # Name of the environment - shown in the browser head
+   vitemp      "fsideploy.example.com"                                        # global parameter for vitemp hostname with dns suffix
+   vitempip    "172.16.32.69"                                                 # vitemp main network ip
+   daemonsleep 10                                                             # fsi check all daemon rescan sleep time
+
+   <db>
+      port              5432                                                  # db port
+      name              fsidb                                                 # db name
+      usr               dbuser                                                # db user
+      pw                plaintextpw                                           # db user pw
+      host              localhost                                             # db server
+   </db>
+
+   # portal roles
+   <userrole Admin>                                                           # Role Admin can do all
+   </userrole>
+   <userrole Install>                                                         # Role Install is for start/abort installations
+   </userrole>
+   <userrole XenAdmin>                                                        # Role XenAdmin is for alle XenServer/Xen Pool Actions
+   </userrole>
+   <userrole ESXiAdmin>                                                       # Role ESXiAdmin is for alle ESXi/VC Actions
+   </userrole>
+   <userrole LXAdmin>                                                         # Role LXAdmin is for alle Linux/Model Actions
+   </userrole>
+   <userrole AddServer>                                                       # Role Add Server can add new Server
+   </userrole>
+
+   <templdefault>                                                             # Default Template Hash 
+      <xen650>                                                                # Xenserver Add version or dir name
+         <2bond_lacp>                                                         # Template name as dir name
+            default true
+         </2bond_lacp>
+      </xen650>
+   </templdefault>
+
+   <windom labdom>                                                            # PRE Win2000 Netbios Domain Name
+      dns   labdom.lab.local                                                  # dns Windows Domain Name
+      dc    labdc.labdom.lab.local                                            # if dns domain name not usable or other dc for login
+      <search domainbase>                                                     # user search base (multiple possible)
+         base "dc=labdom, dc=lab, dc=local"
+      </search>
+      <search users>
+         base "CN=Users,DC=labdom,DC=lab,DC=local"
+      </search>
+      <search labor>
+         base "OU=User,OU=Labor,DC=labdom,DC=lab,DC=local"
+      </search>
+   </windom>
+   
+   <esxi>
+      esxisuffix  "example.com"                                               # default dns suffix
+      rootpw      "plaintextpassword"                                         # default root password
+
+      <logloc>                                                                # This entry will shown in the add esxi server page 
+         <Local_/syslog_with_srvname>                                         # entry name - unique
+             dest   [nfs_syslog],/syslog-%SRVNAME%
+             ver      41u2,41u2_hp                                            # esxi version 4 = other entry
+         </Local_/syslog_with_srvname>
+         <Local_scratch/log/messages>
+             dest   [loc_%SRVNAME%],/scratch/log/messages
+             ver      41u2,41u2_hp                                            # esxi version 4 = other entry
+             default   true
+         </Local_scratch/log/messages>
+         <Do_not_change_log_location>                                        
+             disable   true# entry for no log location change
+         </Do_not_change_log_location>
+         <Local_/syslog>
+             dest   [loc_%SRVNAME%],/syslog
+             ver      41u2,41u2_hp                                            # esxi version 4 = other entry
+         </Local_/syslog>
+         <NFS_vitemp_logesxi_with_servername>
+             dest   [nfs_vitemp_logesxi],\"/%SRVNAME%-messages\"
+             ver      41u2,41u2_hp                                            # esxi version 4 = other entry
+         </NFS_vitemp_logesxi_with_servername>
+         <NFS_vitemp_logesxi>
+             logsize   1000
+             dest   /vmfs/volumes/nfs_vitemp_logesxi/%SRVNAME%-log
+             ver      60,60_hp
+             default   true
+             logrot   5                                                       # optional log rotation
+             logsize  1000                                                    # optional log size
+             logdir   true                                                    # optional log unique dir
+         </NFS_vitemp_logesxi>
+         <NFS_vitemp_with_srvname>
+             logsize   1000
+             dest   /vmfs/volumes/nfs_vitemp/%SRVNAME%-log
+             ver      60,60_hp,50,51,51u3_hp
+             default   true
+             logrot   5
+             logdir   true
+         </NFS_vitemp_with_srvname>
+      </logloc>
+      <scratch>                                                               # scratch location
+         <nfs_vitemp_scratch_srvname>
+             dest   /vmfs/volumes/nfs_vitemp_inst/scratch/%SRVNAME%           # scratch location path - %SRVNAME% keyword resolved
+         </nfs_vitemp_scratch_srvname>
+         <loc_sratch>
+             dest   /vmfs/volumes/loc_%SRVNAME%/scratch
+             default   true
+         </loc_sratch>
+         <no_scratch>
+             disable   true                                                   # do not change scratch location entry for portal
+         </no_scratch>
+      </scratch>
+
+
+      # ESXi Advanced Options
+      <advopt Net.TcpipHeapSize>                                              # Advanced Option Key
+         type     long                                                        # Adv. key type
+         opt      30                                                          # option value
+         default  true                                                        # default set
+      </advopt>
+      <advopt Net.TcpipHeapMax>
+         type     long
+         opt      120
+         default  true
+      </advopt>
+      <advopt NFS.MaxVolumes>
+         type     long
+         opt      64
+         default  true
+      </advopt>
+      <advopt NFS.HeartbeatMaxFailures>
+         type     long
+         opt      10
+         default  true
+      </advopt>
+      <advopt NFS.HeartbeatFrequency>
+         type     long
+         opt      12
+         default  true
+      </advopt>
+      <advopt NFS.HeartbeatTimeout>
+         type     long
+         opt      5
+         default  true
+      </advopt>
+
+
+      # Virtual Center
+      <vc>
+          <"Do not join ESXi to VC">                                          # default entry for do not join vc
+              disable   true
+          </"Do not join ESXi to VC">
+          <vCwin.lab.local>
+              default  true                                                   # default select VC
+              vcusr    USER_FISCH_ESX                                         # join vc user
+              vcdom    WinDomain
+              vcpass   plaintextpassword                                      # join user domain - if needed
+              dc       "VI PROD 1"                                            # join vc user password              dc   VI Develop
+          </vCwin.lab.local>
+          <vcdev-without-domain.lab.local>
+              dc   VI Develop
+              vcpass   jippipw
+              vcusr   esxuser
+          </vcdev-without-domain.lab.local>
+          <vcdev.lab.local>
+              dc   VI Develop
+              vcpass   nopassw
+              vcdom   labdom
+              ver   50,51_ibm,51,51u2,51u2_hp,51u3,51u3_hp,55,55u1,55u1_hp,55_ibm,55u2
+              default   true
+              vcusr   esxuser
+          </vcdev.lab.local>
+          <vcsa6.lab.local>
+              dc   VI Develop
+              vcpass   nononopw
+              vcdom   labdom
+              ver   60,60_hp
+              default   true
+              vcusr   esxuser
+          </vcsa6.lab.local>
+      </vc>
+      
+      # ESXi local user
+      <user admin_beispiel>                                                   # user name
+         pw       "topsecret"                                                 # unencrypted password
+         group    root                                                        # group
+         descr    VI Team User                                                # description
+         default  false                                                       # take this as default true / false
+      </user>
+      <user luser_beispiel>
+         pw       "defaultpassword"
+         group    user
+      </user>
+      <user iap>
+         pw       nopassword
+         group    root
+         role     IAP
+         descr    Support Team User
+         default  true
+      </user>
+      <user cit>
+         pw       importantpw
+         role     CIT
+         group    user
+         login    yes
+      </user>
+
+      # ESXi local roles
+      <role IAP>
+         <priv Host.Config.Maintenance>
+         </priv>
+         <priv Host.Config.Power>
+         </priv>
+         <priv VirtualMachine.Interact.ConsoleInteract>
+         </priv>
+         <priv VirtualMachine.Interact.PowerOff>
+         </priv>
+         <priv VirtualMachine.Interact.PowerOn>
+         </priv>
+         <priv VirtualMachine.Interact.Reset>
+         </priv>
+      </role>
+      <role CIT>
+         default  true
+         <priv Host.Config.Maintenance>
+         </priv>
+         <priv Host.Config.Power>
+         </priv>
+         <priv VirtualMachine.Interact.ConsoleInteract>
+         </priv>
+         <priv VirtualMachine.Interact.PowerOff>
+         </priv>
+         <priv VirtualMachine.Interact.PowerOn>
+         </priv>
+         <priv VirtualMachine.Interact.Reset>
+         </priv>
+      </role>
+
+      # ESXi syslog server
+      <syslog syslogsrv>                                                      # Syslog serverconfig, name for portal only
+         default  true
+         ip       syslog.srv.example.com                                      # target in config of esxi
+         port     514                                                         # optional port if not default 514
+         prot     udp                                                         # default protocol if not udp
+      </syslog>
+      <syslog master-other-port4_Beispiel>
+         ip       10.10.10.60
+         port     515
+      </syslog>
+      <syslog second4_Beispiel>
+         ip       10.10.10.242
+      </syslog>
+
+      # ESXi versions
+      <ver>
+          <55u3_hp>                                                           # ESXi version to configure and select
+              <lic>                                                           # License config
+                  <ABCD-EFGHI-JKLMN-01234-56789>        
+                      ver   51_ibm
+                      descr   (v5.0) vSphere for Desktop
+                  </ABCD-EFGHI-JKLMN-01234-56789>
+                  <ABCD-EFGHI-JKLMN-01234-56780>
+                      descr   (v5) vSphere Enterprise Plus
+                  <ABCD-EFGHI-JKLMN-01234-56780>
+                  <ABCD-EFGHI-JKLMN-01234-56781J>
+                      default   true
+                      descr   (v5) vSphere Enterprise Plus
+                  <ABCD-EFGHI-JKLMN-01234-56781>
+              </lic>
+          </55u3_hp>
+      </ver>
+
+      # ESXi dns server
+      <dns 10.10.10.1>                                                         # dns server - ip only
+         default  true                                                         # marked default
+      </dns>
+      <dns 10.10.10.17>
+      </dns>
+
+      # ESXi ntp server
+      <ntpsrv ntp.srv.example.com>                                             # ntp - ip or dns name
+         default  true                                                         # marked default
+      </ntpsrv>
+      <ntpsrv ntpback.srv.example.com>                                         # ntp - ip or dns name
+         default  true                                                         # marked default
+      </ntpsrv>
+
+     # ESXi Storage Datastores NFS
+      <nfs filer_export1>                                                      # datastore name for nfs - note, nfs_ is added to storage name
+         srv      192.168.10.16
+         path     /vol/export1/clones                                          # complete path for export mount
+         default  true
+         descr    VM Clones Share                                              # description for portal
+      </nfs>
+
+      <nfs vf71_dev_esx01_rofs>
+         srv      192.168.10.16
+         path     /vol/export2/files
+         default  true                                                         # marked default
+         descr    Datastore for files
+      </nfs>
+
+      <nfs vf71_dev_esx01_vms>
+         srv      192.168.10.16
+         path     /vol/export/vms
+         default  true
+         descr    Main VM share
+      </nfs>
+
+      # ESXi virtual switch
+      <vsw default_Beispiel>                                                   # virtual switch name - for portal, esxi is in named format
+         default  false
+         vs       0                                                            # virtual switch number - start with 0
+         nics     vmnic0 _vmnic1                                               # used networks cars - start with vmnic0
+         lb       loadbalance_ip                                               # load balance: loadbalance_ip, failover_explicit, loadbalance_srcmac or loadbalance_srcid
+         mtu      9000                                                         # mtu size - if not default
+      </vsw>
+      <vsw default_zwei_nics_Beispiel>
+         vs       0
+         nics     vmnic0 vmnic1
+      </vsw>
+      <vsw lb1_Beispiel>
+         vs       1
+         nics     vmnic2 +vmnic3 _vmnic4 -vmnic5
+         lb       loadbalance_srcid
+         mtu      9000
+      </vsw>
+      <vsw default>
+         default  true
+         vs       0
+         nics     vmnic0 _vmnic1
+      </vsw>
+
+
+      # ESXi vm kernel ports
+      <vmk s0v25ti_Beispiel>                                                  # vm kernel name for config only
+         sw       0                                                           # vswitch number
+         vlan     25                                                          # vlan
+         nm       255.255.255.0                                               # netmask - default 255.255.255.0
+         gw       10.10.11.99                                                 # gateway
+         flags    t                                                           # flags : f = fault tolerance, t = VMotion
+         mtu      3000                                                        # MTU Size
+         nics     -vmnic1                                                     # nic konfig different to vswitch
+         lb       loadbalance_srcid                                           # load balance different to vswitch
+         cf       i                                                           # comment flags i = iscsi, n = nfs
+         descr    iscsi exchange port                                         # optional: description
+         cnet     10.10.10.                                                   # optional: comment ip network for input mask
+      </vmk>
+      <vmk s0v250n>
+         sw       0
+         vlan     250
+         cf       n
+         descr    nfs datastore interface
+         cnet     192.168.10.x
+      </vmk>
+      <vmk s0v256i>
+         sw       0
+         vlan     256
+         cf       i
+         descr    iscsi datastore interface
+         cnet     192.168.4.x
+         nics     +vmnic0 -vmnic1
+      </vmk>
+      <vmk s0v257i>
+         sw       0
+         vlan     257
+         cf       i
+         descr    iscsi datastore interface
+         cnet     192.168.6.x
+         nics     +vmnic1 -vmnic0
+      </vmk>
+
+      # ESXi mgmt port
+      <vmm s0v0m-172.16.36>
+         default  true
+         sw       0
+         flags    m
+         nm       255.255.255.0
+         gw       172.16.60.250
+         vlan     0                                                           # vlan 0 if nativ network (not tagged with vlan)
+         descr    Mgmt 172.16.60.x - vlan 655 interface                       # in descrip you can write nativ vlan number
+      </vmm>
+      <vmm s0v0m-172.16.32>
+         sw       0
+         flags    m
+         nm       255.255.255.0
+         gw       172.16.32.250
+         vlan     0                                                           # vlan 0 if nativ network (not tagged with vlan)
+         descr    Mgmt 172.16.32.x - vlan 651 interface                       # in descrip you can write nativ vlan number
+      </vmm>
+      <vmm s0v0mf_Beispiel>
+         sw       0
+         flags    m f                                                         # flags: f = fault tolerance, m = mgmt traffic
+         mtu      3000
+         nm       255.255.255.0
+         gw       10.10.10.99
+         vlan     0
+         nics     +vmknic0 _vmknic1
+         descr    nativ
+      </vmm>
+      <vmm s0v0m_Beispiel>                                                    # port VMk - s0 v0 m
+         default  false
+         flags    m
+         gw       10.10.10.98
+         cflags   test_mgmt
+      </vmm>
+      <vmm s0v0m_Beispiel_2>
+         default  false
+         nm       255.255.0.0
+         flags    m
+      </vmm>
+
+      # ESXi vm network port
+      <vmn Beispiel-s0v470i>                                                  # vm network name - for config only
+         sw       0                                                           # switch, default 0
+         vlan     470                                                         # vlan
+         nics     -vmnic1                                                     # nic different to vswitch
+         mtu      3000                                                        # mtu size
+         lb       loadbalance_srcid                                           # load balance
+         cf       i                                                           # comment flags = i = iscsi, n = nfs
+      </vmn>
+      <vmn s0v0>
+         sw       0
+         vlan     0
+         descr    Access to Mgmt interface
+         default  true
+      </vmn>
+      <vmn s0v250n>
+         vlan     250
+         cf       n
+         descr    VM internal access to storage
+         default  true
+      </vmn>
+      <vmn s0v256i>
+         vlan     256
+         descr    VM internal access to iscsi
+         cf       i
+         default  true
+      </vmn>
+      <vmn s0v257i>
+         vlan     257
+         descr    VM internal access to iscsi
+         cf       i
+         default  true
+      </vmn>
+      <vmn s0v510>
+         vlan     510
+         default  true
+         descr    User 2 Server
+      </vmn>
+      <vmn s0v513>
+         vlan     513
+         default  true
+         descr    User 2 Server
+      </vmn>
+      <vmn s0v514>
+         vlan     514
+         default  true
+         descr    User 2 Server
+      </vmn>
+      <vmn s0v251>
+         vlan     251
+         default true
+         descr    PVS
+      </vmn>
+      <vmn s0v255>
+         vlan     255
+         default  true
+         descr    PVS
+      </vmn>
+      <vmn s0v654>
+         vlan     654
+         default  true
+         descr    ILO Management
+      </vmn>
+     <vmn s0v655>
+         vlan     655
+         default  true
+         descr    Server Management
+      </vmn>
+     <vmn s0v651>
+         vlan     651
+         default  false
+         descr    Server Management
+      </vmn>
+   </esxi>
+
+   <xensrv>
+      pw          "unverschluesseltespasswort"                                 # plain text default root password
+      mhf         "3"                                                          # maximum host failure for ha
+
+      <licip none>                                                             # name only for fsi portal, none special = means no lic server
+      </licip>
+      <licip Test-Environment>
+         default  true
+         ip       dnsname.example.com                                          # lic server ip or dns
+      </licip>
+      <licip Prod>
+         ip       10.11.12.13
+         port     28000                                                        # port default 27000
+      </licip>
+
+      <nm 255.255.255.0>
+      </nm>
+      <nm 255.255.254.0>
+         default  true
+      </nm>
+
+      <license xendesktop>                                                     # xenserver license
+      </license>
+      <license desktop-plus>
+         default  true
+      </license>
+      <license free>                                                           # special xenserver lic type - free needs no lic server
+      </license>
+
+
+      <syslog syslogsrv>                                                       # Syslog serverconfig, name for portal only
+         default  true
+         ip       syslog.srv.example.com                                       # target in config
+      </syslog>
+      <syslog master-other-port4_Beispiel>
+         ip       10.10.10.60
+      </syslog>
+      <syslog second4_Beispiel>
+         ip       10.10.10.242
+      </syslog>
+
+
+      <dnsdom srv.example.com>
+         default   true
+      </dnsdom>
+      <dnsdom srv.lab.com>
+      </dnsdom>
+
+
+      <dnssearch lab.com>
+         default   true
+      </dnssearch>
+      <dnssearch lab.local>
+      </dnssearch>
+
+
+      <dns 10.10.128.1>                                                        # dns server - ip only
+         default  true                                                         # marked default
+      </dns>
+      <dns 10.10.128.2>
+      </dns>
+
+
+      <ntpsrv ntp.srv.example.com>                                             # ntp - ip or dns name
+         default  true                                                         # marked default
+      </ntpsrv>
+      <ntpsrv ntpback.srv.example.com>
+      </ntpsrv>
+
+      <mph dmp>
+      </mph>
+
+      # xenserver versions
+      <ver 602>
+      </ver>
+      <ver 610>
+      </ver>
+      <ver 650>
+      </ver>
+      <ver 6xx>
+      </ver>
+      <ver 620>
+         default  true
+      </ver>
+
+      <net PVSNet>
+         assign   Management                                                  # assign to bond/network Managmenet (default)
+         vlan     251
+         descr    XenApp Provision Network VLAN 251
+      </net>
+
+      <net PVS>
+         assign   VMMachines                                                  # attention: if not exist in template - error during install xenserver
+         vlan     261
+         descr    Production XenApp Provision Network VLAN 261
+      </net>
+
+      <net PVS2>
+         assign   VirtualMachines
+         vlan     262
+         descr    Test XenApp Provision Network VLAN 262
+      </net>
+
+      <net User>
+         vlan     111
+         descr    XenApp Network Installation
+      </net>
+
+      <net VDI1>
+         vlan     512
+         descr    XenDesktop VDI Network - Example Company
+      </net>
+
+      <net Worker>
+         vlan     511
+         descr    XenApp Network VLAN 511
+      </net>
+
+
+      <ipnet Storage1>
+         vlan     250
+         descr    NFS Storage Network VLAN 250
+      </ipnet>
+
+      <sr SERVICE>
+         ip       192.168.10.15
+         path     /vol/vf69_nfs_dev_xen01/service
+         typ      nfs
+         descr    NFS Service SR for Administration
+      </sr>
+
+      <sr ISOTools_NFS>
+         ip       192.168.10.15
+         path     /vol/vf69_nfs_dev_xen01/dev_iso_lib
+         typ      niso                                                        # nfs iso lib sr
+         tag      ISO Repository                                              # tag for this storage
+         select   true                                                        # default select in portal xen server add
+      </sr>
+
+      <sr poolha>
+         ip       192.168.10.15
+         path     /vol/vf69_nfs_dev_xen01/ha
+         typ      nfs
+         shared   ha                                                          # pool ha sr
+         mhf      2
+         descr    Pool HA SR
+      </sr>
+
+      <sr XD_Storage_1>
+         ip       192.168.10.15
+         path     /vol/vf69_nfs_dev_xen01/vdi
+         typ      nfs
+         select   true                                                        # default select in portal xen server add
+         default  true                                                        # install as default sr for vms
+      </sr>
+
+      dom_join    JIPPI
+      dom_contyp  icmp                                                        # off (no check, default), icmp, tcp
+      dom_dns     JJPPII.COM
+      dom_user    funnyuser
+      dom_pw      !PlainTextPassword!
+      dom_ou      Global/Compay
+
+      <xenrole pool_admin>                                                     # Xen Role pool admin
+         domgroup GLOBAL_GROUP-4
+      </xenrole>
+
+      <xenrole pool_operator>                                                  # Xen Role pool operator
+         domgroup GLOBAL_GROUP-5
+      </xenrole>
+
+      <xenrole read_only>                                                      # Xen Role read only
+         domgroup GLOBAL_GROUP-RRRR
+      </xenrole>
+
+      <xenrole vm_admin>
+         domgroup GLOBAL_GROUP-2
+      </xenrole>
+
+      <xenrole vm_operator>
+         domgroup GLOBAL_GROUP-OPS
+      </xenrole>
+
+      <xenrole vm_power_admin>
+         domgroup GLOBAL_GROUP-4llll
+      </xenrole>
+   </xensrv>
+
+  <lx>                                                                         # Linux server installation settings 
+      <ntpsrv>
+          <10.10.10.246>
+          </10.10.10.246>
+          <10.10.10.248>
+          </10.10.10.248>
+          <10.10.10.247>
+          </10.10.10.247>
+          <10.10.10.99>
+              default   true
+          </10.10.10.99>
+          <10.10.10.69>
+              default   true
+          </10.10.10.69>
+      </ntpsrv>
+      <dns>
+          <10.10.10.99>
+          </10.10.10.99>
+          <10.10.10.13>
+          </10.10.10.13>
+          <10.10.10.69>
+              default   true
+          </10.10.10.69>
+      </dns>
+      <gw>
+          <10.10.11.1>
+          </10.10.11.1>
+          <10.10.10.99>
+              default   true
+          </10.10.10.99>
+          <10.10.12.99>
+          </10.10.12.99>
+      </gw>
+      <nfs>
+          <MNTmountPoint2>
+              srv   10.10.10.246
+              path   /nfstest/clones
+              descr   Test Mountpoint 2
+          </MNTmountPoint2>
+          <MNTmountPoint>
+              srv   10.10.10.246
+              default   true
+              path   /nfstest/clones
+              descr   Test Mountpoint
+          </MNTmountPoint>
+      </nfs>
+      <ver>
+          <rh6_64>
+              <model>
+                  <base>
+                      default   true
+                  </base>
+                  <zimbra>
+                  </zimbra>
+                  <syslog>
+                  </syslog>
+              </model>
+              name   RedHat Enterprise 6.x 64b
+          </rh6_64>
+          <rh5_64>
+              <model>
+                  <base>
+                      default   true
+                  </base>
+                  <syslog>
+                  </syslog>
+              </model>
+              name   RedHat Enterprise 5.x 64b
+              key   31234123123123123123
+          </rh5_64>
+          <co5_64>
+              <model>
+                  <base>
+                      default   true
+                  </base>
+                  <viis>
+                  </viis>
+                  <syslog>
+                  </syslog>
+              </model>
+              name   CentOS 5.x 64b
+          </co5_64>
+          <co7_64>
+              rootpw   rootpassword
+              <model>
+                  <base>
+                  </base>
+                  <syslog>
+                      default   true
+                  </syslog>
+              </model>
+              name   CentOS 7.x 64b
+          </co7_64>
+          <rh7_64>
+              <model>
+                  <base>
+                      default   true
+                  </base>
+              </model>
+              name   RedHat Enterprise 7.x 64b
+          </rh7_64>
+          <co6_64>
+              <model>
+                  <base>
+                  </base>
+                  <dokuwiki>
+                  </dokuwiki>
+                  <zimbra>
+                  </zimbra>
+                  <viis>
+                      default   true
+                  </viis>
+                  <syslog>
+                  </syslog>
+              </model>
+              name   CentOS 6.x 64b
+              default   true
+          </co6_64>
+      </ver>
+      rootpw   rootpw
+      <group>
+          <testgroup3>
+          </testgroup3>
+          <testgroup2>
+          </testgroup2>
+          <testgroup5>
+          </testgroup5>
+          <testgroup11>
+          </testgroup11>
+          <admingroup>
+          </admingroup>
+          <testgroup19>
+          </testgroup19>
+          <testgroup13>
+          </testgroup13>
+          <testgroup10>
+          </testgroup10>
+          <testgroup1>
+          </testgroup1>
+          <testgroup8>
+          </testgroup8>
+          <testgroup6>
+          </testgroup6>
+          <testgroup20>
+          </testgroup20>
+          <testgroup7>
+          </testgroup7>
+          <testgroup9>
+          </testgroup9>
+          <testgroup17>
+          </testgroup17>
+          <testgroup16>
+          </testgroup16>
+          <testgroup4>
+          </testgroup4>
+          <testgroup14>
+          </testgroup14>
+          <testgroup18>
+          </testgroup18>
+          <testgroup15>
+          </testgroup15>
+          <testgroup12>
+          </testgroup12>
+      </group>
+      <user>
+          <user1>
+          </user1>
+          <user4>
+          </user4>
+          <user16>
+          </user16>
+          <user3>
+              group   testgroup
+          </user3>
+          <user3>
+              descr   Testuser 3 für Rumänien
+          </user3>
+          <user6>
+          </user6>
+          <user15>
+          </user15>
+          <user9>
+          </user9>
+          <admin>
+              group   admingroup
+              pw   testtest
+          </admin>
+          <user7>
+          </user7>
+          <user13>
+          </user13>
+          <user10>
+          </user10>
+          <user8>
+          </user8>
+          <user17>
+          </user17>
+          <user5>
+          </user5>
+          <user14>
+          </user14>
+          <user12>
+          </user12>
+          <user2>
+              pw   test
+          </user2>
+          <user11>
+          </user11>
+      </user>
+      <nm>
+          <255.255.254.0>
+          </255.255.254.0>
+          <255.255.255.0>
+              default   true
+          </255.255.255.0>
+          <255.255.0.0>
+          </255.255.0.0>
+          <255.0.0.0>
+          </255.0.0.0>
+      </nm>
+      <syslog>
+          <master4>
+              ip   10.10.10.60
+              default   true
+              port   514
+          </master4>
+          <master-other-port4>
+              ip   10.10.10.60
+              port   515
+          </master-other-port4>
+          <tripple>
+              ip   10.10.10.242
+              prot   tcp
+              port   514
+          </tripple>
+          <master5>
+              ip   10.10.10.242
+              prot   udp
+              port   514
+          </master5>
+          <second4>
+              ip   10.10.10.242
+          </second4>
+      </syslog>
+      lxsuffix   lab.local
+  </lx>
+
+
+</rz>
+
+

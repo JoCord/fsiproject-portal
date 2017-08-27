@@ -1,0 +1,10 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   [% FOREACH ver IN rzconfig.rz.${vienv}.esxi.ver.keys.sort %]
+      <br> ESXi [% ver %] Updates:
+      [% TRY %]
+         <pre>[% INCLUDE  "/opt/fsi/inst/esxi$ver/ks/upd/update.lst"  %]</pre>
+      [% CATCH %]
+No update list configure on fsi server</pre>
+      [% END %]
+   [% END %]
+</div>

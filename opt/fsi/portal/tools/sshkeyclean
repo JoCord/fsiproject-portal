@@ -1,0 +1,582 @@
+#!/bin/sh
+#
+#   sshkeyclean - clean ssh key for specify server(s)
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.12 - 9.4.2016"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  clean local ssh key for specify server(s)"
+   echo
+   tput setaf 3
+   echo "  Server only parameter:"
+   tput sgr0
+   echo "   -s <server>       server to clean ssh key"
+   echo
+   tput setaf 3
+   echo "  Multiple server parameter:"
+   tput sgr0
+   echo "   -c <vc>           clean all esxi server on virtual center or ALL"
+   echo "   -m <model>        clean all linux server for model or ALL"
+   echo "   -t <tree>         clean all server for specify source tree"
+   echo "   -y <typ>          clean all server for specify typ"
+   echo "   -p <pool>         clean all xen server in specify pool or ALL"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -n                do not clean - only list server"
+   echo
+   echo "   -q                quiet mode"
+   echo "   -0/1/2            info/debug/trace mode"
+   echo "   -l <logfile>      other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no server "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s esx1.lab.local"
+   echo "    $progname -s esx1.lab.local"
+   echo "    $progname -s esx1"
+   echo "    $progname -c vcdev.lab.local"
+   echo "    $progname -m base"
+   echo "    $progname -t xen620_hp"
+   echo "    $progname -y rh"
+   echo "    $progname -v ALL"
+   echo "    $progname -p EDV_620_XA_01"
+   echo
+}
+
+
+server=""
+model=""
+tree=""
+pool=""
+vc=""
+typ=""
+nocheck=0
+sshfile="/etc/ssh/ssh_known_hosts"
+rsshfile="/root/.ssh/known_hosts"
+
+
+
+while getopts ":s:l:hHq012c:m:t:p:y:n" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "clean local ssh keys for specifyed server(s)"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server="$OPTARG"
+         debmsg " srv: $server"
+        ;;
+      "c")
+         vc="$OPTARG"
+         debmsg " vc: $vc"
+        ;;
+      "m")
+         model="$OPTARG"
+         debmsg " model: $model"
+        ;;
+      "y")
+         typ="$OPTARG"
+         debmsg " typ: $typ"
+        ;;
+      "t")
+         tree="$OPTARG"
+         debmsg " source tree: $tree"
+        ;;
+      "p")
+         pool="$OPTARG"
+         debmsg " xen pool: $pool"
+        ;;
+      "n")
+         nocheck=1
+         debmsg " no check - only list"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+if [ -z "$typ" ] && [ -z "$pool" ] && [ -z "$tree" ] && [ -z "$model" ] && [ -z "$vc" ] && [ -z "$server" ]; then
+   help
+   exit 2
+fi
+
+clean_xen() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local srv=$1
+   local pool=$2
+   
+   local pooldir="$progdir/pool"
+   local knownfiles="$pooldir/*known*"
+   local knownpoolfiles="$pooldir/known_*"$pool
+
+   infmsg "$ls delete ssh file for pool [$pool]"
+   poollistout="$(rm -f $pooldir/*$pool 2>&1)"
+   retc=$?
+   if [ $retc -eq 0 ]; then
+      infmsg "$ls create new ssh files in pool dir"         
+      $progdir/cssh2pool $quietmode -l $logfile -p $pool
+      retc=$?
+   fi
+   if [ $retc -eq 0 ]; then
+      infmsg "$ls copy new ssh known and authorized files in server config dir"         
+      $progdir/cssh2cfg $quietmode -l $logfile -p $pool
+      retc=$?
+   fi
+
+   if [ $retc -eq 0 ]; then
+      local knownfiles=$knownpoolfiles
+      infmsg "$ls  Clean all server in ssh known_hosts for pool $pool"
+   
+      tracemsg "$ls  known files: $knownfiles"
+      for file in $(ls $knownfiles ); do 
+         debmsg "$ls  work on $file"
+         while read line; do 
+            server=${line%% *}
+            infmsg "$ls  server:  $server"
+            Aserver=(${server//,/ })
+            for srv in "${Aserver[@]}";do
+               debmsg "$ls  srv: [$srv]"
+               if [ -f $sshfile ]; then
+                  sed -i "/$srv[\ ,]/d" $sshfile
+               fi
+               if [ -f $rsshfile ]; then
+                  sed -i "/$srv[\ ,]/d" $rsshfile
+               fi
+            done
+         done < "$file"
+         infmsg "$ls  copy new ssh keys"
+         cat $file >>$sshfile
+      done
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+clean_esxi() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+
+   if [ $retc -eq 0 ]; then
+      tracemsg "$ls detect online status for [$fqdn]"
+      srvonline $fqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         tracemsg "$ls  server online"
+
+         debmsg "$ls  get ssh key from server"
+         key=$(ssh-keyscan -t rsa $fqdn 2>/dev/null)
+         tracemsg "$ls  key output: [$key]"
+         debmsg "$ls  only key is important"
+         key=${key##* }
+         tracemsg "$ls  key: [$key]"
+
+         if [ "$key" == "" ]; then
+            warnmsg "$ls  key is empty - ignore"
+         else
+            if [ -f $sshfile ]; then
+               debmsg "$ls   delete old srv entries in $sshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $sshfile
+               fi
+            else
+               infmsg "$ls   no $sshfile exist - ignore"
+            fi
+            if [ -f $rsshfile ]; then
+               debmsg "$ls   delete old srv entries in $rsshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $rsshfile
+               fi
+            else
+               infmsg "$ls   no $rsshfile exist - ignore"
+            fi
+            debmsg "$ls   put new line in $sshfile"
+            echo "$fqdn,$shortname,$ip ssh-rsa $key" >>$sshfile
+         fi
+         
+      else
+         warnmsg "$ls server $fqdn is not online - ignore"
+      fi
+   fi
+   
+      
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+clean_co() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+
+   if [ $retc -eq 0 ]; then
+      tracemsg "$ls detect online status for [$fqdn]"
+      srvonline $fqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         tracemsg "$ls  server online"
+
+         debmsg "$ls  get ssh key from server"
+         key=$(ssh-keyscan -t rsa $fqdn 2>/dev/null)
+         tracemsg "$ls  key output: [$key]"
+         debmsg "$ls  only key is important"
+         key=${key##* }
+         tracemsg "$ls  key: [$key]"
+
+         if [ "$key" == "" ]; then
+            warnmsg "$ls  key is empty - ignore"
+         else
+            if [ -f $sshfile ]; then
+               debmsg "$ls   delete old srv entries in $sshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $sshfile
+               fi
+            else
+               infmsg "$ls   no $sshfile exist - ignore"
+            fi
+            if [ -f $rsshfile ]; then
+               debmsg "$ls   delete old srv entries in $rsshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $rsshfile
+               fi
+            else
+               infmsg "$ls   no $rsshfile exist - ignore"
+            fi
+            debmsg "$ls   put new line in $sshfile"
+            echo "$fqdn,$shortname,$ip ssh-rsa $key" >>$sshfile
+         fi
+         
+      else
+         warnmsg "$ls server $fqdn is not online - ignore"
+      fi
+   fi
+   
+      
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+clean_rh() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+
+   if [ $retc -eq 0 ]; then
+      tracemsg "$ls detect online status for [$fqdn]"
+      srvonline $fqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         tracemsg "$ls  server online"
+
+         debmsg "$ls  get ssh key from server"
+         key=$(ssh-keyscan -t rsa $fqdn 2>/dev/null)
+         tracemsg "$ls  key output: [$key]"
+         debmsg "$ls  only key is important"
+         key=${key##* }
+         tracemsg "$ls  key: [$key]"
+
+         if [ "$key" == "" ]; then
+            warnmsg "$ls  key is empty - ignore"
+         else
+            if [ -f $sshfile ]; then
+               debmsg "$ls   delete old srv entries in $sshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $sshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $sshfile
+               fi
+            else
+               infmsg "$ls   no $sshfile exist - ignore"
+            fi
+            if [ -f $rsshfile ]; then
+               debmsg "$ls   delete old srv entries in $rsshfile"
+               if [ -f $sshfile ]; then
+                  sed -i "/$fqdn[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$shortname[\ ,]/d" $rsshfile
+               fi
+               if [ -f $sshfile ]; then
+                  sed -i "/$ip[\ ,]/d" $rsshfile
+               fi
+            else
+               infmsg "$ls   no $rsshfile exist - ignore"
+            fi
+            debmsg "$ls   put new line in $sshfile"
+            echo "$fqdn,$shortname,$ip ssh-rsa $key" >>$sshfile
+         fi
+         
+      else
+         warnmsg "$ls server $fqdn is not online - ignore"
+      fi
+   fi
+      
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+clean_ssh_key() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local servertyp=$2
+   local serverfqdn=$3
+   local serverip=$4
+   local serverpool=$5
+   
+   case "$servertyp" in
+      "esxi")
+         clean_esxi $server $serverfqdn $serverip
+         retc=$?
+        ;;
+      "xen")
+         clean_xen $server $serverpool
+         retc=$?
+        ;;
+      "co")
+         clean_co $server $serverfqdn $serverip
+         retc=$?
+        ;;
+      "rh")
+         clean_rh $server $serverfqdn $serverip
+         retc=$?
+        ;;
+      *)
+         errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+         exit 2
+        ;;
+   esac   
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+   
+debmsg "Start $progname - $ver"
+
+if [ -z "$server" ]; then
+   checked=()
+   worked=0
+   checkcount=0
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         tracemsg "$ls [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         worked=$((worked+1))
+         tracemsg "$ls  get server data for $mac"
+         get_srv_data $mac
+         retc=$?
+         tracemsg "$ls  rc:$retc"
+         if [ $retc -eq 0 ]; then
+            if [ "$tree" != "" ] && [ "$tree" == "$srv_tree" ] && [ "$srv_tree" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for tree $srv_tree"
+               if [ $nocheck -eq 0 ]; then
+                  clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+               fi
+            elif [ "$typ" != "" ] && [ "$typ" == "$srv_typ" ] && [ "$srv_typ" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for typ $srv_typ"
+               if [ $nocheck -eq 0 ]; then
+                  clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+                  retc=$?
+               fi
+            elif [ "$model" != "" ] && [ "$srv_model" != "-" ]; then   
+               if [ "$model" == "ALL" ] || [ "$model" == "$srv_model" ]; then
+                  infmsg "$ls  linux server $srv_shortname found for model $srv_model"
+                  if [ $nocheck -eq 0 ]; then
+                     clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+                     retc=$?
+                  fi
+               fi
+            elif [ "$vc" != "" ] && [ "$srv_vc" != "-" ]; then
+               if [ "$vc" == "ALL" ] || [ "$vc" == "$srv_vc" ]; then
+                  infmsg "$ls  esxi server $srv_shortname found for vc $srv_vc"
+                  if [ $nocheck -eq 0 ]; then
+                     clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+                     retc=$?
+                  fi
+               fi
+            elif [ "$pool" != "" ] && [ "$srv_pool" != "-" ]; then   
+               if [ "$pool" == "ALL" ]; then
+                  containsElement "$srv_pool" "${checked[@]}"
+                  if [ $? -eq 1 ]; then
+                     infmsg "$ls  xen server $srv_shortname found for pool $srv_pool"
+                     if [ $nocheck -eq 0 ]; then
+                        clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+                        retc=$?
+                        if [ $retc -eq 0 ]; then
+                           checked+=($srv_pool)
+                           checkcount=$((checkcount+1))
+                        fi
+                     fi
+                  fi
+               elif [ "$pool" == "$srv_pool" ]; then
+                  infmsg "$ls  xen server $srv_shortname found for pool $srv_pool"
+                  if [ $nocheck -eq 0 ]; then
+                     clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+                     retc=$?
+                     break
+                  fi
+               fi
+            else
+               tracemsg "$ls  server $srv_shortname not in filter - ignore"
+            fi
+         fi
+      fi
+   done
+   if [ $retc -eq 0 ]; then
+      infmsg "$ls checked: $checkcount / worked: $worked"
+      
+   fi
+else
+   get_srv_data $server
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      warnmsg "$ls cannot find server data for $server - abort"
+   else
+      clean_ssh_key $srv_fqdn $srv_typ $srv_fqdn $srv_ip $srv_pool
+      retc=$?
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

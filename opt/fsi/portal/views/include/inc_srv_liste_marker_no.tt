@@ -1,0 +1,12 @@
+[% IF entries.$id.s_insterr == 'E' %]
+  <tr class="danger">
+[% ELSIF entries.$id.s_insterr == 'W' %]   
+  <tr class="warning">
+[% ELSE %]
+  <tr>
+[% END %]   
+  <td style="vertical-align: top; width: 5px;"> 
+       &nbsp;&nbsp;&nbsp;
+  </td>                     
+   [% INCLUDE 'include/inc_srv_liste_marker_rest.tt' %]
+</tr>

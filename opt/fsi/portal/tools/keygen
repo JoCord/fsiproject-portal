@@ -1,0 +1,381 @@
+#!/bin/sh
+#
+#   keygen - generate ssh and id files
+#   Copyright (C) 2012 js
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+# 
+ver="1.0.6 - 9.9.2016"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]; do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  generate ssh and id files"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -m <mac>     mac address for server config dir"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no mac "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -m 00-50-56-11-00-01"
+   echo
+}
+
+
+maccfg=""
+quietmode=""
+
+while getopts ":m:l:hHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "generate ssh and id files for a server"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "m")
+         maccfg=$OPTARG
+         debmsg " mac: $maccfg"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ -z $maccfg ]; then
+   errmsg "no mac given"
+   help
+   exit 2
+fi
+
+
+sshkeygen=/usr/bin/ssh-keygen
+
+
+debmsg "Start $progname - $ver"
+
+if [ $retc -eq 0 ]; then
+   mac=$maccfg
+   mac=$(echo $mac | tr 'A-Z' 'a-z')
+   if [[ ! $mac =~ $regex_mac ]]; then
+      warnmsg "[$mac] is not a valid MAC / Config directory - ignore"
+      retc=77
+   else
+      if [ -d "$macdir/$mac" ]; then
+         debmsg "found config dir"
+      else
+         errmsg "config dir with $mac does not exist - abort"
+         retc=98
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -f $macdir/$mac/xen6.xml ]; then
+      srv_osmain=6
+   elif [ -f $macdir/$mac/xen7.xml ]; then
+      srv_osmain=7
+   else
+      errmsg "cannot find xen xml file"
+      retc=66
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   if [ -f $macdir/$mac/xen$srv_osmain.xml ]; then
+      if [ ! -s $macdir/$mac/xen$srv_osmain.xml ]; then
+         errmsg "xen$srv_osmain.xml empty"
+         retc=97
+      else
+         debmsg "found xen$srv_osmain.xml"
+         hostname="none"
+         while read line; do
+            checkline=$line
+            if [[ "$checkline" =~ $regex_hostname ]]; then
+               debmsg "found server name"
+               host=${line##*<hostname>}
+               # echo host: $host
+               hostname=${host%</hostname>*}
+               # echo host: $hostname
+            fi
+         done < "$macdir/$mac/xen$srv_osmain.xml"
+         if [ "$hostname" == "none" ]; then
+            errmsg "Cannot find server name - abort"
+            retc=96
+         else
+            infmsg "Servername: $hostname"
+         fi
+      fi   
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ ! -s $macdir/$mac/ssh/ssh_host_key -o ! -s $macdir/$mac/ssh/ssh_host_key.pub ]; then
+      if [ -f $macdir/$mac/ssh/ssh_host_key ]; then
+         debmsg " remove old ssh_host file"
+         OUTPUT=$(2>&1 rm $macdir/$mac/ssh/ssh_host_key)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      if [ -f $macdir/$mac/ssh/ssh_host_key.pub ]; then
+         debmsg " remove old ssh_host pub file"
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/ssh_host_key.pub)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+
+      infmsg " create ssh_host_key"
+      OUTPUT=$(2>&1 $sshkeygen -q -t rsa1 -f $macdir/$mac/ssh/ssh_host_key -N "" -C "root@$hostname" )
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg " ok"
+      else
+         errmsg "cannot create ssh_host_key rc=$retc"
+         errmsg "$OUTPUT"
+      fi
+      
+      # < /dev/null > /dev/null 2> /dev/null
+   else
+      warnmsg " ssh_host_keys already exist - ignore"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ ! -s $macdir/$mac/ssh/ssh_host_rsa_key -o ! -s $macdir/$mac/ssh/ssh_host_rsa_key.pub ]; then
+      if [ -f $macdir/$mac/ssh/ssh_host_rsa_key ]; then
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/ssh_host_rsa_key)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      if [ -f $macdir/$mac/ssh/ssh_host_rsa_key.pub ]; then
+   	   OUTPUT=$(2>&1 rm /etc/ssh_host_rsa_key.pub)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      $sshkeygen -q -t rsa -f $macdir/$mac/ssh/ssh_host_rsa_key -N "" -C "root@$hostname" < /dev/null > /dev/null 2> /dev/null
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg "Created ssh_host_rsa_key"
+      else
+         errmsg "cannot create ssh_host_key rc=$retc"
+         errmsg "$OUTPUT"
+      fi
+
+   else
+      warnmsg " ssh_host_rsa_keys already exist - ignore"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ ! -s $macdir/$mac/ssh/ssh_host_dsa_key -o ! -s $macdir/$mac/ssh/ssh_host_dsa_key.pub ]; then
+      if [ -f $macdir/$mac/ssh/ssh_host_dsa_key ]; then
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/ssh_host_dsa_key)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      if [ -f $macdir/$mac/ssh/ssh_host_dsa_key.pub ]; then
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/ssh_host_dsa_key.pub)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      $sshkeygen -q -t dsa -f $macdir/$mac/ssh/ssh_host_dsa_key -N "" -C "root@$hostname" < /dev/null > /dev/null 2> /dev/null
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg "Created ssh_host_dsa_key"
+      else
+         errmsg "cannot create ssh_host_key rc=$retc"
+         errmsg "$OUTPUT"
+      fi
+   else
+      warnmsg " ssh_host_dsa_keys already exist - ignore"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ ! -s $macdir/$mac/ssh/id_rsa -o ! -s $macdir/$mac/ssh/id_rsa.pub ]; then
+      if [ -f $macdir/$mac/ssh/id_rsa ]; then
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/id_rsa)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      if [ -f $macdir/$mac/ssh/id_rsa.pub ]; then
+   	   OUTPUT=$(2>&1 rm $macdir/$mac/ssh/id_rsa.pub)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot remove ssh_host_key.pub rc=$retc"
+            errmsg "$OUTPUT"
+         fi
+      fi
+      $sshkeygen -q -t rsa -f $macdir/$mac/ssh/id_rsa -C "root@$hostname" -N "" < /dev/null > /dev/null 2> /dev/null
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg "Created id_rsa"
+      else
+         errmsg "cannot create id_rsa rc=$retc"
+         errmsg "$OUTPUT"
+      fi
+   else
+      warnmsg " id_rsa keys already exist - ignore"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   debmsg " change mode"
+   OUTPUT=$(2>&1 chmod 0644 $macdir/$mac/ssh/*)
+   retc=$?
+   if [ $retc -eq 0 ]; then
+      debmsg " ok"
+   else
+      errmsg "cannot chmod files rc=$retc"
+      errmsg "$OUTPUT"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -f $macdir/$mac/cert/$hostname.p12 ]; then
+      infmsg "convert p12 file from db pki to pem"
+      OUTPUT=$(2>&1 openssl pkcs12 -in $macdir/$mac/cert/xen$srv_osmain.p12 -out $macdir/$mac/cert/xen$srv_osmain.pem -nodes)
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg " ok"
+         debmsg " change mode"
+         OUTPUT=$(2>&1 chmod 0644 $macdir/$mac/cert/*)
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg " ok"
+         else
+            errmsg "cannot chmod files rc=$retc"
+            errmsg "$OUTPUT"
+         fi      else
+         errmsg "cannot remove ssh_host_key.pub rc=$retc"
+         errmsg "$OUTPUT"
+      fi
+   else
+      warnmsg " no cert to convert exist - ignore"
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

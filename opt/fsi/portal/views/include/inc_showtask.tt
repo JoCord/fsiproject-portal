@@ -1,0 +1,18 @@
+<div id="myShowTask" class="modal fade modal-xl" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+   <div class="modal-content modal-xl">
+   <div class="modal-header modal-xl">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Taskinfo</h2>
+   </div>
+
+   <div class="modal-body modal-xl">
+     <div id="logstart"></div><object class="logobject"></object><div id="logend"></div>
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>

@@ -1,0 +1,4 @@
+DEFAULT co6_64
+LABEL co6_64
+ KERNEL img/co6_64/vmlinuz
+ APPEND ks=http://##VITEMP##/pxe/sys/##MAC##/co6_64.cfg initrd=img/co6_64/initrd.img ramdisk_size=100000 ksdevice=eth0 ip=dhcp

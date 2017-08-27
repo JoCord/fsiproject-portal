@@ -1,0 +1,24 @@
+# Mail Config
+#
+<email js>
+           to        js@lab.com                                                       # to email
+           sr        mail.lab.local                                                   # smtp relay server
+           fr        vmc@lab.local                                                    # from email
+           xu        js@lab.com                                                       # esmtp user
+           xp        ##verschluesseltesPW##                                           # esmtp pw
+           bo        "Dies ist eine\n = neue email"                                   # alternativ ok email body
+           be        "Error\n\njs"                                                    # alternativ error email body
+           tls       no                                                               # yes, no, auto
+           scon      "VM is online"                                                   # alternativ subject
+           scofnb    "VM offline - no parameter to boot vm - vm still off"
+           scofbe    "VM offline - want to start but error"
+           scofon    "VM offline - start was ok"
+           scs       "VM is supsended"
+           ssu       "VM has unknown status"
+           bcon      "VM is online"                                                   # alternativ body
+           bcofnb    "VM offline - no parameter to boot vm - vm still off"
+           bcofbe    "VM offline - want to start but error"
+           bcofon    "VM offline - start was ok"
+           bcs       "VM is supsended"
+           bsu       "VM has unknown status"
+</email>

@@ -1,0 +1,55 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   [% IF srvhash.xenvms.size %]
+      <table class="table table-condensed table-hover table-striped" >
+       <thead>
+         <tr>
+         <td> VM name </td>
+         <td> UUID </td>
+         <td> Power state </td>
+         <td> Start time </td>
+         <td> Install time </td>
+         <td> OS version </td>
+         <td> Disks </td>
+         <td> UsedMem </td>
+         <td> VCPUs </td>
+         </tr>
+       </thead>
+       <tbody>
+            [% FOREACH vmuuid IN srvhash.xenvms.keys %]
+               <tr>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('name-label') %]
+                  </td>
+                  <td>
+                     [% vmuuid %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('power-state') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('start-time') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('install-time') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('os-version') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('disks') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('memory-actual') %]
+                  </td>
+                  <td>
+                     [% srvhash.xenvms.$vmuuid.item('VCPUs-max') %]
+                  </td>
+               </tr>
+            [% END %]
+       </tbody>  
+      </table>
+   [% ELSE %]
+      &nbsp;&nbsp;no running vms found on this server
+   [% END %]
+</div>

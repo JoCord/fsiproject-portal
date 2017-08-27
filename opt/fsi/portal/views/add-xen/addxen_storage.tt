@@ -1,0 +1,42 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="width: 10px;"></td>
+      <td>Please choose one or more storage repositories:</td>
+   </tr>
+   <tr>
+      <td style="width: 10px;"></td>
+      <td>
+         <select multiple class="form-control" name="SR" style="height: 585px; width: 1210px;">
+            [% FOREACH id IN rzconfig.rz.${vienv}.xensrv.sr.keys.sort %]
+               [% textfarbe="#000000" %]
+               [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.shared == "ha" %]
+                  [% textfarbe="#04B404" %]
+               [% END %]
+               [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.typ == "niso" %]
+                  [% textfarbe="#FF8000" %]
+               [% END %]
+               [% fontart="normal" %]
+               [% fontg="normal" %]
+               [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.default == "true" %]
+                  [% fontg="bold" %]
+               [% END %]
+               
+               [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.select == "true" %]
+                  [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.tag == "" %]
+                     <option style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]" selected>[% rzconfig.rz.${vienv}.xensrv.sr.$id.web %]</option>
+                  [% ELSE %]
+                     <option data-toggle='tooltip' data-trigger='focus' data-placement='top' title='[% rzconfig.rz.${vienv}.xensrv.sr.$id.tag %]' style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]" selected>[% rzconfig.rz.${vienv}.xensrv.sr.$id.web %]</option>
+                  [% END %]
+               [% ELSE %]
+                  [% IF rzconfig.rz.${vienv}.xensrv.sr.$id.tag == "" %]
+                     <option style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]">[% rzconfig.rz.${vienv}.xensrv.sr.$id.web %]</option>
+                  [% ELSE %]
+                     <option data-toggle='tooltip' data-trigger='focus' data-placement='top' title='[% rzconfig.rz.${vienv}.xensrv.sr.$id.tag %]' style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]">[% rzconfig.rz.${vienv}.xensrv.sr.$id.web %]</option>
+                  [% END %]
+               [% END %]
+            [% END %]
+            <option style="font-family:courier;" value="NONE">Do not install a NFS SR</option>
+         </select>
+      </td>
+   </tr>
+</table>

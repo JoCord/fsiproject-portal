@@ -1,0 +1,277 @@
+<form action="showxp" method=post>
+  [% IF session.logged_in %]
+    [% INCLUDE 'layouts/global.tt' %]   
+
+    <div class=headerline>
+        [% INCLUDE 'headerline/normal.tt' %]
+    </div>   
+     
+     <div style="width:1238px;">
+         
+         [% SET haon="not" %]
+         [% SET xenvererr="no" %]
+         [% SET xenver="unknown" %]
+         [% FOREACH id IN entries.keys.nsort.reverse %]
+            [% IF entries.$id.db_control == pool %]
+              [% IF xenver == "unknown" %]
+                  [% set xenver=entries.$id.db_typ %]
+              [% ELSE %]
+                  [% IF xenver != entries.$id.db_typ %]
+                     [% SET xenvererr="yes" %]            
+                  [% END %]
+              [% END %]
+            [% END %]
+         [% END %]
+
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+              <tr class="fsitableheader">
+              <td style="width: 800px;"><div>Detailed info for pool : [% pool %] </div></td>
+               [% TRY %]
+                  [% SET BLOCKRELOAD="YES" %]
+                  <td style="text-align: right; font-weight: normal;">[% INCLUDE  "$global.pathinst/$xenver/ks/pool/$pool/info.last"  %] &nbsp;<button class="btn btn-link" style="padding: 0px 0px;" name="DelReadFlag" value="[% pool %]" ><i class="fa fa-refresh fa-fw"></i></button>&nbsp;</td>
+               [% CATCH %]
+                  [% SET BLOCKRELOAD="NO" %]
+                  <td style="text-align: right; font-weight: normal;">reading ...&nbsp;<i class="fa fa-refresh fa-spin fa-fw"></i>&nbsp;</td>
+                  <script>
+                     var GetInfoID = setInterval( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+                     $('#ShowOverviewPage').on('show.bs.dropdown', function (e) {
+                         clearInterval(GetInfoID); 
+                     });
+                     $('#ShowOverviewPage').on('hide.bs.dropdown', function (e) {
+                         var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+                     });
+                  </script>
+               [% END %]
+           </tr>
+         </table>
+
+          [% INCLUDE 'help/help_showxp.tt' %] 
+          [% INCLUDE 'view-xp/inc_delpatchdir.tt' %] 
+          [% INCLUDE 'view-xp/inc_dns.tt' %] 
+          [% INCLUDE 'view-xp/inc_ntp.tt' %] 
+          [% INCLUDE 'view-xp/inc_dom.tt' %] 
+          [% INCLUDE 'view-xp/inc_syslog.tt' %] 
+          [% INCLUDE 'view-xp/inc_delxpd.tt' %] 
+          [% INCLUDE 'view-xp/inc_chkmaster.tt' %] 
+          [% INCLUDE 'view-xp/inc_ha.tt' %] 
+          [% INCLUDE 'view-xp/inc_delmsgpool.tt' %] 
+          [% INCLUDE 'view-xp/inc_delblockpool.tt' %] 
+          [% INCLUDE 'view-xp/inc_delpoolrun.tt' %] 
+          [% INCLUDE 'view-xp/inc_myUpdateVIScripts.tt' %] 
+          [% INCLUDE 'view-xp/inc_myDeploySSHKeys.tt' %] 
+
+
+
+         [% SET poolblock="not" %]
+         [% SET poolblockuser="fsi" %]
+         [% SET mastersrv='none' %]
+         [% SET masterid='none' %]
+
+         [% FOREACH id IN entries.keys.nsort.reverse %]
+            [% IF entries.$id.db_control == pool %]
+               [% IF entries.$id.s_xenha == "H" %]
+                  [% SET haon="H" %]
+               [% ELSIF entries.$id.s_xenha == "h" %]
+                  [% SET haon="h" %]
+               [% END %]   
+               [% IF entries.$id.s_xenha == "H" %]
+                  [% SET haon="H" %]
+               [% ELSIF entries.$id.s_xenha == "h" %]
+                  [% SET haon="h" %]
+               [% END %]   
+               [% IF entries.$id.s_block == "B" %]
+                  [% SET poolblock="B" %]
+                  [% SET poolblockuser=entries.$id.block_user %]
+               [% END %]   
+               [% IF entries.$id.s_xenmaster == 'M' %]
+                  [% SET mastersrv=entries.$id.db_srv %]
+                  [% SET masterid=entries.$id.id %]
+               [% END %]
+            [% END %]
+         [% END %]
+
+
+         <script type="text/javascript">
+            $(document).ready(function(){
+               $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+                  localStorage.setItem('activeTab', $(e.target).attr('href'));
+               });
+               var activeTab = localStorage.getItem('activeTab');
+               if(activeTab){
+                  $('#myTabs a[href="' + activeTab + '"]').tab('show');
+               }
+            });
+         </script>
+
+         <ul class="nav nav-tabs" id="myTabs">
+            <li class="active"><a href="#pool_srv" data-toggle="tab">Server List</a></li>  
+            [% IF nets.size %]
+               <li><a href="#pool_net" data-toggle="tab">Network Config</a></li>  
+            [% ELSE %]
+               <li class="disabled"><a href="#" data-toggle="tab disabled">Network Config</a></li>  
+            [% END %]
+            [% IF srs.size %]
+               <li><a href="#pool_storage" data-toggle="tab">Storage Config</a></li> 
+            [% ELSE %]
+               <li class="disabled"><a href="#" data-toggle="tab disabled">Storage Config</a></li> 
+            [% END %]
+
+            [% IF master.item('domain') %]             
+               <li><a href="#pool_domain" data-toggle="tab">Domain Config</a></li>
+            [% END %]   
+
+            <div style="display: none;">
+            [% TRY %]
+               [% SET masterdnsfile="/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/info/" _ mastersrv _ "/dns" %]
+               [% INCLUDE $masterdnsfile %]</div>
+               <li><a href="#pool_dns" data-toggle="tab">NTP/DNS</a></li> 
+               <li><a href="#pool_syslog" data-toggle="tab">Syslog</a></li> 
+               <li><a href="#pool_ssh" data-toggle="tab">SSH</a></li> 
+            [% CATCH %]
+               </div><li class="disabled"><a href="#" data-toggle="tab disabled">NTP/DNS</a></li> 
+               <li class="disabled"><a href="#" data-toggle="tab disabled">Syslog</a></li> 
+               <li class="disabled"><a href="#" data-toggle="tab disabled">SSH</a></li> 
+            [% END %]
+
+            [% IF haon == "H"
+               OR haon == "h" %]
+               <li><a href="#pool_ha" data-toggle="tab">HA</a></li>
+            [% END %]
+            [% IF hosts.size %]
+               <li><a href="#pool_vm" data-toggle="tab">VM List</a></li>  
+            [% ELSE %]
+               <li class="disabled"><a href="#" data-toggle="tab disabled">VM List</a></li>  
+            [% END %]
+               
+            <li><a href="#pool_update" data-toggle="tab">Update</a></li>
+
+            [% IF session.role.match('XenAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+               <li><a href="#pool_actions" data-toggle="tab">Actions</a></li>
+            [% END %]
+
+         </ul>
+
+         <div id="myTabs" class="tab-content">
+            <div style="height: 620px;" class="tab-pane active" id="pool_srv">
+               [% INCLUDE 'view-xp/srv.tt' %]       
+            </div>
+            [% IF nets.size %]
+               <div style="height: 620px;" class="tab-pane" id="pool_net">
+                  [% INCLUDE 'view-xp/net.tt' %]       
+               </div>
+            [% END %]            
+            [% IF srs.size %]
+               <div style="height: 620px;" class="tab-pane" id="pool_storage">
+                  [% INCLUDE 'view-xp/sr.tt' %]       
+               </div>
+            [% END %]            
+            <div style="height: 620px;" class="tab-pane" id="pool_domain">
+               [% INCLUDE 'view-xp/dom.tt' %]       
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="pool_ha">
+               [% INCLUDE 'view-xp/ha.tt' %]       
+            </div>
+
+
+            <div style="height: 620px;" class="tab-pane" id="pool_dns">
+               [% INCLUDE 'view-xp/dns.tt' %]       
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="pool_syslog">
+               [% INCLUDE 'view-xp/syslog.tt' %]       
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="pool_ssh">
+               [% INCLUDE 'view-xp/ssh.tt' %]       
+            </div>
+
+
+            <div style="height: 620px;" class="tab-pane" id="pool_vm">
+               [% INCLUDE 'view-xp/vm.tt' %]       
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="pool_update">
+               [% INCLUDE 'view-xp/upd.tt' %]       
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="pool_actions">
+               [% INCLUDE 'view-xp/action.tt' %]       
+            </div>
+         </div>
+      </div>
+
+<script>
+    $(document).ready(function () {
+       $("#fsi_xpnet")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["storage", "saveSort", "uitheme", "filter", "scroller"],
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 576,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+             }
+       });
+   
+       $("#fsi_xpsr")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["storage", "saveSort", "uitheme", "filter", "scroller"],
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 576,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+             }
+       });
+
+       $("#fsi_vms")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter", "scroller", "stickyHeaders"],
+             headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        }
+                   },
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 536,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+                scroller_addFixedOverlay: true,
+             }
+       });
+
+       $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+           $('.tab-pane.active').find('table').trigger('applyWidgets');
+           // $(window).resize();
+       });              
+    });
+</script>
+
+  [% END %]
+</form>
+

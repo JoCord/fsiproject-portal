@@ -1,0 +1,100 @@
+</br>
+<table class="table table-no-border">
+   <tr class="danger">
+      <td style="width:120px">
+         <a href="#myDelPoolDir" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_abort-icon.png" alt="" /> DelPoolDir</a>
+      </td>
+      <td>PowerOff all server in pool and del pool config dir</td>
+   </tr>
+   <tr>
+      <td>
+         <a href="#myChkMaster" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Symbols-Find-icon.png" alt="" /> ChkMaster</a>
+      </td>
+      <td>Check if master changed or remained the same</td>
+   </tr>
+   <tr>
+      [% IF haon == "H" %]
+      <td>
+         <a href="#myHAoff" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_two-arrow.png" alt="" /> DisableHA</a>
+      </td>
+      <td>Disable HA</td>
+      [% ELSIF haon == "h" %]<td>
+         <a href="#myHAon" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_two-arrow.png" alt="" /> EnableHA</a>
+      </td>
+      <td>Enable HA in this pool</td>
+      [% END %]
+   </tr>
+   
+[% FOREACH id IN entries.keys.nsort.reverse %]
+   [% IF entries.$id.db_control == pool %]
+      [% IF entries.$id.s_msg %]
+      <tr>
+         <td>
+            <a href="#myDelMsg" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_two-arrow.png" alt="" /> ResetMsg</a>
+         </td>
+         <td>Reset pool error and message</td>
+      </tr>
+         [% LAST %]
+      [% END %]
+   [% END %]
+[% END %]
+
+[% FOREACH id IN entries.keys.nsort.reverse %]
+   [% IF entries.$id.db_control == pool %]
+      [% IF entries.$id.s_block %]
+         <tr>
+            <td>
+               <a href="#myDelBlock" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Play-Mode-Repeat-All-Hot-icon.png" alt="" /> ResetBlock</a>
+            </td>
+            <td>Reset pool blockade</td>
+         </tr>
+         [% LAST %]
+      [% END %]
+   [% END %]
+[% END %]
+
+
+[% SET poolrunfile="" %]
+[% TRY %]
+   [% USE File("/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/pool.run/xenserver") %]
+      [% poolrunfile = "/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/pool.run/xenserver" %]
+[% CATCH File %]      
+[% END %]
+
+[% IF poolrunfile != "" %]
+      <tr>
+         <td>
+            <a href="#myDelPoolRun" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Trash-icon.png" alt="" /> DelPoolRun</a>
+         </td>
+         <td>Delete Pool Installation Running Directory</td>
+      </tr>
+[% END %]
+
+   <tr>
+      <td>
+         <a href="#myUpdateVIScripts" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Apps-system-software-update-icon2.png" alt="" /> Update Scripts</a>
+      </td>
+      <td>Update and copy all fsi management scripts to all server in pool</td>
+   </tr>
+   
+   <tr>
+      <td>
+         <a href="#myDeploySSHKeys" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_key-icon.png" alt="" /> Deploy SSH</a>
+      </td>
+      <td>Deploy ssh keys for pool to all server in pool</td>
+   </tr>
+
+   <tr>
+      <td>
+         <a href="#CleanPatches" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Broom-icon.png" alt="" /> Clean Patch</a>
+      </td>
+      <td>Clean on all server unused patch dirs</td>
+   </tr>
+
+   <tr>
+      <td>
+         <a href="/mgmt_srs/[% pool %]" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_storage_list.png" alt="" /> Manage fc SRs</a>
+      </td>
+      <td>Manage fibre channel LUN storage repositories (SR)</td>
+   </tr>
+</table>      

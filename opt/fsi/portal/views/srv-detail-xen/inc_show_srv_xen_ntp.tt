@@ -1,0 +1,19 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <h2>NTP Config: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/ntp"  %]</pre>
+   [% CATCH %]
+ No ntp config information found</pre>
+   [% END %]
+   <br>
+   <h2>XenServer DNS config: [% TRY %][% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/dns"  %][% CATCH %]no dns config found[% END %]</h2>
+   <br>
+   <h2>DNS resolv.conf :</h2>   
+   <div>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/resolv"  %]</pre>
+   [% CATCH %]
+ No resolv.conf config information found</pre>
+   [% END %]
+   </div>
+</div>

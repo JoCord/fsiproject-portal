@@ -1,0 +1,16 @@
+[% use MAC = String entries.db_mac %]
+[% macadr = MAC.replace(':','-') %]
+[% kscfg = "/opt/fsi/pxe/sys/$macadr/ks-${entries.item('db_typ')}.cfg" %]
+
+<br>
+<h2>ESXi ks config file: [% kscfg %]</h2>
+
+<div style="width:1238px;height:588px;overflow:auto;">
+   [% TRY %]
+      <pre>[% INCLUDE $kscfg  %]</pre>
+      [% IF session.role.match('Admin') OR  session.role == "Master" %]&nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% kscfg %]:[% entries.db_srv %]:space" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit Conf&nbsp;&nbsp;</button>[% END %]
+   [% CATCH %]
+ No ks.cfg config information found</pre>
+   [% END %]
+
+</div>

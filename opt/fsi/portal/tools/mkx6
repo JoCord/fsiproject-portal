@@ -1,0 +1,1220 @@
+#!/bin/sh
+#
+#   create server config
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+# 
+#
+ver="2.1.11 - 10.03.2017"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+insttmpl="default"
+netcount=0
+srcount=0
+ipcount=0
+rolecount=0
+mac=""
+srv=""
+ip=""
+gateway=""
+mgmtnm=""
+pool=""
+syslog=""
+licsrv=""
+lictyp="free"
+licport=27000
+declare -a ntpsrv
+ntpcount=0
+dnsdom=""
+dnssearch=""
+declare -a dnssrv
+dnscount=0
+mgmtpw=""
+mgmtu="root"
+pwhash=""
+shortdom=""
+longdom=""
+ou=""
+domprot=""
+xenver="620"
+mmode="no"
+emptypar="_empty_"
+rctype="none"
+rcparms=""
+jpfirst="true"
+multipath="none"
+
+inst_count=0
+inst_package=""
+
+
+fsisrv=$(ip a s|sed -ne '/127.0.0.1/!{s/^[ \t]*inet[ \t]*\([0-9.]\+\)\/.*$/\1/p}'|head -n 1) 
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  Create xen server configuration files"
+   echo
+   tput setaf 3
+   echo "  Single Parameter:"
+   tput sgr0
+   echo "   -o <dnsdom>                                                              = dns domain"
+   echo "   -d <dnssearch>                                                           = dns search suffix"
+   echo "   -p <pool name>[,<join pool first>]                                       = pool name, optinal: pool join - default first pool than domain = true, false"
+   echo "   -w <password>                                                            = root password"
+   echo "   -m                                                                       = set srv in maintain mode after install"
+   echo "   -M <multipath handler>                                                   = set multipath to true, default = none, e.g. dmp"
+   echo "   -e <ntp srv[,srv]..>                                                     = ntp server(s), comma separated "
+   echo "   -b <lic type>[,<lic srv>][,<lic port>]                                   = xen type (default=free), lic srv ip and port (default=27000)"
+   echo "   -y <syslog>                                                              = syslog server, if exist"
+   echo "   -c <mac>,<host name>,<host ip>,<ip gateway mgmt>[,<ip netmask mgmt>]     = Host base config"
+   echo
+   tput setaf 3
+   echo "  Multiple Parameter:"
+   tput sgr0
+   echo "   -a <name srv>                                                            = name server (up to three, min one)"
+   echo "   -i <networkname>,<ip>[,<typ>]                                            = ip config"
+   echo "   -I <inst package>                                                        = install additional package e.g. mc"
+   echo "   -n <bond>,<vlan>,<net name>,<descr>                                      = vlan networks"
+   echo "   -s <sr name>,<ip>,<path>,<typ>,<create>                                  = create storage repository"
+   echo "      [, shared=(_true_/false/ha[,mhf])]                                      optional: shared parameter, ha means activate HA in xenpool"
+   echo "      [, marked in vip as default =(true/_false_)][,Tag flags]                optional sr parameter"
+   echo
+   tput setaf 3
+   echo "  Optional Remote Control"
+   tput sgr0
+   echo "   -r <rc type>,[<parameter list for mkrc in rc dir>]                       = type (same as dir name) default = none"
+   echo "                                                                              parameter different, call mkrc for help - all as one string!"
+   echo
+   tput setaf 3
+   echo "  Optional Joins Domain"
+   tput sgr0
+   echo "   -j <short dom>,<dns dom>,<ou>,<dom usr>,<dom pw>[,<_icmp_/tcp/off>]      = base domain config"
+   echo "   -g <domain group>,<xen rolle>                                            = domain groups and roles"
+   echo
+   echo "   Xen Roles: role pool-admin,pool-operator,read-only,vm-admin,vm-operator,vm-power-admin"
+   echo
+   tput setaf 3
+   echo "  Override:"
+   tput sgr0
+   echo "   -x <xen version>                                                         = override default $xenver"
+   echo "   -t <template>                                                            = override default template"
+   echo "   -v <vi temp ip>                                                          = override found ip"
+   echo "   -z <rz>                                                                  = override found rz"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                                                                       = quiet mode"
+   echo "   -0/1/2                                                                   = info/debug/trace mode"
+   echo "   -l <logfile>                                                             = other logfile"
+   echo   
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = one or more parameter not given "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Found:"
+   tput sgr0
+   echo "   RZ: $rz"
+   echo "   fsi Server: $fsisrv"
+   echo "   Xen default version: $xenver"
+   echo
+}
+
+# tracemsg "  OPTIND starts at $OPTIND"
+while getopts ":b:y:p:c:l:g:i:e:v:x:w:a:z:o:mM:t:d:n:s:l:j:hHq012r:" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "create xenserver configuration files"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "m")                                                                                                  # -m
+         debmsg "set server in maintain mode"
+         mmode="yes"
+        ;;
+      "M")                                                                                                  # -m
+         multipath="$OPTARG"
+         debmsg "set server multipath [$multipath]"
+        ;;
+      "o")                                                                                                  # -o <dnsdom>
+         dnsdom=$OPTARG
+         debmsg "dns domain config found [$dnsdom]"
+        ;;
+      "d")                                                                                                  # -d <dnssearch>
+         dnssearch=$OPTARG
+         debmsg "dns search config found [$dnssearch]"
+        ;;
+      "x")                                                                                                  # -x <xen version>  - override default 6.20
+         xenver=$OPTARG
+         debmsg "xen server version override found [$xenver]"
+         srv_osmain=${xenver:0:1}
+         debmsg "xen main version [$srv_osmain]"
+        ;;
+      "p")                                                                                                  # -p <pool name>[,<pool join first>]
+         debmsg "pool name config found"
+         param=(${OPTARG//,/ })
+         if [ ${#param[@]} -eq 1 ]; then  
+            pool=${param[0]}
+         elif  [ ${#param[@]} -eq 2 ]; then  
+            pool=${param[0]}
+            jpfirst=${param[1]}
+            jpfirst=$( "$jpfirst" | tr '[:upper:]' '[:lower:]')
+            if [ "$jpfirst" == "true" ]; then
+               infmsg "  first join xenpool, than domain"
+            elif [ "$jpfirst" == "false" ]; then
+               infmsg "  first join domain, than xenpool"
+            else
+               errmsg "wrong parameter for jpfirst - abort"
+               exit 99
+            fi
+         fi
+        ;;
+      "w")                                                                                                  # -w <password>
+         debmsg " mgmt user password found"
+         mgmtpw=$OPTARG
+         salt="fsi"$(openssl rand -base64 32)
+         pwhash=$(perl -e 'print crypt("'$mgmtpw'","\$6\$'${salt}'\$")')
+        ;;
+      "t")                                                                                                  # -t <template>, default
+         insttmpl=$OPTARG
+         debmsg "template override found: $insttmpl"
+        ;;
+      "z")                                                                                                  # -z <rz> - override found rz
+         rz=$OPTARG
+         debmsg "rz override found: $rz"
+        ;;
+      "v")                                                                                                  # -v <vi temp ip>  - override found ip
+         fsisrv=$OPTARG
+         debmsg "fsi server ip override found"
+        ;;
+      "a")                                                                                                  # -a <dns srv ip>
+         debmsg "name server config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         
+         if [ ${#param[@]} -eq 1 ]; then  
+            debmsg " dns srv ip given"
+            dnscount=$((dnscount + 1))
+            dnssrv[$dnscount]=${param[0]}
+         else   
+            errmsg "Parameter count for -a : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "r")                                                                                                  # -r <rc type>,[<parameter list for mkrc in rc dir>] 
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         if [[ $temppar == ,* ]]; then
+            tracemsg "first parameter empty"
+            temppar=$emptypar$temppar
+         fi
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 3 ]; then  
+            errmsg "to much parameter for -w"
+            exit 99
+         else
+            if [ "${param[0]}" == "" ]; then         
+               tracemsg "no rc_desc given - take default"
+            else
+               rctype=${param[0]//_js_/ }
+               tracemsg "rctype $rctype"
+            fi
+            if [ "${param[1]}" == "" ]; then         
+               tracemsg "no parameter given"
+            else
+               rcparms=${param[1]//_js_/ }
+               tracemsg "rcparms: $rcparms"
+            fi
+         fi
+        ;;      
+      "j")                                                                                                  # -j <short dom>,<dns dom>,<ou>,<dom user>,<dom pw>[,<_icmp_/tcp>]
+         debmsg "join domain config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 6 ]; then  
+            debmsg "ok"
+            shortdom=${param[0]}
+            longdom=${param[1]}
+            ou=${param[2]}
+            domusr=${param[3]}
+            dompw=${param[4]}
+            domprot=${param[5]}
+         elif [ ${#param[@]} -eq 5 ]; then  
+            debmsg "ok"
+            shortdom=${param[0]}
+            longdom=${param[1]}
+            ou=${param[2]}
+            domusr=${param[3]}
+            dompw=${param[4]}
+            domprot="icmp"
+        else   
+           errmsg "Parameter count -j : ${#param[@]} = not ok"
+           exit 99
+        fi
+        ;;
+      "g")                                                                                                  # -g <domain group>,<xen role>
+         debmsg "xen role and group config for join domain found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 2 ]; then  
+            debmsg "ok"
+            rolecount=$((rolecount + 1))
+            xengroup[$rolecount]=${param[0]}
+            xenrole[$rolecount]=${param[1]}
+        else   
+           debmsg "Parameter count -g : ${#param[@]} = not ok"
+           exit 99
+        fi
+        ;;
+      "i")                                                                                                  # -i <networkname>,<ip>,<typ>
+         debmsg "IP network config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 2 ]; then  
+            debmsg "ok - no typ"
+            ipcount=$((ipcount + 1))
+            ipnet[$ipcount]=${param[0]}
+            ipcfg[$ipcount]=${param[1]}
+            iptyp[$ipcount]="none"
+         elif  [ ${#param[@]} -eq 3 ]; then  
+            debmsg "ok - with typ"
+            ipcount=$((ipcount + 1))
+            ipnet[$ipcount]=${param[0]}
+            ipcfg[$ipcount]=${param[1]}
+            iptyp[$ipcount]=${param[2]}
+         else   
+            errmsg "Parameter count -i : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "I")                                                                                                  # -i <package>
+         debmsg "Additional package install flag found"
+         param=(${OPTARG//,/ })
+         if [ ${#param[@]} -eq 1 ]; then  
+            debmsg "ok"
+            inst_count=$((inst_count + 1))
+            inst_package[$inst_count]=${param[0]}
+         else   
+            errmsg "Parameter count for -I : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "e")                                                                                                  # -e <ntp srv>
+         debmsg "Settings for ntp found"
+         newntp=${OPTARG}
+         OLD_IFS=$IFS
+         IFS=$','
+         for i in $newntp; do
+            if [[ "$i" =~ $regex_ip_dns ]]; then
+               ntpcount=$((ntpcount + 1))
+               ntpsrv[$ntpcount]=$i
+            else
+               errmsg "no correct ip or dns [$i] - ignore"
+            fi
+         done 
+         IFS=$OLD_IFS
+         if [ $ntpcount -eq 0 ]; then
+            errmsg "no correct ntp server found [$newntp] - abort"
+            exit 99
+         fi
+        ;;
+      "b")                                                                                                  # -b xen type (default=free), lic srv ip and port (default=27000)" 
+         debmsg "Settings for license found"
+         param=(${OPTARG//,/ })
+         if [ ${#param[@]} -eq 1 ]; then  
+            lictyp=${param[0]}
+            lictyp=$(echo "$lictyp" | tr '[:upper:]' '[:lower:]')
+            if [ "$lictyp" != "free" ]; then
+               errmsg " ony lic type free possible - with other lic type you need a server ip at least"
+               exit 99
+            fi
+         elif  [ ${#param[@]} -eq 2 ]; then  
+            lictyp=${param[0]}
+            lictyp=$(echo "$lictyp" | tr '[:upper:]' '[:lower:]')
+            licsrv=${param[1]}
+         elif  [ ${#param[@]} -eq 3 ]; then  
+            lictyp=${param[0]}
+            lictyp=$(echo "$lictyp" | tr '[:upper:]' '[:lower:]')
+            licsrv=${param[1]}
+            licport=${param[2]}
+         else   
+            errmsg "Parameter count -b : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "y")                                                                                                  # -y <syslog>
+         debmsg "Settings for syslog found"
+         param=(${OPTARG//,/ })
+         if [ ${#param[@]} -eq 1 ]; then  
+            debmsg "ok"
+            syslog=${param[0]}
+         else   
+            errmsg "Parameter count -y : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "c")                                                                                                  # -c <mac>,<host name>,<host ip>,<ip gateway mgmt><ip netmask mgmt>
+         debmsg "PC config found"
+         param=(${OPTARG//,/ })
+         if [ ${#param[@]} -eq 4 ]; then  
+            mac=${param[0]}
+            mac=$(echo $mac | tr 'A-Z' 'a-z')
+            if [[ ! $mac =~ $regex_mac ]]; then
+               errmsg "[$mac] is not a valid MAC directory - ignore"
+               exit 77
+            fi 
+            mac=$(echo $mac | tr ':' '-')                               
+            host=${param[1]}
+            ip=${param[2]}
+            gateway=${param[3]}
+         elif [ ${#param[@]} -eq 5 ]; then  
+            mac=${param[0]}
+            mac=$(echo $mac | tr 'A-Z' 'a-z')
+            if [[ ! $mac =~ $regex_mac ]]; then
+               errmsg "[$mac] is not a valid MAC directory - ignore"
+               exit 77
+            fi 
+            mac=$(echo $mac | tr ':' '-')
+            host=${param[1]}
+            ip=${param[2]}
+            gateway=${param[3]}
+            mgmtnm=${param[4]}
+         else   
+            errmsg "Parameter count -c : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "n")                                                                                                   # -n <bond><vlan>,<net name>,<descr>
+         debmsg "Network config found"
+         temppar=${OPTARG// /_js_}
+         # echo "temp: ${temppar[@]}"
+         param=(${temppar//,/ })
+         # echo "param: $param" 
+         if [ ${#param[@]} -eq 4 ]; then  
+            debmsg "ok"
+            netcount=$((netcount + 1))
+            netbind[$netcount]=${param[0]}
+            netvlan[$netcount]=${param[1]}
+            netname[$netcount]=${param[2]}
+            netdesc[$netcount]=${param[3]}
+         else   
+            errmsg "Parameter count -n : ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;
+      "s")                                                                                                  # -s <sr name>,<ip>,<path>,<typ>,<create>[, shared=(_true_,false,ha[,mhf])][, vip default=(true/_false_)][,Tag flags] 
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         param=(${temppar//,/ })
+         tracemsg "SR config found [${#param[@]}][$temppar]"
+
+         if [ ${#param[@]} -gt 9 ]; then  
+            errmsg "to much parameter for -s"
+            exit 99
+         elif [ ${#param[@]} -lt 5 ]; then  
+            errmsg "to less parameter for -s"
+            exit 99
+         else
+            debmsg "ok"
+            srcount=$((srcount + 1))
+            srname[$srcount]=${param[0]}
+            srip[$srcount]=${param[1]}
+            srpath[$srcount]=${param[2]}
+            srtyp[$srcount]=${param[3]}
+            srcreate[$srcount]=${param[4]}
+
+            if [ "${param[5]}" == "$emptypar" ] || [ "${param[5]}" == "" ]; then         
+               tracemsg "no shared parameter found - take default = true"
+               srshared[$srcount]="true" 
+               if [ "${param[6]}" == "$emptypar" ] || [ "${param[6]}" == "" ]; then         
+                  srdefault[$srcount]="false"
+               else
+                  srdefault[$srcount]=${param[6]}
+               fi
+               if [ "${param[7]}" == "$emptypar" ] || [ "${param[7]}" == "" ]; then         
+                  tracemsg "no tag given for ${param[0]}"
+                  srtag[$srcount]="_NO_"
+               else
+                  tracemsg "tag configure"
+                  srtag[$srcount]=${param[7]//_js_/ }
+               fi
+            else
+               srshared[$srcount]=${param[5]}
+               if [ ${srshared[$srcount]} == "ha" ]; then
+                  if [ "${param[6]}" == "$emptypar" ] || [ "${param[6]}" == "" ]; then         
+                     srmhf[$srcount]=2
+                  else
+                     srmhf[$srcount]=${param[6]}
+                  fi
+                  
+                  if [ "${param[7]}" == "$emptypar" ] || [ "${param[7]}" == "" ]; then         
+                     srdefault[$srcount]="false"
+                  else
+                     srdefault[$srcount]=${param[7]}
+                  fi
+                  if [ "${param[8]}" == "$emptypar" ] || [ "${param[8]}" == "" ]; then         
+                     tracemsg "no tag given for ${param[0]}"
+                     srtag[$srcount]="_NO_"
+                  else
+                     tracemsg "tag configure"
+                     srtag[$srcount]=${param[8]//_js_/ }
+                  fi
+               else
+                  if [ "${param[6]}" == "$emptypar" ] || [ "${param[6]}" == "" ]; then         
+                     srdefault[$srcount]="false"
+                  else
+                     srdefault[$srcount]=${param[6]}
+                  fi
+                  if [ "${param[7]}" == "$emptypar" ] || [ "${param[7]}" == "" ]; then         
+                     tracemsg "no tag given for ${param[0]}"
+                     srtag[$srcount]="_NO_"
+                  else
+                     tracemsg "tag configure"
+                     srtag[$srcount]=${param[7]//_js_/ }
+                  fi
+               fi
+            fi
+         fi
+        ;;
+      "?")
+        echo "Unknown option $OPTARG"
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+   esac
+    # echo "OPTIND is now $OPTIND"
+done
+
+if [ -z $mgmtpw ] || [ -z $mac ] || [ -z $pool ] || [ -z $dnssrv[1] ] || [ -z $dnsdom ] || [ -z $dnssearch ]; then
+   help
+   exit 1
+fi
+
+debmsg "Now test if all parameter given"
+if [[ -z $mgmtpw ]]; then
+   errmsg "No password given - abort"
+   help
+   exit 2
+fi
+if [[ -z $mac ]]; then
+   errmsg "No server config given - mac, ip, gateway ... - abort"
+   help
+   exit 2
+fi
+if [[ -z $pool ]]; then
+   errmsg "No pool name given - abort"
+   help
+   exit 2
+fi
+if [[ -z $dnssrv[1] ]]; then
+   errmsg "No name server given - abort"
+   help
+   exit 2
+fi
+if [[ -z $dnsdom ]]; then
+   errmsg "No dns domain given - abort"
+   help
+   exit 2
+fi
+if [[ -z $dnssearch ]]; then
+   errmsg "No dns search string given - abort"
+   help
+   exit 2
+fi
+if [[ -z $mgmtnm ]]; then
+   mgmtnm="255.255.255.0"
+fi
+
+infmsg "All needed parameter found - start creating config now"
+
+
+
+
+
+debmsg "Start $progname - $ver"
+
+template="${progdir}/template/xen${xenver}-${insttmpl}"
+rcmacdir="$rcsysdir/$mac"
+
+
+if [ $retc -eq 0 ]; then
+   if [ -d $template ]; then
+      infmsg "found xenserver install template"
+   else
+      errmsg "cannot find xenserver install template [$template]"
+      exit 77
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -d "$macdir/$mac" ]; then
+      errmsg "found install config dir - abort"
+      exit 99
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -d $rcmacdir ]; then
+      errmsg "found remote control config dir - abort"
+      exit 99
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   tracemsg "check if given ip already ping / online"
+   for i in "${!ipnet[@]}"; do
+      tracemsg "  => ${ipcfg[$i]}"
+      ping -c 2 ${ipcfg[$i]} 2>&1 >/dev/null
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         errmsg "can ping server ip [${ipcfg[$i]}] - maybe double ip adr found - abort"
+         retc=99
+      fi
+   done 
+fi
+
+  
+# Erst Config-Dir erstellen
+   
+if [ $retc -eq 0 ]; then
+   debmsg "create config dir"
+   OUTPUT=$(2>&1 mkdir "$macdir/$mac")
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot create mac config dir - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   debmsg "create cert dir"
+   OUTPUT=$(2>&1 mkdir "$macdir/$mac/cert")
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot create cert in config dir - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi
+   
+if [ $retc -eq 0 ]; then
+   debmsg "create ssh dir"
+   OUTPUT=$(2>&1 mkdir "$macdir/$mac/ssh")
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot create ssh in config dir - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi
+
+
+
+if [ $retc -eq 0 ]; then
+   infmsg "copy plain config files from template [$insttmpl]"
+   OUTPUT=$(2>&1 /bin/cp $template/*.* $macdir/$mac)
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot copy template files - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi   
+
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change xen$srv_osmain.xml config file now:"
+   infmsg " Change hostname"
+   change "##HOSTNAME##" $host $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change vi temp server"
+   change "##FSISRV##" $fsisrv $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change ip"
+   change "##IP##" $ip $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change gateway"
+   change "##GATEWAY##" $gateway $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change netmask"
+   change "##NETMASK##" $mgmtnm $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change password in xen$srv_osmain.xml"
+   change "##PWH##" $pwhash $macdir/$mac/xen$srv_osmain.xml
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Configure name server now:"
+   if [ ${#dnssrv[@]} -eq 0 ]; then
+      warnmsg "  No dns srv ip found - exit"
+      exit 99
+   else
+      infmsg "  dns srv ip config found"
+      for i in "${!dnssrv[@]}"; do
+         infmsg "   configure dns srv: ${dnssrv[$i]}"
+         cat >>$macdir/$mac/xen$srv_osmain.xml << EODNSSRV
+   <nameserver>${dnssrv[$i]}</nameserver>
+EODNSSRV
+      done
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [[ $ntpcount -eq 0 ]]; then
+      warnmsg "  No ntp server configure - abort"
+      exit 99
+   else
+      infmsg " Add ntp server config"
+      echo "<time-config-method>ntp</time-config-method>" >>$macdir/$mac/xen$srv_osmain.xml
+      retc=$?
+      if [ $retc -ne 0 ]; then
+         errmsg "cannot add ntp to $macdir/$mac/xen$srv_osmain.xml"
+      else
+         for i in "${!ntpsrv[@]}"; do
+            infmsg "   configure ntp srv: ${ntpsrv[$i]}"
+            cat >>$macdir/$mac/xen$srv_osmain.xml << EONTP
+   <ntp-server>${ntpsrv[$i]}</ntp-server>
+EONTP
+         done
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+      infmsg "  close xen$srv_osmain.xml"
+      cat >>$macdir/$mac/xen$srv_osmain.xml << EOEND
+</installation>
+EOEND
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change xen$srv_osmain.pxe config file now:"
+   infmsg " Change vi temp server"
+   change "##FSISRV##" $fsisrv $macdir/$mac/xen$srv_osmain.pxe
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change mac"
+   change "##MAC##" $mac $macdir/$mac/xen$srv_osmain.pxe
+   retc=$?
+fi
+
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change xen$srv_osmain.pool config file now:"
+   infmsg " Change fsi server"
+   change "##FSISRV##" $fsisrv $macdir/$mac/xen$srv_osmain.pool
+   retc=$?
+fi
+
+
+if [ $retc -eq 0 ]; then
+   if [ -z $syslog ]; then
+      warnmsg "  no syslog server given - ignore"
+   else
+      infmsg " Change syslog server"
+      cat >>$macdir/$mac/xen$srv_osmain.pool << 'EOSYS'
+<fileadd /etc/syslog.conf>
+    <line kern.notice @##SYSLOG##>
+    </line>
+    <line daemon.notice @##SYSLOG##>
+    </line>
+    <line auth.info @##SYSLOG##>
+    </line>
+    <line kern.notice @##SYSLOG##>
+    </line>
+    <line daemon.notice @##SYSLOG##>
+    </line>
+    <line auth.info @##SYSLOG##>
+    </line>
+    <line cron.notice @##SYSLOG##>
+    </line>
+    <line mail.info @##SYSLOG##>
+    </line>
+    <line user.info @##SYSLOG##>
+    </line>
+    <line local1.info @##SYSLOG##>
+    </line>
+    <line local2.info @##SYSLOG##>
+    </line>
+    <line local3.info @##SYSLOG##>
+    </line>
+    <line local4.info @##SYSLOG##>
+    </line>
+    <line local5.info @##SYSLOG##>
+    </line>
+    <line local6.info @##SYSLOG##>
+    </line>
+    <line local7.info @##SYSLOG##>
+    </line>
+</fileadd>  
+
+EOSYS
+      change "##SYSLOG##" $syslog $macdir/$mac/xen$srv_osmain.pool
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Configure vlan networks now:"
+   
+   if [ ${#netname[@]} -eq 0 ]; then
+      warnmsg "  No vlan network config found - jump over"
+   else
+      infmsg "  vlan network config found"
+      for i in "${!netname[@]}"; do
+         infmsg "   configure ${netname[$i]}"
+         tempdesc=${netdesc[$i]}
+         tempdesc=${tempdesc//_js_/ }
+         cat >>$macdir/$mac/xen$srv_osmain.pool << EONET
+<net ${netname[$i]}>
+        bond ${netbind[$i]}
+        vlan ${netvlan[$i]}
+        descr $tempdesc
+</net>
+EONET
+      done
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change rz"
+   change "##RZ##" $rz $macdir/$mac/xen$srv_osmain.pool
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change dnssearch string"
+   change "##DNSSEARCH##" $dnssearch $macdir/$mac/xen$srv_osmain.pool
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Configure storage repository now:"
+   if [ ${#srname[@]} -eq 0 ]; then
+      warnmsg "  No sr config found - jump over"
+   else
+      infmsg "  sr config found"
+      for i in "${!srname[@]}"; do
+         infmsg "   configure ${srname[$i]}"
+         cat >>$macdir/$mac/xen$srv_osmain.pool << EndOfSR1
+<storage ${srname[$i]}>
+  do ${srcreate[$i]}
+  typ ${srtyp[$i]}
+  srv ${srip[$i]}
+  path ${srpath[$i]}
+  default ${srdefault[$i]}
+EndOfSR1
+
+         if [ "${srshared[$i]}" == "ha" ]; then
+            cat >>$macdir/$mac/xen$srv_osmain.pool << EndOfSR2
+  shared ${srshared[$i]}
+  mhf ${srmhf[$i]}
+</storage>   
+EndOfSR2
+         else
+            cat >>$macdir/$mac/xen$srv_osmain.pool << EndOfSR3
+  shared ${srshared[$i]}
+</storage>
+EndOfSR3
+         fi
+         
+         if [ "${srtag[$i]}" == "_NO_" ]; then
+            tracemsg "   no tags for this storage repository"
+         else
+            infmsg "   found tag ${srtag[$i]}"
+            cat >>$macdir/$mac/xen$srv_osmain.pool << EndOfSRTag
+<tag ${srname[$i]}_SR_Tag>
+    typ sr
+    to ${srname[$i]}
+    do add
+    key ${srtag[$i]}
+</tag>
+EndOfSRTag
+         fi  
+            
+      done
+   fi
+fi
+         
+if [ $retc -eq 0 ]; then         
+   if [ -z $shortdom ]; then   
+      infmsg " No domain join"
+   else
+      infmsg " Domain join configure"
+      pw=$dompw
+      crypw
+      cat >>$macdir/$mac/xen$srv_osmain.pool << EODOM1
+<domain $shortdom>
+    dnsdom $longdom
+    user  $domusr
+    pw    $pwv
+    pwc   $pwc
+EODOM1
+      if [ $ou != "" ]; then
+      cat >>$macdir/$mac/xen$srv_osmain.pool << EODOM2
+    ou    $ou
+EODOM2
+      fi
+      cat >>$macdir/$mac/xen$srv_osmain.pool << EODOM3
+    contyp $domprot  
+EODOM3
+      for i in "${!xenrole[@]}"; do
+         cat >>$macdir/$mac/xen$srv_osmain.pool << EODOM4
+    <group ${xengroup[$i]}>
+       role ${xenrole[$i]}
+    </group>
+EODOM4
+      done
+      cat >>$macdir/$mac/xen$srv_osmain.pool << EODOM5
+</domain>
+EODOM5
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change xen$srv_osmain.conf config file now:"
+   infmsg " Change vi fsi server"
+   change "##FSISRV##" $fsisrv $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   if [ -z $syslog ]; then
+      warnmsg "  no syslog server given - ignore"
+   else
+      infmsg " Change syslog server"
+      change_param 'syslogsrv' "'"$syslog"'" $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change rz"
+   change_param "xenenv" "'"$rz"'" $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " Change rz"
+   echo 'hostcomment="XenServer RZ '$rz'"' >>$macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change pool name"
+   change_param "pool" "'"$pool"'" $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+
+
+if [ $retc -eq 0 ]; then
+   if [ -z $licsrv ]; then
+      infmsg " no lic server given - ignore"
+   else
+      infmsg " add lic server"
+      change_param 'licsrv' "'"$licsrv"'" $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         infmsg " add lic server por"
+         change_param 'licport' "'"$licport"'" $macdir/$mac/xen$srv_osmain.conf
+         retc=$?
+      fi
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   infmsg " add lic typ"
+   change_param 'liced' "'"$lictyp"'" $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ $multipath != "none" ]; then
+      infmsg " set multipath in xen$srv_osmain.conf"
+      change_param 'multipath' "'"$multipath"'" $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change dns domain"
+   change_param "dnsdom" "'"$dnsdom"'" $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+fi
+
+
+
+if [ $retc -eq 0 ]; then
+   infmsg " Check if additional packages need to install"
+   if [ $inst_count -gt 0 ]; then
+      infmsg "  install $inst_count packages"
+      for i in "${!inst_package[@]}"; do
+         tracemsg "  => ${inst_package[$i]}"
+         change_param "inst_${inst_package[$i]}" "'true'" $macdir/$mac/xen$srv_osmain.conf
+         ping -c 2 ${ipcfg[$i]} 2>&1 >/dev/null
+         retc=$?
+         if [ $retc -ne 0 ]; then
+            errmsg "cannot set inst_${inst_package[$i]} - rc=$retc"
+            break
+         fi
+      done 
+   else
+      infmsg "  no packages to install found - ignore"
+   fi
+fi
+
+
+
+
+if [ $retc -eq 0 ]; then
+   mkdir -p "$rcmacdir"
+   retc=$?
+   if [ $retc -eq 0 ]; then
+      pw=$mgmtpw
+      crypw
+      echo 'srv_cmd="ssh://<% entries.$id.mgmt_ip %>"' >$rcmacdir/rc.ini
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         change_param 'srv_type' '"ssh"' $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_pw' "'"$pwv"'" $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_pwc' $pwc $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_user' "'"$mgmtu"'" $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         if [ "$rctype" == "none" ]; then
+            infmsg "$ls  no remote control type given, save only mgmt config in rc.ini"
+            change_param 'rc_type' '"none"' $rcmacdir/rc.ini
+         elif [ "$rcparms" == "" ]; then
+            infmsg "$ls  no rc params given, save only mgmt config in rc.ini"
+            change_param 'rc_type' '"none"' $rcmacdir/rc.ini
+         else
+            infmsg "$ls  found remote control type $rctype"
+            change_param 'rc_type' "'"$rctype"'" $rcmacdir/rc.ini
+            if [ -f $rcbindir/$rctype/mkrc ]; then
+               tracemsg "cmd: $rcbindir/$rctype/mkrc $quietmode -l $logfile -m $mac $rcparms"
+               $rcbindir/$rctype/mkrc $quietmode -l $logfile -m $mac $rcparms                         # rcparms: e.g. hpilo => '-p <password> -i <ilo ip> [-u <ilo user>]'
+               retc=$?
+               if [ $retc -eq 0 ]; then
+                  debmsg " external mkrc call ok"
+               else
+                  errmsg " external mkrc call failed"
+               fi
+            else
+               errmsg "cannot find mkrc from rc type $rctype - ignore parameters, set rc_type=none"
+               change_param 'rc_type' "none" $rcmacdir/rc.ini
+            fi
+         fi
+      fi
+   else
+      errmsg "cannot create remote control mac sys dir [$rcmacdir]"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " set pool pw in xen$srv_osmain.conf"
+   
+   change_param 'poolpw' "'"$pwv"'" $macdir/$mac/xen$srv_osmain.conf
+   retc=$?
+   if [ $retc -eq 0 ]; then
+      change_param 'poolu' "'"root"'" $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   fi
+   if [ $retc -eq 0 ]; then
+      change_param 'poolc' $pwc $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$jpfirst" == "true" ]; then
+      infmsg " set jpfirst mode to true"
+      change_param 'jpfirst' '"true"' $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   elif [ "$jpfirst" == "false" ]; then      
+      infmsg " set jpfirst mode to false"
+      change_param 'jpfirst' '"false"' $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   else
+      errmsg "unsupported jpfirst parameter - abort"
+      exit 99
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$mmode" == "yes" ]; then
+      infmsg " set maintain mode"
+      change_param  'maintenancemode' '"yes"' $macdir/$mac/xen$srv_osmain.conf
+      retc=$?
+   fi
+fi
+
+
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change xen$srv_osmain.ext config file now:"
+   for i in "${!ipnet[@]}"; do
+      infmsg " configure ${ipnet[$i]}"
+      cat >>$macdir/$mac/xen$srv_osmain.ext << EOIP1
+<net ${ipnet[$i]}> 
+EOIP1
+      if [ ${iptyp[$i]} == "none" ]; then 
+         debmsg "  no typ set"
+      else
+        cat >>$macdir/$mac/xen$srv_osmain.ext << EOIP2   
+        typ ${iptyp[$i]}
+EOIP2
+      fi
+      cat >>$macdir/$mac/xen$srv_osmain.ext << EOIP3 
+        ip ${ipcfg[$i]}
+        netmask 255.255.255.0 
+</net>
+EOIP3
+   done
+fi   
+
+
+
+if [ $retc -eq 0 ]; then
+   if [ -f "$progdir/cert/$mac.p12" ]; then
+      infmsg "found cert file - copy to config dir"
+      OUTPUT=$(2>&1 cp $progdir/tools/cert/$mac.p12 $macdir/$mac/cert/xen$srv_osmain.p12)
+      retc=$?
+      if [ $retc -ne 0 ]; then
+         errmsg "cannot create cert file - $retc "
+         errmsg "$OUTPUT"
+      else
+         debmsg "ok"
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "Call Keygen script"
+   $progdir/keygen -l $logfile -m $mac 
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "Call Create-Pool-SSH-Files script"
+   $progdir/cssh2pool -l $logfile -p $pool
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "Make SSH Pool $pool files .."
+   $progdir/cssh2cfg -l $logfile -p $pool 
+   retc=$?
+fi
+
+if [ $retc -ne 0 ]; then
+   warnmsg "$ls  cleanup config files to rubbish"
+   if [ -d $rcmacdir ]; then
+      tracemsg "$ls   move rc config dir to rubbish"
+      mv --backup -f $rcmacdir/ $progdir/../rubbish/xen-rcsys_$mac_$(date +%Y%m%d%H%M%S)/
+   fi
+   if [ -d "$macdir/$mac" ]; then
+      tracemsg "$ls   move inst config dir to rubbish"
+      mv --backup -f $macdir/$mac $progdir/../rubbish/xen-pxesys_$mac_$(date +%Y%m%d%H%M%S)/
+   fi
+fi
+
+
+
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

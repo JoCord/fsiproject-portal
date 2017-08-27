@@ -1,0 +1,147 @@
+@font-face {
+    font-family: 'archivo_narrowregular';
+    src: url('../fonts/archivonarrow-regular-webfont.eot');
+    src: url('../fonts/archivonarrow-regular-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/archivonarrow-regular-webfont.woff') format('woff'),
+         url('../fonts/archivonarrow-regular-webfont.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+div.list .table-condensed{
+  margin-bottom: 1px !important;
+}
+
+div.list .table-condensed td {
+  padding: 1px 1px !important;
+}
+
+.bootstrap-select.btn-group .dropdown-menu li > a {
+  text-decoration: none;
+}
+
+#status-count {
+   margin-bottom: 10px; 
+   height: 20px; 
+   text-align: right;
+   padding-left: 20px;
+}
+
+div.vipuser tbody {
+   width: 1238px; 
+   height: 600px;
+   overflow: auto; 
+   display: block; 
+}
+div.vipuser thead {
+   width: 1238px; 
+   overflow: auto; 
+   display: block; 
+}
+
+div.vcstartview tbody {
+   width: 770px; 
+   height: 598px;
+   overflow: auto; 
+   display: block; 
+}
+div.vcstartview thead {
+   width: 770px; 
+   overflow: auto; 
+   display: block; 
+}
+
+div.vcinfoview tbody {
+   width: 300px; 
+   height: 596px;
+   overflow: auto; 
+   display: block; 
+}
+div.vcinfoview thead {
+   width: 300px; 
+   overflow: auto; 
+   display: block; 
+}
+
+div.overview tbody {
+   width: 1238px; 
+   height: 680px;
+   overflow: auto; 
+   display: block; 
+}
+
+div.overview thead {
+   width: 1238px; 
+   overflow: auto; 
+   display: block; 
+}
+
+div.overview .table-condensed td {
+  padding: 1px 1px !important;
+}
+
+div.srvadd td {
+  padding: 5px 5px !important;
+}
+
+
+
+button.menubut:hover{
+  text-decoration: none;
+  color: #262626;
+}
+
+li.menubut:hover{
+  color: #262626;
+  -moz-text-decoration-color: #262626;
+  text-decoration: none;
+  background-color: #f5f5f5;
+
+  background-image: -moz-linear-gradient(top, #E8E8E8, #F5F5F5);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#E8E8E8), to(#F5F5F5));
+  background-image: -webkit-linear-gradient(top, #E8E8E8, #F5F5F5);
+  background-image: -o-linear-gradient(top, #E8E8E8, #F5F5F5);
+  background-image: linear-gradient(to bottom, #E8E8E8, #F5F5F5);
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#E8E8E8', endColorstr='#F5F5F5', GradientType=0);
+
+
+
+}
+
+button.menubut {
+    -moz-text-blink: none;
+    -moz-text-decoration-color: -moz-use-text-color;
+    -moz-text-decoration-line: none;
+    -moz-text-decoration-style: solid;
+    background:none!important;
+    border:none; 
+    font-family: archivo_narrowregular;
+    clear: both;
+    cursor: pointer;
+    color: #333333;
+    display: block;
+    font-weight: normal;
+    line-height: 20px;
+    padding-bottom: 3px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 3px;
+    white-space: nowrap;
+}
+
+
+
+
+
+
+#nt-title li {
+   font-size: 14px;
+   color: #4E4E4E;
+   white-space: nowrap;
+   list-style: none;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+

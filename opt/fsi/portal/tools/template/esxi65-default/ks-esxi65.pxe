@@ -1,0 +1,4 @@
+DEFAULT esxi65
+LABEL esxi65
+  kernel img/esxi65/mboot.c32
+  append -c sys/##MAC##/ks-esxi65-boot.cfg

@@ -1,0 +1,56 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <h2>Physical NICs: </h2>
+   <table class="table table-condensed table-hover table-striped" >
+    <thead class="fsisectionheader">
+      <tr>
+      <td> Device </td>
+      <td> MTU </td>
+      <td> MAC </td>
+      <td> Vendor </td>
+      <td> Dev.Name </td>
+      <td> Speed </td>
+      <td> Duplex </td>
+      <td> Attached </td>
+      </tr>
+    </thead>
+    <tbody>
+      [% FOREACH key IN srvhash.xenpifs.keys %]
+        [% IF srvhash.xenpifs.$key.item('physical') == 'true' %]
+         <tr>
+            <td>
+               [% srvhash.xenpifs.$key.item('device') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('MTU') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('MAC') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('vendor-name') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('device-name') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('speed') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('duplex') %]
+            </td>
+            <td>
+               [% srvhash.xenpifs.$key.item('currently-attached') %]
+            </td>
+         </tr>
+       [% END %]
+      [% END %]
+    </tbody>  
+   </table>
+   <h2>NIC versions: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/nicsdetail"  %]</pre>
+   [% CATCH %]
+ No version info found for network cards</pre>
+   [% END %]
+   
+</div>

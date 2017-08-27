@@ -1,0 +1,307 @@
+Tests descriptions
+
+Version: 2.08
+Date   : 3.11.2015
+
+
+Environment Overview:
+---------------------------------------
+
+Minimal   Optimal
+1*        2*      Nativ VLAN for Mgmt server with DHCP + PXE configuration
+1*        2*      Storage VLAN
+1*        2*      Storage NAS with NFS exports
+1*        2*      VLAN for user networks
+1*        2*      fsi server
+1*        2*      ESXi Server for VC VM, XenCenter Windows VM and Develop VMs
+3*        4*      Server or Blades for Testinstallation ESXi
+4*        8*      Server or Blades for Testinstallation Xenserver
+
+
+The following test should be performed BEFORE released and rollout fsi:
+-----------------------------------------------------------------------
+
+Report problems and extensions back to me, please.
+
+
+1. Test: fsi portal - login
+   1.1. login with wrong userid and/or password
+   
+2. Test: fsi portal - Add Server in new pool
+   2.1. new Xenserver 
+   2.2. no deploy ssh files
+   2.3. optional: choose only one VLAN or SR
+  
+3. Test: fsi portal - Add Server in exiting Pool
+   3.1. add new Xenserver
+   3.2. deploy ssh files
+   3.3. Pool Counter check / check ssh file on master & existing member
+   3.4. optional: choose only one VLAN or SR
+
+4. Test: fsi portal Menu Admin -> Update DB
+   4.1. add or copy new configuration in sys dir
+   4.2. Admin -> Update DB
+   4.3. check if server exist in server overview
+   
+5. Test: fsi portal - Install Server
+   5.1. Start installation [I]
+   5.2. check flags and messages in server overview
+   5.3. check if symlink in pxelinux.cfg exist
+
+6. Test: fsi portal - Abort Install Server
+   6.1. Start installation [I]
+   6.2. Check messages in server overview
+   6.3. Check if symlink exist in pxelinux.cfg directory
+   6.4. Abort installation [A]
+   6.5. Check messages in server overview
+   6.6. Check if no symlink exist in pxelinux.cfg dir
+
+7. Test: fsi portal - Del ESXi server 
+   7.1. [R] Remove Server -> enter
+   7.2. Check rubbish dir if old configuration exist
+   7.3. Check symlinks
+   
+8. Test: fsi portal - show logfiles
+   8.1. Create a dummy logfile
+   8.2. Check server in server overview 
+   8.3. Delete logfile
+   8.4. Again, check server in server overview - log menu is deactivated
+   
+9. Test: fsi portal - Remove Server Xenserver
+   9.1. fsi portal server overview remove a server [R]
+   9.2. Check counter for Xenserver in pool
+   9.3. Check pool ssh files (in cfg, pool and of all other Xenserver in pool)
+   9.4. Check if config dir moved to rubbish dir
+   9.5. Check if all symlink for this server deleted
+   9.6. If last server in pool, check if pool-dir is deleted
+      
+10. Test: fsi portal - multiple remove server 
+   10.1. first create different new server - at least 3
+   10.2. mark more than 2 server and "remove server" 
+   10.3. see 9 and 7 for checks
+   
+11. Test: fsi portal - multiple install start
+   11.1. mark different server
+   11.2. install server
+   11.3. check symlink
+   11.4. all logfiles deleted?
+   
+12. Test: fsi portal - multiple Stop Install  
+   12.1. verschiedene Server merkieren
+   12.2. Abort Server
+   12.3. Symlinks müssten wieder gelöscht sein
+   
+13. Test: fsi portal - Install different Version ESXi & Xenserver 
+   13.1. Testszenarien für ESXi 4.1u2 und 5.1
+   13.2. Testszenarien für Xenserver 6.02, 6.10 und 6.20
+   
+14. Test: fsi portal - Eingabemaske für Xen
+   14.1. Erstellung Xenserver Config
+   14.2. verschiedene Felder leer lassen
+   14.3. zweiten DNS löschen (mit -)
+   14.4. vorbelegte Felder (mit grauem Text) editieren / ändern
+   
+15. Test: fsi portal - Mehrfach und Einzel-Markierung und "Marked Jobs" CALL
+   15.1. einen Server auswählen und unten Jobs durchführen
+   15.2. zwei und mehr Server auswählen und unten Jobs auswählen
+   15.3. mark all Server und unten Jobs auswählen
+   
+16. Test: fsi portal - Installationstest mit einem Server in Maintenance Mode
+   16.1. Pool aufbauen, 1 Server in MM
+   16.2. Neuaufbau eines zusätzliches Servers
+   16.3. Update der Server
+
+17. Test: Xen - Aufbau Pool, auto Master 
+   17.1. 4 Server in einem Pool konfigurieren
+   17.2. alle Server gleichzeitig starten.
+
+18. Test: Xen - 1 Server nachinstallieren
+   18.1. 4 Server in einem Pool konfigurieren
+   18.2. 3 Server gleichzeitig starten, 1 Server poweroff
+   18.3. Nachdem Pool komplett fertig ist, den 4. Server einschalten
+   
+19. Test: Xen - Nacheinander Installation
+   19.1. 4 Server in einem Pool konfigurieren
+   19.2. 2 Server gleichzeitig einschalten, 2 Server poweroff
+   19.3. Pool fertig -> einen weiteren Server einschalten
+   19.4. 3. Server fertig -> 4. Server einschalten
+   
+20. Test: Xen - Bestehender Pool neuen Server hinzufügen
+   20.1. 3 Server in einem Pool konfigurieren
+   20.2. Pool aufbauen
+   20.3. 4. Server konfigurieren
+   20.4. 4. Server poweron
+   
+21. Test: Xen - Server Pool mit Patches versorgen
+   21.1. 4 Server in Pool konfig
+   21.2. ACHTUNG: 2 oder mehr Patches aus update.lst rausnehmen
+   21.3. 3 Server im Pool komplett aufbauen
+   21.4. update.lst wieder ein Patch reinnehmen
+   21.5. fsiupdate auf Master (über Poolview oder über Overview)
+   21.6. fsiupdate auf allen Membern
+   21.7. 4. Server einschalten und schauen ob alle bis dahin freigeschaltenen
+        Patches installiert werden
+        
+22. Test: Xen - Patches update + neuen Server 
+   22.1. 3 Server in Pool konfig
+   22.2. ACHTUNG: 2 oder mehr Patches aus update.lst rausnehmen
+   22.3. 2 Server im Pool komplett aufbauen
+   22.4. update.lst wieder ein Patch reinnehmen
+   22.5. fsiupdate auf Master
+   22.6. fsiupdate auf allen Membern
+   22.7. 3. Server einschalten und schauen ob alle bis dahin freigeschaltenen
+         Patches installiert werden
+   22.8. 4. Server für Pool konfigurieren
+   22.9. 4. Server installieren lassen
+      
+23. Test: Xen - mit Domain join vor Pool join
+
+24. Test: Xen - mit Domain join nach Pool join
+
+25. Test: Xen - bei Update Paketen testen ob beinhaltete Pakete mit installiert werden
+   25.1. 3 Server in Pool konfig
+   25.2. ACHTUNG: 2 oder mehr Patches aus update.lst rausnehmen
+   25.3. 2 Server im Pool komplett aufbauen
+   25.4. update.lst wieder ein Patch rausnehmen, der bei einem anderen mit drin ist (XS602E23 beinhaltet E20)
+   25.5. fsiupdate auf Master
+   25.6. fsiupdate auf allen Membern
+   25.7. 3. Server einschalten und schauen ob alle bis dahin freigeschaltenen
+         Patches installiert werden
+   25.8. 4. Server für Pool konfigurieren
+   25.9. 4. Server installieren lassen
+   
+26. Test: Xen - Delete Xenserver
+   26.1. 3 Server mit Pool P1
+   26.2. 1 Server aus Pool P1 löschen - Konfig vom alten Pool bereinigen
+            - fsi portal - blade ausschalten
+            - fsi portal - log file löschen
+            - fsi portal - remove server
+            - xencenter forget + remove from pool
+            - clean ssh
+            - poolview ssh deploy
+            
+27. Test: Xen - Move Xenserver von Pool 1 nach Pool 2            
+   27.1. 3 Server mit Pool P1 und 2 Server mit Pool P2
+   27.2. 1 Server aus Pool P1 löschen - Konfig vom alten Pool bereinigen
+            - blade ausschalten
+            - log file löschen
+            - mac config dir löschen
+            - im /opt/pxe/sys/bin/pool 2 ssh pool file löschen
+            - cssh2pool.sh P1
+            - ssh2server P1
+            - xencenter forget + remove from pool
+   27.3. 1 neuen Server in Pool P2 hinzufügen
+         - bestehende "create" Datei erweitern - alte Xenserver Zeilen auskommentieren 
+           und neue kopieren und mit den Werten Anpassen (ACHTUNG: sehr sorgfältig, bei 
+           Fehlern bitte bei mir melden oder die Konfigfiles im MAC Dir & Zeile 
+           nachträglich von Hand anpassen)
+         - cssh2server.sh die neuen poolweiten SSH verteilen (bei den neuen Servern 
+           kommt dann offline - dort werden sie ja bei der Neuinstallation verteilt)
+         - hw settings überprüfen
+         - force pxe
+         - blade einschalten 
+   
+28. Test: Xen - Delete/Defekt Xen Pool Master    
+   28.1. 3 Server mit Pool P1
+   28.2. Master Server aus Pool P1 löschen - Konfig vom alten Pool bereinigen
+            - blade ausschalten
+            - log file löschen
+            - mac config dir löschen
+            - im /opt/pxe/sys/bin/pool 2 ssh pool file löschen
+            - im /opt/VI/xen602/ks/pool/P1/pool.master neuen Master eintragen
+            - cssh2pool.sh P1
+            - ssh2server P1
+            - xencenter forget + remove from pool
+   28.3. Test -> Neuaufbau eines weiteren Servers ... Verfahren muss neuen
+         Master Server verwenden
+         
+29. Test: fsi portal - Delete kompletter Pool
+   29.1. poweroff all server in pool
+   29.2. lösche alle Server ausser Master
+   29.3. poolview - lösche pool dir
+   29.4. lösche Master Server
+            
+30. Test: Xen - Add Server to HA Aktiv pool
+   30.1. 2 Server Pool mit HA aufbauen (XenDesktop Config)
+   30.2. 10 VDIs auf den zwei Servern installieren - online
+   30.3. 3. Server konfigurieren
+   30.4. 3. Server aufbauen
+      => HA muss wieder an sein
+      => VMs müssen wie früher verteilt und an sein (dürfen nicht ausgeschaltet werden)
+      => Master im Pool darf sich nicht geändert haben
+      
+31. Test: Xen - Join AD nachträglich
+   31.1. 2 Server als XenPool OHNE join AD installieren
+   31.2. join domain in Konfigs konfigurieren
+   31.3. pool mit vijoinad.pl in AD heben
+   31.4. 3. Server neu mit join AD installieren
+                  
+32. Test: Xen -  Server Konfig bestehender Server löschen
+   32.1. Aufbau XenPool XD mit 3 Servern
+   32.2. 1 Server aus Pool nehmen und löschen
+   32.3. Obigen Server Konfig in VI Portal löschen
+   32.4. gleichen Servernamen wieder im Pool anlegen
+   32.5. ssh key clean
+   32.6. poolview deploy ssh
+   32.7. Server installieren     
+   
+33. Test: fsi portal - Xen Poolview
+   33.1. Show Master / Meldung Master from Configfile
+   33.2. Get Info from Pool for HA, Domain, VMs
+   33.3. Actions in Pool
+   
+34. Test: fsi portal - Xen Poolview - VM View
+   34.1. Xen Pool with VMs
+            Do VM Actions (on off etc.)
+               
+35. Test: Add / Remove / Change User
+   35.1. Login as different User and control access rights
+   35.2. Login with a user with role = Admin
+   35.3. Remove User in User-Edit-View
+   35.4. Add new User in User-Edit-View
+   35.5. Change login name from a existing User in User-Edit-View
+      35.5.1  change password
+      35.5.2  change role
+      35.5.3  change login name                            
+                        
+36. Test: Recreate all Xen SSH files
+   36.1. vitempprod -> /opt/fsi/portal/tools
+   36.2. add a key to one of following files
+            /opt/fsi/portal/tools/../etc/addkey_xen
+            /opt/fsi/portal/tools/../etc/addkey_xen_DCN
+            /opt/fsi/portal/tools/../etc/addkey_xen_DCN_TESTPOOL
+            /opt/fsi/portal/tools/../etc/addkey_xen_TESTPOOL
+   36.3. test after each file above
+         ./cssh2allpools -g -c 
+         => control server and pool dir 
+         
+37. Test: Add ESXi Server
+   37.1. Add ESXi Server in
+   37.1.1.    different esxi versions
+   37.1.2.    different vc or do not join vc (if configure in rzenv.xml)
+   37.1.3.    different vSwitch configs (e.g. only one or more)
+   37.1.4.    different mgmt ports
+   37.1.5.    different network ports (e.g. only one or more)
+   37.1.6.    different datastores (only one, more than one)
+   37.1.7.    change or add advanced options
+        
+38. Test: Import Server
+   38.1. Create Import File mit entsprechenden Parametern
+   38.2. Wähle über Start Admin Menu -> choose file die Datei aus
+   38.3. Starte Import
+   
+39. Test: Clean Pool Patch Dirs
+   39.1. Build pool with patch level < 2 from aktual level   
+   39.2. Edit update.lst on VI Temp
+   39.3. Install master and one member server
+   39.4. After finish - install patch level 1 on master an member
+   39.5. After update process finish - look for /var/patch and than clean pool patch dir
+   39.6. Install a new member server in pool with patch level 1
+   39.7. look /var/patch on new member server
+   39.8. Install patch level 2 on master and member
+   39.9. Clean patch dir after finish all three server patch process
+   
+   
+   
+====> If no error or problem exist - you can rollout fsi !
+

@@ -1,0 +1,127 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="text-align: right">Log Location: </td>
+      <td >
+      
+      [% SET showversion="" %]
+      [% FOREACH esxiver IN rzconfig.rz.${vienv}.esxi.ver.keys.sort %]
+         [% IF rzconfig.rz.${vienv}.esxi.ver.$esxiver.default %]
+            [% showversion=esxiver %]
+         [% END %]
+      [% END %]
+      
+       <select id="logloc" class="btn-group-sm selectpicker show-tick" style="display: none;" name="logloc" data-width="auto"  >
+         [% FOREACH place IN rzconfig.rz.${vienv}.esxi.logloc.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.ver.match("\\b${showversion}\\b") OR rzconfig.rz.${vienv}.esxi.logloc.$place.disable == "true" %]
+               [% use PLACE_ = String place %]
+               [% place_show = PLACE_.replace('_',' ') %]
+
+               [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.default == "true" %]
+                  [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.ver %]
+                     <option value="[% place %]" selected>[% place_show %]  (v[% rzconfig.rz.${vienv}.esxi.logloc.$place.ver %])</option>   
+                  [% ELSE %]   
+                     <option value="[% place %]" selected>[% place_show %] </option>   
+                  [% END %]
+               [% ELSE %]
+                  [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.ver %]
+                     <option value="[% place %]" >[% place_show %]  (v[% rzconfig.rz.${vienv}.esxi.logloc.$place.ver %])</option>   
+                  [% ELSE %]      
+                     <option value="[% place %]" >[% place_show %]</option>   
+                  [% END %]
+               [% END %]
+            [% END %]
+         [% END %]
+       </select>
+       <br/>
+       <input type="text" name="ll_manual" placeholder="[data storage] /path - manual change log location" maxlength="255" autocomplete="on" size="58"/>
+      </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">Scratch Location: </td>
+      <td>
+       <select class="btn-group-sm selectpicker show-tick" style="display: none;" name="scratch" data-width="auto"  >
+         [% FOREACH srv IN rzconfig.rz.${vienv}.esxi.scratch.keys.sort %]
+            [% use SRV_ = String srv %]
+            [% srv_show = SRV_.replace('_',' ') %]
+
+            [% IF rzconfig.rz.${vienv}.esxi.scratch.$srv.default == "true" %]
+               <option value="[% srv %]" selected>[% srv_show %]</option>   
+            [% ELSE %]
+               <option value="[% srv %]" >[% srv_show %]</option>   
+            [% END %]
+         [% END %]
+       </select>
+       <br/>
+       <input type="text" name="scratchloc" placeholder="/vmfs/volumes/<volume name>/path - manual change" maxlength="255" autocomplete="on" size="58"/>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+
+   <tr>
+      <td style="text-align: right">Sylog Server: </td>
+      <td>
+       <select class="btn-group-sm selectpicker show-tick" style="display: none;" name="syslogserver" data-width="350px" multiple >
+         [% FOREACH srv IN rzconfig.rz.${vienv}.esxi.syslog.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.syslog.$srv.default == "true" %]
+               <option value="[% srv %]" selected>[% rzconfig.rz.${vienv}.esxi.syslog.$srv.ip %] : [% rzconfig.rz.${vienv}.esxi.syslog.$srv.port %]</option>   
+            [% ELSE %]
+               <option value="[% srv %]">[% rzconfig.rz.${vienv}.esxi.syslog.$srv.ip %] : [% rzconfig.rz.${vienv}.esxi.syslog.$srv.port %]</option>   
+            [% END %]
+         [% END %]
+       </select>
+       <br/>
+       <input type="text" name="syslogsrv" placeholder="or enter here ip/name" size="40" maxlength="255" autocomplete="on" />
+       <input type="text" name="syslogport" placeholder="514" maxlength="6" size="6" autocomplete="on" /> 
+      </td>
+      <td > </td>
+      <td > </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+   <tr>
+    [% IF rzconfig.rz.${vienv}.esxi.syspar.size %]
+      <td style="text-align: right; vertical-align: top;">Log Parameter: </td>
+      <td >
+         <table border="0" style="text-align: left;  width: 300px;">
+         
+            <thead>
+               <tr class="fsitableheader">
+                  <td>name</td>
+                  <td>rotation</td>
+                  <td>size</td>
+               </tr>
+            </thead>
+         
+            [% FOREACH param IN rzconfig.rz.${vienv}.esxi.syspar.keys.sort %]
+               <tr>
+                  <td>
+                     [% IF rzconfig.rz.${vienv}.esxi.syspar.$param.item('default') == 'true' %]
+                        <input type="checkbox" name="logparam" value="[% param %]" checked/> [% param %]
+                     [% ELSE %]
+                        <input type="checkbox" name="logparam" value="[% param %]"/> [% param %]
+                     [% END %]
+                  </td>
+                  <td>
+                     <input type="text" name="[% param %]_rot" placeholder="[% rzconfig.rz.${vienv}.esxi.syspar.$param.item('rot') %]" size="10" maxlength="255" autocomplete="on" />
+                  </td>
+                  <td>
+                     <input type="text" name="[% param %]_size" placeholder="[% rzconfig.rz.${vienv}.esxi.syspar.$param.item('size') %]" size="10" maxlength="255" autocomplete="on" />
+                  </td>
+               </tr>
+            [% END %]
+         </table>
+      </td>
+    [% ELSE %]
+      <td></td>
+      <td>No system log parameter define in rzenv.xml</td>
+    [% END %]
+   </tr>
+</table>

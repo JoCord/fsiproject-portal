@@ -1,0 +1,4 @@
+DEFAULT esxi60
+LABEL esxi60
+  kernel img/esxi60/mboot.c32
+  append -c sys/##MAC##/ks-esxi60-boot.cfg

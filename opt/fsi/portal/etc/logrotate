@@ -1,0 +1,8 @@
+/opt/fsi/portal/logs/fsi*.log {
+    copytruncate
+    compress
+    rotate 10
+    size 2G
+    maxage 100
+    missingok
+}

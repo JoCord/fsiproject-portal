@@ -1,0 +1,276 @@
+#!/bin/sh
+#
+#   cssh2pool - create pool ssh files from xen server config dir
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.5 - 13.9.2016"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+addkeyfile="$progdir/../etc/addkey_xen"
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo " Create the pool known_hosts and authorized_keys from every own ssh files in"
+   echo " the config dir of the server ($macdir/<mac>)"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -p <pool name>     poolname"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no pool "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -p EDV_620_XA_01"
+   echo
+}
+
+
+namepool=""
+quietmode=""
+
+while getopts ":p:l:hHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "create pool ssh files from all servers in pool"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "p")
+         namepool=$OPTARG
+         debmsg " pool: $namepool"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ -z $namepool ]; then
+   help
+   exit 2
+fi
+
+
+
+
+
+
+debmsg "Start $progname - $ver"
+
+cpcount=0
+
+if [ $retc -eq 0 ]; then
+   infmsg " Copy and create new pool ssh known_hosts / authorized_keys files ..."
+   if [ -f "$progdir/pool/known_host_$namepool" ]; then
+      OUTPUT=$(2>&1 rm -f "$progdir/pool/known_host_$namepool")
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         infmsg " Delete old known_host file for pool $namepool"
+      else
+         errmsg "cannot delete old known_host file for pool $namepool"
+         errmsg "$OUTPUT"
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -f "$progdir/pool/authorized_keys_$namepool" ]; then
+      OUTPUT=$(2>&1 rm -f "$progdir/pool/authorized_keys_$namepool")
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         infmsg " Delete old authorized_keys file for pool $namepool"
+      else
+         errmsg "ERROR: cannot delete old authorized_keys file for pool $namepool"
+         errmsg "$OUTPUT"
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   for dirmac in $macdir/* ;  do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         warnmsg " [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         tracemsg " [$mac] used as config dir"
+         if [ $retc -eq 0 ]; then
+            pool="none"
+            
+            xenconf=""
+            if [ -f "$dirmac/xen6.conf" ]; then
+               xenconf="$dirmac/xen6.conf"
+               xenxml="$dirmac/xen6.xml"
+            elif [ -f "$dirmac/xen7.conf" ]; then
+               xenconf="$dirmac/xen7.conf"
+               xenxml="$dirmac/xen7.xml"
+            fi
+            
+            if [ "$xenconf" != "" ]; then
+               tracemsg "  call $xenconf"
+               . $xenconf
+            
+               if [ "$namepool" == "$pool" ]; then
+                  infmsg " Extend known_host for Pool $pool"
+                  ip=$(/bin/cat $xenxml| grep -i "<ip>"| sed -e 's/\(^.*>\)\(.*\)\(<.*$\)/\2/')
+                  
+                  
+                  key=`/bin/cat $dirmac/ssh/ssh_host_rsa_key.pub` 
+                 
+                  if [[ ! $ip =~ $regex_ip ]]; then
+                     errmsg "[$ip] is not a valid IP address - abort"
+                     retc=66
+                     break
+                  else
+                     fqdn="$(dig -x $ip +short)"
+                     if [ -z $fqdn ]; then
+                        errmsg "Cannot find fqdn to [$ip] - abort"
+                        retc=55
+                        break
+                     else 
+                        fqdn="$(echo $fqdn | tr 'A-Z' 'a-z')"
+                        fqdn="${fqdn%.}"                                                              # remove final dot which is always appended by dig
+                        shortname="${fqdn%%.*}"
+                        tracemsg " ssh: $fqdn,$shortname,$ip $key"
+                        echo "$fqdn,$shortname,$ip $key" >>$progdir/pool/known_host_$pool   
+                        retc=$?
+                        if [ $retc -eq 0 ]; then
+                           debmsg " ok"
+                        else 
+                           errmsg "cannot create known_hosts rc=$retc"
+                        fi
+                     fi
+                  fi
+   
+                  if [ $retc -eq 0 ]; then
+                     infmsg " Extend authorized_keys for Pool $pool"
+                     /bin/cat $dirmac/ssh/id_rsa.pub  >>$progdir/pool/authorized_keys_$pool   
+                     retc=$?
+                     if [ $retc -eq 0 ]; then
+                        debmsg " ok"
+                     else 
+                        errmsg "cannot create authorized_keys rc=$retc"
+                     fi
+                  fi   
+                  cpcount=$((cpcount+1))
+               fi
+            fi
+
+         fi
+      fi
+   done
+fi
+  
+if [ $retc -eq 0 ]; then
+   addkey=(
+      $addkeyfile
+      $addkeyfile"_$rz"
+      $addkeyfile"_$rz""_$namepool"
+      $addkeyfile"_$namepool"
+   )
+   for ((i=0; i<${#addkey[*]}; i++)); do
+      infmsg "  search for ${addkey[$i]}"
+      if [ -f ${addkey[$i]} ]; then
+         infmsg "  found additional global ssh keys to add"
+         /bin/cat ${addkey[$i]}  >>$progdir/pool/authorized_keys_$namepool   
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg "  add additional keys ok"
+         else 
+            errmsg "cannot create authorized_keys rc=$retc"
+         fi
+      else
+         debmsg "  no additional ssh keys found - ${addkey[$i]}"
+      fi
+   done
+fi
+    
+if [ $cpcount -ge 1 ]; then
+   infmsg " XenServer copied: $cpcount"    
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

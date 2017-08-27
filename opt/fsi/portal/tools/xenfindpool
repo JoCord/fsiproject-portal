@@ -1,0 +1,188 @@
+#!/bin/sh
+#
+#   xenfindpool - find pool for server
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.5 - 05.05.2017"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+export deb2scr="yes"
+export debug="trace"
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  find pool for given server"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -s <server>        server to search for pool"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no pool found"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s test22.lab.local"
+   echo "    $progname -s test23"
+   echo
+   exit 1
+}
+
+quietmode=""
+server=""
+
+# ---------------------------------- Main ----------------------------------
+
+
+while getopts ":l:qs:hH012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "find pool for given server"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "s")
+         server="$OPTARG"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ -z $server ]; then
+   help
+fi
+
+
+debmsg "Start $progname - $ver"
+pool=""
+
+if [ $retc -eq 0 ]; then
+   cpcok=0
+   infmsg "$ls Search server $server pool"
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         warnmsg "$ls  [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         xenxml=""
+         if [ -f "$dirmac/xen6.xml" ]; then
+            xenconf="$dirmac/xen6.conf"
+            xenxml="$dirmac/xen6.xml"
+         elif [ -f "$dirmac/xen7.xml" ]; then
+            xenconf="$dirmac/xen7.conf"
+            xenxml="$dirmac/xen7.xml"
+         fi
+         
+         if [ "$xenxml" != "" ]; then
+            name=`cat $xenxml| grep -i "<hostname>"| sed -e 's/\(^.*>\)\(.*\)\(<.*$\)/\2/'`
+            if [ "$name" == "$server" ]; then
+               infmsg "$ls  found server config dir"
+            
+               pool="none"
+               . "$xenconf"
+               if [ -z $pool ]; then
+                  errmsg "no pool config found - abort"
+                  retc=2
+                  break
+               else
+                 infmsg " Found: $pool"
+                 echo $pool
+                 break
+               fi
+
+            fi
+         fi
+      fi
+   done
+fi
+
+if [ -z $pool ]; then
+   errmsg "no pool found for $server"
+   retc=99
+fi
+
+debmsg "End $progname - $ver - $retc"
+exit $retc
+

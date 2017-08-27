@@ -1,0 +1,32 @@
+<table border="0" style="text-align: left">
+   <tr>
+   [% IF rzconfig.rz.${vienv}.esxi.nfs %]
+      <td>Please choose one or more nfs storage:</td>
+   </tr>
+
+   <tr>
+      <td>
+         <div class="fsiactionheader">
+            <div style="margin-left: 6px;">
+              &nbsp;Storage name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              server&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              path&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              description
+            </div>
+         </div>
+         <select multiple class="form-control" style="height: 565px; width: 1230px;" multiple="multiple" row="6" name="nfs">
+            [% FOREACH port IN rzconfig.rz.${vienv}.esxi.nfs.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.esxi.nfs.$port.default %]
+                  <option style="font-family:courier" value="[% port %]" selected>[% rzconfig.rz.${vienv}.esxi.nfs.$port.web %]</option>
+               [% ELSE %]
+                  <option style="font-family:courier" value="[% port %]">[% rzconfig.rz.${vienv}.esxi.nfs.$port.web %]</option>
+               [% END %]
+            [% END %]
+         </select>
+      </td>
+   </tr>
+[% ELSE %]
+      <td>No nfs storages configure in fsi!</td>
+   </tr>
+[% END %]
+</table>

@@ -1,0 +1,447 @@
+#!/bin/sh
+#
+#   rinfo - starts remote info script on esxi, xenserver or centos/redhat
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.7 - 23.4.2015"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  starts remote info script on esxi, xenserver or centos/redhat"
+   echo
+   tput setaf 3
+   echo "  Server only parameter:"
+   tput sgr0
+   echo "   -s <server>       server name to get infos"
+   echo
+   tput setaf 3
+   echo "  Multiple server parameter:"
+   tput sgr0
+   echo "   -c <vc>           check all esxi server on virtual center"
+   echo "   -m <model>        check all linux server for model"
+   echo "   -t <tree>         check all server for specify source tree"
+   echo "   -y <typ>          check all server for specify typ"
+   echo "   -p <pool>         check all xen server in specify pool"
+   echo "   -n                do not check - only list server"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -i                check install start and end time"
+   echo
+   echo "   -q                quiet mode"
+   echo "   -0/1/2            info/debug/trace mode"
+   echo "   -l <logfile>      other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no server "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s esx1.lab.local"
+   echo "    $progname -s esx1"
+   echo "    $progname -c vcdev.lab.local"
+   echo "    $progname -m base"
+   echo "    $progname -t xen620_hp"
+   echo "    $progname -y rh"
+   echo "    $progname -p EDV_620_XA_01"
+   echo
+}
+
+
+server=""
+model=""
+tree=""
+pool=""
+vc=""
+typ=""
+checkinst=1
+nocheck=0
+
+
+while getopts ":s:l:hHq012c:m:t:p:y:in" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "starts remote on a server the info script"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server="$OPTARG"
+         debmsg " srv: $server"
+        ;;
+      "c")
+         vc="$OPTARG"
+         debmsg " vc: $vc"
+        ;;
+      "m")
+         model="$OPTARG"
+         debmsg " model: $model"
+        ;;
+      "y")
+         typ="$OPTARG"
+         debmsg " typ: $typ"
+        ;;
+      "t")
+         tree="$OPTARG"
+         debmsg " source tree: $tree"
+        ;;
+      "p")
+         pool="$OPTARG"
+         debmsg " xen pool: $pool"
+        ;;
+      "i")
+         checkinst=0
+         debmsg " check installation time"
+        ;;
+      "n")
+         nocheck=1
+         debmsg " no check - only list"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+call_remoteinfo() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local user=$2
+   local userpw=$3
+   
+   
+   if [ -z $server ]; then
+      errmsg "no server given - abort"
+      retc=4
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      srvonline $server
+      retc=$?
+      if [ $retc -ne 0 ] ; then
+         warnmsg "$ls server $server not online - ignore"
+         retc=3
+      else
+         case "$srv_typ" in
+            "esxi")
+               cmd="sshpass -p $srv_userpw ssh $g_ssh_options root@$srv_fqdn \"/bin/sh -l -c '/store/fsi/fsiinfo -q -n "$quietmode"' \" 2>>$logfile"
+              ;;
+            "xen")
+               cmd="sshpass -p $srv_userpw ssh $g_ssh_options root@$srv_fqdn \"/bin/sh -l -c '/usr/bin/fsiinfo -q -n "$quietmode"' \" 2>>$logfile"
+              ;;
+            "co")
+               cmd="sshpass -p $srv_userpw ssh $g_ssh_options root@$srv_fqdn \"/bin/sh -l -c '/usr/bin/lxinfo -q -n "$quietmode"' \" 2>>$logfile"
+              ;;
+            "rh")
+               cmd="sshpass -p $srv_userpw ssh $g_ssh_options root@$srv_fqdn \"/bin/sh -l -c '/usr/bin/lxinfo -q -n "$quietmode"' \" 2>>$logfile"
+              ;;
+            *)
+               errmsg "Unknown server type [$srv_typ] found."
+               retc=2
+              ;;
+         esac   
+         if [ $retc -eq 0 ]; then
+            infmsg "$ls start remote info on $srv_shortname now ..."
+            tracemsg "$ls   cmd: $cmd"
+            eval $cmd
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               tracemsg "$ls   running remote info ok"
+            else
+               errmsg "error running info remote on $server retc=$retc"
+            fi
+         fi
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+call_chkinst() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local tree=$1
+   local file=$2
+   local mac=$3
+      
+   if [ -z $tree ]; then
+      errmsg "no server source tree given - abort"
+      retc=99
+   fi
+   if [ -z $file ]; then
+      errmsg "no server logfile given - abort"
+      retc=99
+   fi
+   if [ -z $mac ]; then
+      errmsg "no server mac given - abort"
+      retc=99
+   fi
+
+   if [ $retc -eq 0 ]; then
+      tracemsg "$ls  search for logfile [$file]"
+      local instend=""
+      local inststart=""
+      local iendfile="$macdir/$mac/inst.end"
+      local istartfile="$macdir/$mac/inst.start"
+      
+      if [ -f $file ]; then
+         tracemsg "$ls  logfile exist - try to search start and end time"
+         case "$tree" in
+            esxi*)
+               instend=$(awk '/finish installation[ ]*$/ {print $1}' $file)
+               if [[ "$tree"  =~ ^esxi4 ]]; then
+                  inststart=$(awk '/Start init/ {print $1}' $file)
+               else
+                  inststart=$(awk '/Start 001.firstboot_001/ {print $1}' $file)
+               fi   
+              ;;
+            xen*)
+               inststart=$(awk '/Start post xen server install/ {print $1}' $file)
+               instend=$(awk '/XenServer Installation ended rc=/ {print $1}' $file)
+              ;;
+            rh*)
+               inststart=$(awk '/download lxinst-create/ {print $1}' $file)
+               instend=$(awk '/Installation ended rc=0 / {print $1}' $file)
+              ;;
+            co*)
+               inststart=$(awk '/download lxinst-create/ {print $1}' $file)
+               instend=$(awk '/Installation ended rc=0 / {print $1}' $file)
+              ;;
+            *)
+              errmsg "Unknown server source tree [$tree] "
+              ;;
+         esac
+   
+         if [ -f $istartfile ]; then
+            tracemsg "$ls  delete old inst start file"
+            OUTPUT=$(2>&1 rm -f "$istartfile")
+            rc=$?
+            if [ $rc -eq 0 ]; then
+               tracemsg "$ls  delete ok"
+            else
+               errmsg "cannot delete file $istartfile"
+               errmsg "$OUTPUT"
+            fi
+         fi
+         if [ -f $iendfile ]; then
+            tracemsg "$ls  delete old inst end file"
+            OUTPUT=$(2>&1 rm -f "$iendfile")
+            rc=$?
+            if [ $rc -eq 0 ]; then
+               tracemsg "$ls  delete ok"
+            else
+               errmsg "cannot delete file $iendfile"
+               errmsg "$OUTPUT"
+            fi
+         fi
+         inststart=$(trim "$inststart");  
+         instend=$(trim "$instend");  
+         if [ "$inststart" != "" ]; then
+            infmsg "$ls installation started at [$inststart]"
+            cmd="echo $inststart >$istartfile"
+            eval $cmd
+            retc=$?
+            if [ $retc -ne 0 ]; then
+               errmsg "cannot write installation start time to flag file"
+            fi
+         else
+            tracemsg "$ls  no installation start time found"
+         fi
+
+         if [ "$instend" != "" ]; then
+            infmsg "$ls installation ended at [$instend]"
+            cmd="echo $instend >$iendfile"
+            eval $cmd
+            retc=$?
+            if [ $retc -ne 0 ]; then
+               errmsg "cannot write installation end time to flag file"
+            fi
+         else
+            tracemsg "$ls  no installation end time found"
+         fi
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+if [ -z "$typ" ] && [ -z "$pool" ] && [ -z "$tree" ] && [ -z "$model" ] && [ -z "$vc" ] && [ -z "$server" ]; then
+   help
+   exit 2
+fi
+
+debmsg "Start $progname - $ver"
+
+if [ -z "$server" ]; then
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         tracemsg "$ls [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         get_srv_data $mac
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            if [ "$tree" != "" ] && [ "$tree" == "$srv_tree" ] && [ "$srv_tree" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for tree $srv_tree"
+               if [ $nocheck -eq 0 ]; then
+                  call_remoteinfo $srv_fqdn
+                  retc=$?
+                  if [ $checkinst -eq 0 ]; then
+                     call_chkinst $srv_tree $srv_log $srv_mac
+                     retc=$?
+                  fi
+               fi
+            elif [ "$typ" != "" ] && [ "$typ" == "$srv_typ" ] && [ "$srv_typ" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for typ $srv_typ"
+               if [ $nocheck -eq 0 ]; then
+                  call_remoteinfo $srv_fqdn
+                  retc=$?
+                  if [ $checkinst -eq 0 ]; then
+                     call_chkinst $srv_tree $srv_log $srv_mac
+                     retc=$?
+                  fi
+               fi
+            elif [ "$model" != "" ] && [ "$model" == "$srv_model" ] && [ "$srv_model" != "" ]; then
+               infmsg "$ls  linux server $srv_shortname found for model $srv_model"
+               if [ $nocheck -eq 0 ]; then
+                  call_remoteinfo $srv_fqdn
+                  retc=$?
+                  if [ $checkinst -eq 0 ]; then
+                     call_chkinst $srv_tree $srv_log $srv_mac
+                     retc=$?
+                  fi
+               fi
+            elif [ "$vc" != "" ] && [ "$vc" == "$srv_vc" ] && [ "$srv_vc" != "" ]; then
+               infmsg "$ls  esxi server $srv_shortname found for vc $srv_vc"
+               if [ $nocheck -eq 0 ]; then
+                  call_remoteinfo $srv_fqdn
+                  retc=$?
+                  if [ $checkinst -eq 0 ]; then
+                     call_chkinst $srv_tree $srv_log $srv_mac
+                     retc=$?
+                  fi
+               fi
+            elif [ "$pool" != "" ] && [ "$pool" == "$srv_pool" ] && [ "$srv_pool" != "" ]; then
+               infmsg "$ls  xen server $srv_shortname found for pool $srv_pool"
+               if [ $nocheck -eq 0 ]; then
+                  call_remoteinfo $srv_fqdn
+                  retc=$?
+                  if [ $checkinst -eq 0 ]; then
+                     call_chkinst $srv_tree $srv_log $srv_mac
+                     retc=$?
+                  fi
+               fi
+            else
+               tracemsg "$ls  server $srv_shortname not in filter - ignore"
+            fi
+         fi
+      fi
+   done
+else
+   get_srv_data $server
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      warnmsg "$ls cannot find server data for $server - abort"
+   else
+      call_remoteinfo $srv_fqdn
+      retc=$?
+      if [ $checkinst -eq 0 ]; then
+         call_chkinst $srv_tree $srv_log $srv_mac
+         retc=$?
+      fi
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

@@ -1,0 +1,166 @@
+               <table border="0" style="text-align: left">
+                  <tr>
+                     <td style="text-align: right;">Sylog Server: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="syslogserver" data-width="400px">
+                        [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.syslog.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.syslog.$srv.default %]
+                              <option value="[% srv %]" selected>[% srv %] - [% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]</option>
+                           [% ELSE %]
+                              <option value="[% srv %]" >[% srv %] - [% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br/>
+                        <input type="text" name="syslogsrv" placeholder="manual: <syslog server>" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                     <td style="text-align: right;">NTP Server: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="ntpserver" data-width="400px" multiple>
+                        [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.ntpsrv.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.ntpsrv.$srv.default %]
+                              <option value="[% srv %]" selected>[% srv %]</option>
+                           [% ELSE %]
+                              <option value="[% srv %]" >[% srv %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br/>
+                        <input type="text" name="ntpsrv" placeholder="manual: <ip/dns>[,<ip/dns>][,<ip/dns>]" maxlength="500" autocomplete="on" size="51"/> 
+                     </td>
+                  </tr>
+                  <tr>
+                     <td > </td>
+                     <td > </td>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td style="text-align: right;">License Server: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="licserver" data-width="400px">
+                        [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.licip.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.licip.$srv.default %]
+                              <option value="[% srv %]" selected>[% srv %] [% rzconfig.rz.${vienv}.xensrv.licip.$srv.ip %] [% rzconfig.rz.${vienv}.xensrv.licip.$srv.port %]</option>
+                           [% ELSE %]
+                              <option value="[% srv %]" >[% srv %] [% rzconfig.rz.${vienv}.xensrv.licip.$srv.ip %] [% rzconfig.rz.${vienv}.xensrv.licip.$srv.port %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br>
+                        <input type="text" name="licsrv" placeholder="manual: <lic srv>[,<lic port>]" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                     <td style="text-align: right;">License: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="lictype" data-width="400px">
+                        [% FOREACH lic IN rzconfig.rz.${vienv}.xensrv.license.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.license.$lic.default %]
+                              <option value="[% lic %]" selected>[% lic %]</option>
+                           [% ELSE %]
+                              <option value="[% lic %]" >[% lic %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br>
+                        <input type="text" name="lictyp" placeholder="manual: <lic type>" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                  </tr>
+                  <tr>
+                     <td > </td>
+                     <td > </td>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td style="text-align: right;">DNS Domain: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="dnsdomain" data-width="400px">
+                        [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.dnsdom.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.dnsdom.$srv.default == "true" %]
+                              <option value="[% srv %]" selected>[% srv %]</option>
+                           [% ELSE %]
+                              <option value="[% srv %]" >[% srv %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br>
+                        <input type="text" name="dnsdom" placeholder="or manual enter here" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                     <td style="text-align: right;">DNS Search Domain(s): </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="dnssearchdomains" data-width="400px" multiple data-max-options="3">
+                        [% FOREACH sdom IN rzconfig.rz.${vienv}.xensrv.dnssearch.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.dnssearch.$sdom.default == "true" %]
+                              <option value="[% sdom %]" selected>[% sdom %]</option>
+                           [% ELSE %]
+                              <option value="[% sdom %]" >[% sdom %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br>
+                        <input type="text" name="dnssearchdom" placeholder="or manual enter here" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="text-align: right;">DNS Server: </td>
+                     <td style="text-align: left">
+                      <select class="btn-group-sm selectpicker" style="display: none;" name="dnsserver" data-width="400px" multiple data-max-options="3">
+                        [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.dns.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.dns.$srv.default == "true" %]
+                              <option value="[% srv %]" selected>[% srv %]</option>
+                           [% ELSE %]
+                              <option value="[% srv %]" >[% srv %]</option>
+                           [% END %]
+                        [% END %]
+                      </select>
+                        <br>
+                        <input type="text" name="dnssrv" placeholder="manual: <ip only>[,<ip>][,<ip>]" maxlength="255" autocomplete="on" size="51"/> 
+                     </td>
+                     <td > </td>
+                     <td > </td>
+                  </tr>
+                  <tr>
+                     <td > </td>
+                     <td > </td>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td style="text-align: right">HA failed server: </td>
+                     <td><input type="text" name="mhf" placeholder="[% rzconfig.rz.${vienv}.xensrv.mhf %]" maxlength="255" autocomplete="on" /> </td>
+                     <td style="text-align: right">Multipath Handler: </td>
+                     <td><input type="radio" name="multihandle" value="off" checked/>&nbsp;&nbsp;off
+                        [% FOREACH mp IN rzconfig.rz.${vienv}.xensrv.mph.keys.sort %]
+                           [% IF rzconfig.rz.${vienv}.xensrv.mph.$mp.default == "true" %]
+                              <input type="radio" name="multihandle" value="[% mp %]" checked>&nbsp;&nbsp;[% mp %]</input>
+                           [% ELSE %]
+                              <input type="radio" name="multihandle" value="[% mp %]" >&nbsp;&nbsp;[% mp %]</input>
+                           [% END %]
+                        [% END %]
+                     </td>
+                  </tr>
+                  <tr>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                      <td style="text-align: right">Create LUNs SRs during first install: </td>
+                      <td style="text-align: left"><input type="checkbox" name="AutoLUNSR" value="yes" checked/></td>
+                  </tr>
+                  <tr>
+                     <td > </td>
+                     <td > </td>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                  </tr>
+                  <tr>
+                      <td style="text-align: right"><input type="checkbox" name="Deploy" value="yes" checked/></td>
+                      <td style="text-align: left">&nbsp;&nbsp;SSH files deploy to pool</td>
+                      <td style="text-align: right"><input type="checkbox" name="Maintain" value="yes" /></td>
+                      <td style="text-align: left">&nbsp;&nbsp;set member server in maintenance mode after install</td>
+                  </tr>
+                  <tr>
+                      <td style="text-align: right"><input type="checkbox" name="mc" value="yes"></td>
+                      <td style="text-align: left">&nbsp;&nbsp;Install mc</td>
+                     <td > </td>
+                     <td > &nbsp;</td>
+                  </tr>
+               </table>

@@ -1,0 +1,501 @@
+#!/bin/sh
+#
+#   chkinst - check install & set inst flags
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.1.7 - 12.8.2016"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  checks installation if finish, running or error"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -s <server>        server to check installation"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "     0 = find start and end time without errors during install"
+   echo "     1 = find start time but no end time and no errors - install still running ?"
+   echo "     2 = find start time, no end but errors - install aborted ?"
+   echo "     3 = find start time and end time but errors during installation"
+   echo "     4 = find start time, no end time, no erros but waiting for xen pool install opening"
+   echo "     5 = cannot find start time"
+   echo "     7 = cannot find start time but errors - how does this come ?"
+   echo "    10 = no server "
+   echo "    11 = help"
+   echo "    13 = no server log file exit - no install started or log deleted"
+   echo "    99 = different error"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s esx1.lab.local"
+   echo
+}
+
+
+server=""
+sourcefile=""
+foundsrv=1
+
+
+while getopts ":s:l:hHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "check installation if finish, running or has a error"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         # #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server="$OPTARG"
+         debmsg " srv: $server"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+chkinst_xen() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local mac=$2
+   local typ=$3
+
+   if [ -z $server ]; then
+      errmsg "no server given - abort"
+      retc=99
+   fi
+
+   if [ -z $mac ]; then
+      errmsg "no mac given - abort"
+      retc=99
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      debmsg "$ls   search for log file"
+      local srvlog="$instdir/$typ/ks/log/$server.log"
+      tracemsg "$ls   log: $srvlog"
+      if [ -f $srvlog ]; then
+         debmsg "$ls   found log file - search ..."
+         tracemsg "$ls   config: $macdir/$mac"
+         if [ -d $macdir/$mac ]; then
+            tracemsg "$ls   search start time"
+            local insttime=""
+            insttime=$(awk '/Start post xen server install/ {print $1}' $srvlog)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               if [ "$insttime" == "" ]; then
+                  debmsg "$ls   cannot find inst start time in log $srvlog"
+                  retc=5
+               else
+                  debmsg "$ls   write $insttime to inst.start flag file"
+                  cmd="echo $insttime >$macdir/$mac/inst.start"
+                  eval $cmd
+                  retc=$?
+                  if [ $retc -ne 0 ]; then
+                     errmsg "cannot write start inst time to flag file"
+                     retc=99
+                  fi
+               fi
+            else
+               errmsg "error searching installation start time"
+               retc=99
+            fi
+
+            
+            if [ $retc -eq 0 ]; then
+               debmsg "$ls   search end time"
+               insttime=$(awk '/XenServer Installation ended rc=\[0\]/ {print $1}' $srvlog)
+               retc=$?
+               if [ $retc -eq 0 ]; then
+                  if [ "$insttime" == "" ]; then
+                     debmsg "$ls   cannot find inst end time in log $srvlog"
+                     retc=1
+                  else
+                     debmsg "$ls   write $insttime to inst.end flag file"
+                     cmd="echo $insttime >$macdir/$mac/inst.end"
+                     eval $cmd
+                     retc=$?
+                     if [ $retc -ne 0 ]; then
+                        errmsg "cannot write end time to file"
+                        retc=99
+                     fi
+                  fi
+               else
+                  errmsg "srv: $server - error searching installation end time"
+                  retc=99
+               fi
+            fi
+ 
+            founderror=$(sed -n '/Start post xen server install/,/XenServer Installation ended rc=\[0\]/p' $srvlog | grep "ERROR  :")
+            if [ "$founderror" != "" ]; then
+               infmsg "$ls   found error in log"
+               retc=$((retc+2))
+            else
+               infmsg "$ls   srv: $server - found no error in log"
+
+               if [ $retc -eq 1 ]; then
+                  debmsg "$ls   install still running .. test if waiting for master ?"
+                  tempout=$(tail -n 2 "$srvlog" | grep -i "Test if pool master finish")
+                  masterwaiting=$?
+                  if [ "$masterwaiting" == "0" ]; then
+                     infmsg "$ls   srv: $server - waiting for master server in pool finish install"
+                     retc=$((retc+3))
+                  else
+                     if [ $retc -eq 1 ]; then
+                        debmsg "$ls   install still running .. test if waiting for member ?"
+                        tempout=$(tail -n 2 "$srvlog" | grep -i "Test if we can run alone")
+                        masterwaiting=$?
+                        if [ "$masterwaiting" == "0" ]; then
+                           infmsg "$ls   srv: $server - waiting for other server in pool finish install"
+                           retc=$((retc+3))
+                        fi
+                     fi
+                  fi
+               fi
+            fi
+
+         else
+            debmsg "$ls   srv: $server - no server config dir found"
+            retc=99
+         fi
+      else
+         debmsg "$ls   srv: $server - no log file found"
+         retc=13
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+chkinst_co() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local mac=$2
+   local typ=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given - abort"
+      retc=99
+   fi
+
+   if [ -z $mac ]; then
+      errmsg "no mac given - abort"
+      retc=99
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      debmsg "$ls   search for log file"
+      local srvlog="$instdir/$typ/ks/log/$server.log"
+      tracemsg "$ls   log: $srvlog"
+      if [ -f $srvlog ]; then
+         debmsg "$ls   found log file - search ..."
+         tracemsg "$ls   config: $macdir/$mac"
+         if [ -d $macdir/$mac ]; then
+            debmsg "$ls   search end time"
+            insttime=$(awk '/Installation ended rc=0/ {print $1}' $srvlog)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               if [ "$insttime" == "" ]; then
+                  debmsg "$ls   cannot find inst end time in log $srvlog"
+                  retc=1
+               else
+                  debmsg "$ls   write $insttime to inst.end flag file"
+                  cmd="echo $insttime >$macdir/$mac/inst.end"
+                  eval $cmd
+                  retc=$?
+                  if [ $retc -ne 0 ]; then
+                     errmsg "cannot write end time to file"
+                     retc=99
+                  fi
+               fi
+            else
+               errmsg "srv: $server - error searching installation end time"
+            fi
+            
+            founderror=$(sed -n '/download lxinst-create script/,/Installation ended rc=\[0\]/p' $srvlog | grep "ERROR  :")
+            if [ "$founderror" != "" ]; then
+               infmsg "$ls   srv: $server - found error in log"
+               retc=$((retc+2))
+            else
+               infmsg "$ls  srv: $server - found no error in log"
+            fi
+            
+            
+            
+         else
+            debmsg "$ls   srv: $server - no server config dir found"
+            retc=99
+         fi
+      else
+         debmsg "$ls   srv: $server - no log file found"
+         retc=13
+      fi
+   fi
+
+
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+chkinst_rh() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local mac=$2
+   local typ=$3
+
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+chkinst_esxi() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local mac=$2
+   local typ=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given - abort"
+      retc=99
+   fi
+   x='.'
+   server=${server%%$x*}
+
+   if [ -z $mac ]; then
+      errmsg "no mac given - abort"
+      retc=99
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      debmsg "$ls   search for log file"
+      local srvlog="$instdir/$typ/ks/log/$server.log"
+      tracemsg "$ls   log: $srvlog"
+      if [ -f $srvlog ]; then
+         debmsg "$ls   found log file - search ..."
+         if [ -d $macdir/$mac ]; then
+            tracemsg "$ls   search start time"
+            local insttime=""
+            if [[ "$typ"  =~ ^esxi4 ]]; then
+               insttime=$(awk '/Start init/ {print $1,$2}' $srvlog)
+            else
+               insttime=$(awk '/Start 001.firstboot_001/ {print $1,$2}' $srvlog)
+            fi   
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               if [ "$insttime" == "" ]; then
+                  debmsg "$ls   cannot find inst start time in log $srvlog"
+                  retc=5
+               else
+                  insttime=${insttime% :}
+                  infmsg "$ls  found inst start time: $insttime"
+                  debmsg "$ls   write $insttime to inst.start flag file"
+                  cmd="echo $insttime >$macdir/$mac/inst.start"
+                  eval $cmd
+                  retc=$?
+                  if [ $retc -ne 0 ]; then
+                     errmsg "srv: $server - cannot write start inst time to flag file"
+                  fi
+               fi
+            else
+               errmsg "srv: $server - error searching installation start time"
+            fi
+            
+            
+            if [ $retc -eq 0 ]; then
+               debmsg "$ls   search end time"
+               insttime=$(awk '/finish installation[ ]*$/ {print $1,$2}' $srvlog)
+               retc=$?
+               if [ $retc -eq 0 ]; then
+                  if [ "$insttime" == "" ]; then
+                     debmsg "$ls   srv: $server - cannot find inst end time in log $srvlog"
+                     retc=1
+                  else
+                     insttime=${insttime% :}
+                     infmsg "$ls  srv: $server - found inst end time: $insttime"
+                     debmsg "$ls   write $insttime to inst.end flag file"
+                     cmd="echo $insttime >$macdir/$mac/inst.end"
+                     eval $cmd
+                     retc=$?
+                     if [ $retc -ne 0 ]; then
+                        errmsg "srv: $server - cannot write end time to file"
+                     fi
+                  fi
+               else
+                  errmsg "srv: $server - error searching installation end time"
+               fi
+            fi
+ 
+            if [[ "$typ"  =~ ^esxi4 ]]; then
+               founderror=$(sed -n '/Start init/,/finish installation/p' $srvlog | grep "ERROR  :")
+            else
+               founderror=$(sed -n '/Start 001.firstboot_001/,/finish installation/p' $srvlog | grep "ERROR  :")
+            fi   
+            if [ "$founderror" != "" ]; then
+               infmsg "$ls   srv: $server - found error in log"
+               retc=$((retc+2))
+            else
+               infmsg "$ls  srv: $server - found no error in log"
+            fi
+            
+            
+         else
+            debmsg "$ls   srv: $server - no server config dir found"
+            retc=99
+         fi
+      else
+         debmsg "$ls   srv: $server - no log file found"
+         retc=13
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+
+if [ -z "$server" ]; then
+   help
+   exit 11
+fi
+
+
+debmsg "Start $progname - $ver"
+
+debmsg "$ls server $server check now ..."
+if [ $retc -eq 0 ]; then
+   get_srv_data $server
+   rc=$?
+fi
+      
+if [ $retc -eq 0 ] ; then
+   debmsg "$ls  found server $server in $srv_mac"
+   if [[ "$srv_typ"  =~ ^xen ]]; then
+      tracemsg "$ls  found xen in [$srv_mac]"
+      chkinst_xen "$server" "$srv_mac" "$srv_tree"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^esxi ]]; then
+      tracemsg "$ls  found esxi in [$mac]"
+      chkinst_esxi "$srv_shortname" "$srv_mac" "$srv_tree"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^co ]]; then
+      tracemsg "$ls  found centos config"
+      chkinst_co "$srv_shortname" "$srv_mac" "$srv_tree"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^rh ]]; then
+      tracemsg "$ls  found redhat config"
+      chkinst_rh "$srv_shortname" "$srv_mac" "$srv_tree"
+      retc=$?
+   else
+      tracemsg " unsupported typ [$srv_typ] - abort"
+   fi
+else
+   warnmsg "$ls   cannot find server in pxe sys dir"
+   retc=10
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

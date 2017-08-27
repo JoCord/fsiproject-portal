@@ -1,0 +1,49 @@
+# fsi portal user configuration
+#
+# date changed: 2015.10.23-18:07:31 by admin user config site
+#
+
+# local user
+<user View>                                                       # user / login name
+  pw {SSHA}HAQ3qntkjs7XMucL9Jk8jczxcXOc5zCo                       # password hash
+</user>                                                           # no role = view only
+
+# domain user
+<domuser fsi_user>                                                # domain user name / login
+  domain labdom                                                   # without . = win netbios domain - as configure in rzenv.xml
+  ignore yes                                                      # ignore for this domain user all group membership (default no)
+  active yes                                                      # user activated (default=no)
+  <role AddServer>                                                # user roles in fsi
+  </role>
+  <role Admin>
+  </role>
+  <role Install>
+  </role>
+</domuser>
+<domuser Second_user>
+   domain labdom.lab.local                                        # with . = dns domain name
+   active yes
+  <role AddServer>
+  </role>
+  <role Install>
+  </role>
+</domuser>
+<domuser Inactive_user>
+   domain labdom.lab.local                                        # with . = dns domain name
+  <role AddServer>
+  </role>
+  <role Install>
+  </role>
+</domuser>
+
+# domain groups
+<domgroup 3user>                                                  # domain group, whose member can login
+  domain labdom
+  active yes  
+  <role AddServer>
+  </role>
+  <role Admin>
+  </role>
+  <role Install>
+  </role>
+</group>

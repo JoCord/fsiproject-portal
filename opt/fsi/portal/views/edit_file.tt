@@ -1,0 +1,58 @@
+[% INCLUDE 'layouts/global.tt' %]   
+
+<form action="editfile" method=post>
+   [% INCLUDE 'help/help_edit.tt' %]
+   [% INCLUDE 'headerline/editfile.tt' %]
+   <div>
+      <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+           <tbody>
+             <tr></tr>
+           </tbody>
+      </table>
+      <table>
+         <tbody>
+              <tr class="fsitableheader">
+                 <td style="width: 100%" align="center";"><div>Edit file: [% file %]</div></td>
+              </tr>
+         </tbody>
+      </table>
+
+      <style type="text/css" media="screen">
+            #editor {
+                margin: 0;
+                position: absolute;
+                top: 115px;
+                bottom: 0;
+                left: 0;
+                right: 0;
+            }
+         </style>
+         
+         
+[% use EDFILE = String inhalt %]
+[% EDFILE2 = EDFILE.replace('<','&lt;') %]
+[% inhalt = EDFILE2.replace('>','&gt;') %]
+         
+
+         <pre id="editor">[% inhalt %]</pre>
+
+         <input type="hidden" name="fileinhalt" style="display: none;"/> 
+
+         <script src="/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+         
+         <script>
+             var editor = ace.edit('editor');
+             editor.setTheme("ace/theme/chrome");
+             editor.getSession().setMode("ace/mode/[% filemode %]");
+         
+             var input = $('input[name="fileinhalt"]');
+                 editor.getSession().on("change", function () {
+                 input.val(editor.getSession().getValue());
+             });
+         </script>  
+
+      </table>   
+   </div>
+</form>
+

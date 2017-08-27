@@ -1,0 +1,28 @@
+[% IF session.logged_in %]
+ [% INCLUDE 'layouts/global.tt' %]   
+ <form action="updsrvmark" method=post>
+ [% INCLUDE 'headerline/back.tt' %]
+  [% IF session.logged_in %]
+    [% INCLUDE 'include/inc_liste.tt' %]
+    [% IF entries.size %]
+      <div>
+         <span style="font-weight: bold;"><br />Update this server installations: </span>
+         <div class="btn-group">
+             <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="yes"><img src="/images/16_Sign-Select-icon.png" alt="" />OK</button> 
+             <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+           <td style="text-align: right"><input type="checkbox" name="AutoReboot" value="yes" checked/></td>
+           <td style="text-align: left">&nbsp;Auto reboot after finish update</td>
+             
+         </div>
+      </div>
+    [% ELSE %]
+      <div>
+         <br />
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+      </div>
+    [% END %]
+  [% END %]
+ </form>
+[% END %]
+

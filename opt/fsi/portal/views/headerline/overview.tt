@@ -1,0 +1,65 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% INCLUDE headerline/mainmenu.tt %]
+   
+       <div class="btn-group [% global.button_group %]">
+          <button type="button" class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown">
+              <img src="/images/16_Actions-view-list-details-icon.png" alt=""> Server Overview <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+             <li><a href="/overviewxenpools">XenServer Pool Overview</a></li>
+             <li><a href="/overviewvc">VirtualCenter Overview</a></li>
+             <li><a href="/overviewlx">Linux Model Overview</a></li>
+          </ul>
+       </div>
+   
+      [% IF session.role.match('AddServer') OR  session.role == "Master" OR session.role.match('Admin') %]
+       <div class="btn-group [% global.button_group %]">
+          <button type="button" class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown">
+              <img src="/images/16_computer-add-icon.png" alt=""> Add Server <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+             [% IF rzconfig.rz.${vienv}.xensrv.size %]
+                <li><a href="/addxen">Add XenServer</a></li>
+             [% END %]
+             [% IF rzconfig.rz.${vienv}.esxi.size %]
+                <li><a href="/addesxi">Add ESXi Server</a></li>
+             [% END %]
+             [% IF rzconfig.rz.${vienv}.lx.size %]
+                <li><a href="/addlx">Add Linux Server</a></li>
+             [% END %]
+          </ul>
+       </div>
+     [% END %]
+     [% IF session.role == 'Admin' OR  session.role == "Master" %]
+       <div class="btn-group [% global.button_group %]">
+          <button class="btn btn-default" name="Admin" value="yes"><img src="/images/16_tool-box-preferences-icon.png" alt=""> Admin</button>
+          <button class="btn [% global.button_typ %] dropdown-toggle " data-toggle="dropdown">
+              <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+             <li><a href="/admin/dbnew">Create new DB for fsi portal</a></li>
+             <li><a href="/admin/dbupdate">Update DB for fsi portal</a></li>
+             <li class="divider"></li>
+               [% USE urlhost = String %]
+               [% urlhost=request.host %] 
+               [% sshhost=urlhost.remove(':3000') %]
+             <li><a class="fsiLog" href="#myShowLog" data-toggle="modal" data-src="http://[% sshhost %]/fsitail/log.html#logs/fsi.log" rel="tooltip" title="Show fsi portal log in a window"  >View fsi portal logfile</a></li>
+             <li><a class="fsiLog" href="#myShowLog" data-toggle="modal" data-src="http://[% sshhost %]/fsitail/log.html#logs/fsid.log" rel="tooltip" title="Show fsi portal daemon log"  >View fsi daemon logfile</a></li>
+             <li><a class="fsiLog" href="#myShowLog" data-toggle="modal" data-src="http://[% sshhost %]/fsitail/log.html#logs/fsichkon.log" rel="tooltip" title="Show fsi portal daemon log"  >View fsi check online daemon logfile</a></li>
+             <li class="divider"></li>
+             <li><a href="#myDelMsgAll" data-toggle="modal"> Clear Messages</a>
+             <li><a href="#myCleanSSH_xen" data-toggle="modal"> Clean Xen ssh keys</a>
+             <li><a href="#myCleanSSH_esxi" data-toggle="modal"> Clean ESXi ssh keys</a>
+             </li>
+          </ul>
+       </div>
+     [% END %]
+       <div class="btn-group [% global.button_group %]">
+        <button type="button" class="btn [% global.button_typ %] [% global.button_size %] reset" value="reset" ><img src="/images/16_filter-delete-icon.png"> Reset Filter</button>
+       </div>
+     [% IF session.role == "Master" %]
+       &nbsp;Scroll: <span id="fsi_scroll">0</span>
+     [% END %]
+   </div>  
+</div>   

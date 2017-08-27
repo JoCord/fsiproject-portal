@@ -1,0 +1,118 @@
+[% SET defaultrb="" %]
+[% FOREACH rbtyp IN rzconfig.rz.${vienv}.remote.ctrl.keys %]
+   [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.default == "true" %]
+      [% SET defaultrb=rbtyp %]
+   [% END %]
+[% END %]
+
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="vertical-align:middle;text-align:center" colspan="6">
+         <div id="whichrb" class="btn-group" data-toggle="buttons">
+            [% FOREACH rbtyp IN rzconfig.rz.${vienv}.remote.ctrl.keys %]
+               [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.descr == "" %]
+                  [% SET rbdescr="" %]
+               [% ELSE %]
+                  [% SET rbdescr=rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.descr %]
+               [% END %]
+                  
+               [% IF rbtyp == defaultrb %]
+                  <label class="btn [% global.button_typ %] active"  rel="tooltip" title="[% rbdescr %]">
+                  <input type="radio" name="remoteboard" value="[% rbtyp %]" id="[% rbtyp %]" autocomplete="off" checked> [% rbtyp %]
+               [% ELSE %]
+                  <label class="btn btn-default" rel="tooltip" title="[% rbdescr %]">
+                  <input type="radio" name="remoteboard" value="[% rbtyp %]" id="[% rbtyp %]" autocomplete="off"> [% rbtyp %]
+                 [% END %]
+              </label>
+            [% END %]
+            [% IF rbtyp == "" %]
+                  <label class="btn [% global.button_typ %] active"  rel="tooltip" title="Disable remote control support">
+                  <input type="radio" name="remoteboard" value="none" id="none" autocomplete="off" checked> none
+            [% ELSE %]
+                  <label class="btn btn-default" rel="tooltip" title="Disable remote control support">
+                  <input type="radio" name="remoteboard" value="none" id="none" autocomplete="off"> none
+            [% END %]
+         </div>
+      </td>
+   </tr>
+   
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+</table>   
+   
+<table border="0" style="text-align: left">
+   [% FOREACH rbtyp IN rzconfig.rz.${vienv}.remote.ctrl.keys %]
+      [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.descr == "" %]
+         [% SET rbdescr="" %]
+      [% ELSE %]
+         [% SET rbdescr=rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.descr %]
+      [% END %]
+
+      [% IF rbtyp == defaultrb %]
+         <tr id="[% rbtyp %]_input">
+      [% ELSE %]
+         <tr id="[% rbtyp %]_input" style="display:none">
+      [% END %]
+      <td>
+         <table border="0" style="text-align: left">
+            <tr>
+            [% trcount=0 %]
+            [% FOREACH askvar IN rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.keys %]
+               [% IF trcount == 2 %]
+                  [% trcount = 0 %]
+                  </tr>
+                  <tr>
+               [% ELSE %]
+                  [% trcount = trcount + 1 %]
+               [% END %]
+               [% SET fielddescr = askvar %]
+               [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.descr %]
+                  [% SET fielddescr = rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.descr %]
+               [% END %]
+               <td style="text-align: right">[% fielddescr %]: </td>
+               [% SET inputtyp="text" %]
+               [% SET inputplaceholder=rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.default %]
+               [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.crypt == "true" %]
+                  [% SET inputtyp="password" %]
+                  [% inputplaceholder="**********" %]
+               [% END %]
+               [% IF rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.length %]
+                  [% SET inputlength=rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.length %]
+               [% ELSE %]
+                  [% SET inputlength=15 %]
+               [% END %]
+               <td> 
+                  <input type="[% inputtyp %]" name="remoteboard_|_[% rbtyp %]_|_[% rzconfig.rz.${vienv}.remote.ctrl.$rbtyp.ask.$askvar.param %]_|_[% askvar %]"  maxlength="[% inputlength %]" autocomplete="on" placeholder="[% inputplaceholder %]" /> 
+               </td>
+            [% END %]
+            </tr>
+         </table>
+      </td>
+   [% END %]
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+   
+</table>
+
+<script type="text/javascript">
+   $(document).ready(function() {
+      $("#whichrb :input").change(function() {
+         var remoteboard = $(this).attr('id');
+         // window.alert('Change to: '+remoteboard);
+         [% FOREACH rbtyp IN rzconfig.rz.${vienv}.remote.ctrl.keys %]$('#[% rbtyp %]_input').hide();
+         [% END %]
+         $('#'+remoteboard+'_input').show();
+         // $("#VM_input").css("display", "");
+         // $('#VM_input').show();
+         // $('#VM_input').toggle();
+      });
+   });
+</script>

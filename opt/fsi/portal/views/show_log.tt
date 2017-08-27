@@ -1,0 +1,27 @@
+<form action="showlog" method=post>
+[% IF session.logged_in %]
+   [% INCLUDE 'layouts/global.tt' %]   
+   [% INCLUDE 'headerline/showlog.tt' %] 
+      [% USE urlhost = String %]
+      [% urlhost=request.host %] 
+      [% sshhost=urlhost.remove(':3000') %]
+      <div>
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+           <tbody>
+              <tr class="fsitableheader">
+                 <td style="width: 100%" align="center"><div>Show log file: [% path %][% file %] for [% server %]</div></td>
+              </tr>
+           </tbody>
+         </table>
+         [% IF tail == "tail" %]
+            <object width="1240px" height="685px" data="http://[% sshhost %]/fsitail/log.html#[% path %][% file %]"></object> 
+         [% ELSE %]
+            <object width="1240px" height="685px" data="http://[% sshhost %][% path %][% file %]"></object> 
+         [% END %]
+      </div>
+</form>
+
+<ul class=entries>
+</ul>
+[% END %]

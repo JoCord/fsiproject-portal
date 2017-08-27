@@ -1,0 +1,21 @@
+[% INCLUDE 'layouts/global.tt' %]   
+
+<form action="xenvm" method=post>
+  [% IF session.logged_in %]
+     [% INCLUDE 'include/inc_vmliste.tt' %]
+      [% IF vms.size %]
+         <div>
+            <span style="font-weight: bold;"><br />[% job %] vms: </span>
+            <div class="btn-group">
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="[% job %]"><img src="/images/16_Sign-Select-icon.png" alt="" /> OK </button> 
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="[% job %]" formnovalidate><img src="/images/16_abort-icon.png" alt="" /> Abort </button> 
+            </div>
+         </div>
+      [% ELSE %]
+         <div>
+         <br />
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="[% job %]" formnovalidate><img src="/images/16_abort-icon.png" alt="" /> Abort </button> 
+         </div>
+      [% END %]
+  [% END %]
+</form>

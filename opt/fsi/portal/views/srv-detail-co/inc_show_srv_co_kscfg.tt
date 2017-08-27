@@ -1,0 +1,15 @@
+[% use MAC = String entries.db_mac %]
+[% macadr = MAC.replace(':','-') %]
+[% kscfg = "/opt/fsi/pxe/sys/$macadr/${entries.item('db_typ')}.cfg" %]
+
+<br>
+<h2>RedHat ks config file: [% kscfg %]</h2>
+
+<div style="width:1238px;height:588px;overflow:auto;">
+   [% TRY %]
+      <pre>[% INCLUDE $kscfg  %]</pre>
+   [% CATCH %]
+ No ks.cfg config information found</pre>
+   [% END %]
+
+</div>

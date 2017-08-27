@@ -1,0 +1,17 @@
+<div class="btn-group [% global.button_group %]">
+   <button type="button" class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown">
+       <i class="fa fa-bars" aria-hidden="true"></i>
+   </button>
+   <ul class="dropdown-menu">
+      <li><a href="#myModal" data-toggle="modal" >Help </a></li>
+
+      <li class="divider"></li>
+      <li><a href="/useredit"> Edit profile</a>
+
+      <li class="divider"></li>
+      <li class="menubut"><button class="menubut" name="Logout" value="yes" >Logout </button></li>
+   </ul>
+</div>
+<div class="[% global.button_group %]">
+   <button class="btn [% global.button_typ %] [% global.button_size %]" name="Reload" value="yes" ><img src="/images/16_Refresh-icon.png"         alt="" /> Reload</button>
+</div>

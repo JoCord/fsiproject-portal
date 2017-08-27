@@ -1,0 +1,277 @@
+#!/bin/sh
+#
+#   esxiaddvmnet - add vm network port with vlan on esxi 
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.3 - 17.6.2014"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+export deb2scr="yes"
+export debug="trace"   # write to file
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  add vlan vm network port to esxi"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -v <vlan number>   give the vlan to add" 
+   echo "   -e <server>        give esxi name"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -s <switch>        give name of switch (default: vSwitch0)"
+   echo "   -o <flags>         optional flags to add"
+   echo "   -l <logfile>       other logfile"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -q                 quiet mode"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -e esx2.lab.local -v 223 -s vSwitch0"
+   echo "    $progname -e esx1.lab.local -v 444 -o n"
+   echo
+   exit 1
+}
+
+function addvlan() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local srv=$1
+   local switch=$2
+   local vlan=$3
+   local user=$4
+   local pw=$5
+   local opt=$6
+   
+   if [ -z $srv ]; then
+      errmsg "no server to add vlan given - abort"
+      rc=99
+   fi
+   if [ -z $switch ]; then
+      errmsg "no vSwitch to add vlan given - abort"
+      rc=99
+   fi
+   if [ -z $vlan ]; then
+      errmsg "no vlan to add given - abort"
+      rc=99
+   fi
+   if [ -z $pw ]; then
+      errmsg "no password to add given - abort"
+      rc=99
+   fi
+   
+   if [ $rc -eq 0 ] ; then  
+      infmsg "$ls Host: $srv"
+      infmsg "$ls  add: VLAN: $vlan on $switch"
+      tracemsg "$ls  add portgroup"
+      if [ "$opt" == "" ]; then
+         tracemsg "$ls  no optional description"
+         sshpass -p $pw ssh $g_ssh_options $user@$srv esxcfg-vswitch $switch --add-pg=\"VMn - s0 v$vlan\"
+         rc=$?
+      else
+         tracemsg "$ls  optional description [$opt]"
+         sshpass -p $pw ssh $g_ssh_options $user@$srv esxcfg-vswitch $switch --add-pg=\"VMn - s0 v$vlan $opt\"
+         rc=$?
+      fi
+   fi
+         
+   if [ $rc -eq 0 ] ; then  
+      tracemsg "$ls  add vlan setting to portgroup"
+      if [ "$opt" == "" ]; then
+         tracemsg "$ls  no optional description"
+         sshpass -p $pw ssh $g_ssh_options $user@$srv esxcfg-vswitch -v $vlan -p \"VMn - s0 v$vlan\" $switch
+         rc=$?
+      else
+         tracemsg "$ls  optional description [$opt]"
+         sshpass -p $pw ssh $g_ssh_options $user@$srv esxcfg-vswitch -v $vlan -p \"VMn - s0 v$vlan $opt\" $switch
+         rc=$?
+      fi      
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+server="none"
+switch="vSwitch0"
+vlan="none"
+opt=""
+srv_typ=""
+srv_ver=""
+srv_user=""
+srv_userpw=""
+
+while getopts ":l:e:s:v:o:hH012q" optname; do
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "add vlan vm network port to esxi"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         switch="$OPTARG"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "o")
+         opt="$OPTARG"
+        ;;
+      "v")
+         vlan="$OPTARG"
+        ;;
+      "e")
+         server="$OPTARG"
+        ;;
+      "?")
+        echo "Unknown option $OPTARG"
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+
+if [ "$server" == "none" ] || [ "$vlan" == "none" ]; then
+   help
+fi
+
+infmsg "Start $progname - $ver"
+get_srv_data $server
+retc=$?
+
+if [ $retc -eq 0 ] ; then
+   tracemsg "$ls found server data"
+   
+   srvonline $server
+   retc=$?
+   if [ $retc -ne 0 ] ; then
+      errmsg "server $server not online - abort update"
+      retc=3
+   fi
+fi
+
+if [ $retc -eq 0 ] ; then
+   infmsg "$ls  server $server online"      
+   case "$srv_typ" in
+      "esxi")
+         if [[ "$srv_ver" =~ ^4 ]]; then
+            infmsg "    add vlan on esxi ver. 4 server now"
+            addvlan "$server" "$switch" "$vlan" "$srv_user" "$srv_userpw" "$opt"
+            retc=$?
+            if [ $retc -eq 0 ] ; then
+               tracemsg "$ls  restart services"
+               sshpass -p $srv_userpw ssh -q $srv_user@$server services.sh restart
+               retc=$?
+            fi
+         elif [[ "$srv_ver" =~ ^5 ]]; then
+            infmsg "    add vlan on esxi ver. 5 server now"
+            addvlan "$server" "$switch" "$vlan" "$srv_user" "$srv_userpw" "$opt"
+            retc=$?
+            if [ $retc -eq 0 ] ; then
+               tracemsg "$ls  restart hostd services"
+               sshpass -p $srv_userpw ssh -q $srv_user@$server /etc/init.d/hostd restart
+               retc=$?
+               if [ $retc -eq 0 ] ; then
+                  tracemsg "$ls  restart hostd services"
+                  sshpass -p $srv_userpw ssh -q $srv_user@$server /etc/init.d/vpxa restart
+                  retc=$?
+               fi
+            fi
+         else
+            errmsg "    unknown/unsupported esxi version - abort"
+            exit 3
+         fi
+        ;;
+      "xen")
+         errmsg "XenServer is not supported - abort"
+         retc=99
+        ;;
+      "co")
+         upd_co "CentOS is not supported - abort"
+         retc=99
+        ;;
+      *)
+         errmsg "Unknown error server type [$servertyp] found - only esxi possible"
+         exit 2
+        ;;
+   esac   
+fi
+
+infmsg "End $progname rc=$retc"
+exit $retc

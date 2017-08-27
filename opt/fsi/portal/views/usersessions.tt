@@ -1,0 +1,101 @@
+[% INCLUDE 'layouts/global.tt' %]   
+
+<div id="page" >
+[% IF session.role.match('Admin') OR  session.role == "Master" %]
+  [% IF session.logged_in %]
+    [% INCLUDE 'help/help_sessions.tt' %]
+    <form action="usersessions" method=post>
+      [% INCLUDE 'headerline/normal.tt' %]
+       <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+              <tr class="fsitableheader">
+              <td style="width: 100%;"><div>fsi portal user sessions:</div></td>
+           </tr>
+       </table>
+         <br>
+
+
+      [% IF users.size %]
+        <div class="scrolltable">
+          <table class="table table-condensed" style="table-layout:fixed">
+           <thead>
+               <tr class="fsitableheader">
+                     <td style="width: 80px">control</td>
+                     <td style="width: 130px">&nbsp;user</td>
+                     <td style="text-align: center; width: 150px">login time</td>
+                     <td style="text-align: center; width: 150px">last activ</td>
+                     <td style="width: 150px">cur. site</td>
+                     <td style="width: 260px">id</td>
+                     <td style="width: 130px">back</td>
+                     <td style="width: 188px">access role</td>
+               </tr>
+           </thead>
+           <tbody style="height:636px;">
+                  [% FOREACH id IN users.keys.sort('name') %]
+                    [% IF NOT id == "" %]
+                     <tr>
+                       <td style="width: 80px">
+                          <button class="btn [% global.button_typ %] [% global.button_size %]" name="SessionDel"  value="[% users.$id.item('file') %]" ><img src="/images/16_Sign-Error-icon.png" alt=""        > Remove </button>
+                       </td>
+                       <td style="width: 130px">
+                           [% users.$id.item('name') %]
+                       </td>
+                       <td style="text-align: center; width: 150px">
+                           [% users.$id.item('logintime') %]
+                        </td>
+                       <td style="text-align: center; width: 150px">
+                           [% users.$id.item('last') %]
+                       </td>
+                       <td style="width: 150px">
+                           [% users.$id.item('now') %]
+                       </td>
+                       <td style="width: 260px">
+                           [% id %]
+                       </td>
+                       <td style="width: 130px">
+                         [% IF session.role == "Master" %]
+                           [% users.$id.item('back') %]
+                         [% ELSE %]
+                           [% backlist = users.$id.item('back') %]
+                           [% backsite = backlist.match('([^,]*$)') %] 
+                           [% backsite.0 %]
+                         [% END %]
+                        </td>
+                       <td style="width: 188px">
+                           [% users.$id.item('role') %]
+                        </td>
+                      </tr>
+                     [% END %]
+                  [% END %]
+           </tbody>
+          </table>
+        </div>
+      [% ELSE %]
+         <caption style="text-align: left">No portal user sessions found!</caption>
+      [% END %]
+    </form>
+  [% END %]
+[% ELSE %]
+   <form action="user" method=post>
+     <div class="btn-group">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+     </div>   
+     <div style="width:1238px;">
+       <table>
+        [% INCLUDE 'include/inc_envhead.tt' %]
+            <tr class="fsitableheader">
+               <td style="width: 100%;"><div>&nbsp; - access denied - </div></td>
+            </tr>
+               <td>
+                  &nbsp;
+               </td>
+            <tr/>
+            <tr>
+               <td>
+                  &nbsp;<img src="/images/24_Sign-Stop-icon.png" alt="" />  You do not have enough access right to see this. Please go back!
+               </td>
+            </tr>
+       </table>
+   </form>
+[% END %]
+</div>

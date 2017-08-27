@@ -1,0 +1,189 @@
+#!/bin/sh
+#
+#   get reports from all xenserver pools
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.2 - 20.1.2017"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  get reports from all xenserver"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -g                 go and collect" 
+   echo "   -d <dir>           write report to dir"
+   echo "   -f <filename>      write report to file, without extension"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    0 = ha on "
+   echo "    1 = ha off"
+   echo "    2 = help"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -g"
+   echo "    $progname -g -d /tmp -f 20170120_testRZ"
+   echo
+   exit 2
+}
+
+
+
+# ---------------------------------- Main ----------------------------------
+
+go=0
+targetdir="/opt/fsi/portal/logs"
+targetfile="fsireport"
+
+while getopts ":l:d:f:ghHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "create vm and sr size report from all xenpools"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "f")
+         targetfile="$OPTARG"
+         debmsg " target file: $targetfile"
+        ;;
+      "d")
+         export targetdir="$OPTARG"
+         debmsg " target dir: $targetdir"
+        ;;
+      "g")
+         go=1
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ $go -eq 0 ]; then
+   help
+fi
+
+infmsg "Start $progname - $ver"
+
+if [ -d $targetdir ]; then
+   infmsg "   => $targetdir/$targetfile"
+else
+   help
+fi
+   
+infmsg "  Start fsirdu on all poolmaster ... "
+/opt/fsi/portal/tools/rmc $quietmode -p ALL -o -j 'fsirdu -v -s -r -n'
+retc=$?
+
+if [ $retc -eq 0 ]; then
+   infmsg "  Generate Report from all pools ..."
+   if [ -e "$targetdir/$targetfile.gesamt_vm" ]; then
+      out=$(rm -f "$targetdir/$targetfile.gesamt_vm")
+      retc=$?
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   for i in $(find /opt/fsi/inst -name 'report.vm'); do 
+      cat $i >>"$targetdir/$targetfile.gesamt_vm"
+      retc=$?
+   done
+fi
+   
+if [ $retc -eq 0 ]; then
+   if [ -e "$targetdir/$targetfile.gesamt_sr" ]; then
+      out=$(rm -f "$targetdir/$targetfile.gesamt_sr")
+      retc=$?
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   for i in $(find /opt/fsi/inst -name 'report.sr'); do 
+      cat $i >>"$targetdir/$targetfile.gesamt_sr"
+   done
+fi
+   
+infmsg "End $progname - $ver - $retc"
+exit $retc
+

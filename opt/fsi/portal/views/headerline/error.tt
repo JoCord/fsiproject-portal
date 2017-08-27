@@ -1,0 +1,12 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% INCLUDE headerline/mainmenu.tt %]
+       <div class="[% global.button_group %]">
+         <a href="/" role="button" class="btn [% global.button_typ %] [% global.button_size %]">Server Overview</a>      
+       </div>
+       <div class="[% global.button_group %]">
+         <a href="http://fsiproject.org" role="button" class="btn [% global.button_typ %] [% global.button_size %]">fsi website</a>               
+         <a href="http://wiki.fsiproject.org" role="button" class="btn [% global.button_typ %] [% global.button_size %]">fsi wiki</a>               
+       </div>
+   </div>
+</div>

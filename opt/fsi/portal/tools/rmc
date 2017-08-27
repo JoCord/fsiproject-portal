@@ -1,0 +1,537 @@
+#!/bin/sh
+#
+#   remote command and/or copy file to server
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.9 - 05.05.2017"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  remote command and/or copy file to remote server"
+   echo
+   tput setaf 3
+   echo "  Remote:"
+   tput sgr0
+   echo "   -j <job>          command job"
+   echo "   -f <file>         file to copy with scp to server"
+   echo "   -d <dir>          remote dir (default /var)"
+   echo
+   tput setaf 3
+   echo "  Server only parameter:"
+   tput sgr0
+   echo "   -s <server>       server name to get info"
+   echo
+   tput setaf 3
+   echo "  Multiple server parameter:"
+   tput sgr0
+   echo "   -c <vc>           copy scripts to all esxi server on virtual center or ALL"
+   echo "   -m <model>        copy scripts to all linux server for model"
+   echo "   -t <tree>         copy scirpts all server for specify sourcedir tree"
+   echo "   -y <typ>          check all server for specify typ"
+   echo "   -p <pool>         check all xen server in specify pool or all pools"
+   echo "   -o                on master only"
+   echo "   -n                no doing - only list server"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                quiet mode"
+   echo "   -3                print servername only"
+   echo "   -0/1/2            info/debug/trace mode"
+   echo "   -l <logfile>      other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no server "
+   echo "    3 = no job or file to copy"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -f test.sh -d /tmp -j /tmp/test.sh -s esx1.lab.local"
+   echo "    $progname -j \"ls -lisa\" -s esx1"
+   echo "    $progname -f testfile -c vcdev.lab.local"
+   echo "    $progname -f \"test file.sh\" -j \"/var/test file.sh\" -m base"
+   echo "    $progname -j ls -t xen620_hp"
+   echo "    $progname -j ls -y rh"
+   echo "    $progname -f testfile -p EDV_620_XA_01"
+   echo "    $progname -p ALL -o -j 'ls -lisa'"
+   echo
+}
+
+job="none"
+copyfile="none"
+copydir="none"
+
+server=""
+model=""
+tree=""
+pool=""
+vc=""
+typ=""
+nocheck=0
+cpcok=0
+cpcfail=0
+printsrv=0
+masteronly=0
+
+
+while getopts ":s:l:hHq0123oc:m:t:p:y:nj:f:d:" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "remote command and/or copy file to remote server"
+         exit 1
+      ;;
+      "j")
+         job="$OPTARG"
+         debmsg " job to do: $job"
+        ;;
+      "d")
+         copydir="$OPTARG"
+         debmsg " dir to copy file: $copydir"
+        ;;
+      "f")
+         copyfile="$OPTARG"
+         debmsg " file to copy: $copyfile"
+        ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "3")
+         export deb2scr="no"
+         printsrv=1
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server="$OPTARG"
+         debmsg " srv: $server"
+        ;;
+      "c")
+         vc="$OPTARG"
+         debmsg " vc: $vc"
+        ;;
+      "m")
+         model="$OPTARG"
+         debmsg " model: $model"
+        ;;
+      "y")
+         typ="$OPTARG"
+         debmsg " typ: $typ"
+        ;;
+      "t")
+         tree="$OPTARG"
+         debmsg " sourcedir tree: $tree"
+        ;;
+      "o")
+         masteronly=1
+         debmsg " run on master only"
+        ;;
+      "p")
+         pool="$OPTARG"
+         debmsg " xen pool: $pool"
+        ;;
+      "n")
+         nocheck=1
+         debmsg " no check - only list"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+function copy_file() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local srvname=$1
+   local srvuser=$2
+   local srvpass=$3
+   local copyfile=$4
+   local targetdir=$5
+
+   tracemsg "$ls   test if all parameter given"
+   if [ "$copyfile" == "" ]; then
+      errmsg "missing some parameter - abort"
+      retc=99
+   else
+      tracemsg "$ls   file: $copyfile"
+      tracemsg "$ls   target dir: $targetdir"
+      
+      if [ "$targetdir" == "none" ]; then
+         targetdir="/var"
+      fi
+   
+      srvonline $srvname
+      srvon=$?
+      if [ $srvon -ne 0 ]; then
+         warnmsg "$ls server $srvname not online - ignore copy tools"
+      else
+         if [ $retc -eq 0 ]; then
+            cmd="sshpass -p $srvpass ssh  $g_ssh_options $srvuser@$srvname ls $targetdir"
+            OUTPUT=$(2>&1 $cmd)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               debmsg "$ls  targetdir dir $targetdir exist"
+            else
+               if [[ "$OUTPUT" =~ $regex_nofile ]]; then
+                  warnmsg "$ls   targetdir dir $targetdir does not exist - try to create"
+                  cmd="sshpass -p $srvpass ssh  $g_ssh_options $srvuser@$srvname mkdir -p $targetdir"
+                  OUTPUT=$(2>&1 $cmd )
+                  retc=$?
+                  if [ $retc -eq 0 ]; then
+                     debmsg "$ls    create $targetdir ok"
+                  else
+                     if [[ "$OUTPUT" =~ $regex_createdir ]]; then
+                        errmsg "cannot create directory $targetdir on remote system $srvname - abort"
+                        retc=98
+                     else
+                        errmsg "unknown error creating dir $targetdir on remote system $srvname - abort"
+                        errmsg "$OUTPUT"
+                        retc=97
+                     fi
+                  fi
+               elif [ $retc -eq 255 ]; then
+                  warnmsg "$ls   maybe ssh key is not correct - try to clean ssh key"
+                  $progdir/sshkeyclean -s $srvname $quietmode
+                  retc=$?
+                  if [ $retc -eq 0 ]; then
+                     debmsg "$ls    try again"
+                     OUTPUT=$(2>&1 $cmd)
+                     retc=$?
+                     if [ $retc -eq 0 ]; then
+                        tracemsg "$ls   targetdir dir $targetdir exist"
+                     else
+                        if [[ "$OUTPUT" =~ $regex_nofile ]]; then
+                           warnmsg "$ls   targetdir dir $targetdir does not exist - try to create"
+                           cmd="sshpass -p $srvpass ssh -q -o StrictHostKeyChecking=no  $srvuser@$srvname mkdir -p $targetdir"
+                           OUTPUT=$(2>&1 $cmd )
+                           retc=$?
+                           if [ $retc -eq 0 ]; then
+                              debmsg "$ls    create $targetdir ok"
+                           else
+                              if [[ "$OUTPUT" =~ $regex_createdir ]]; then
+                                 errmsg "cannot create directory $targetdir on remote system $srvname - abort"
+                                 retc=98
+                              else
+                                 errmsg "unknown error creating dir $targetdir on remote system $srvname - abort"
+                                 errmsg "$OUTPUT"
+                                 retc=97
+                              fi
+                           fi
+                        else
+                           errmsg "unknown error - abort"
+                           errmsg "$OUTPUT"
+                           retc=99
+                        fi
+                     fi
+                  else
+                     errmsg "cannot clean ssh key for $srvname - abort"
+                  fi
+               else
+                  errmsg "unknown error - abort"
+                  errmsg "$OUTPUT"
+               fi
+            fi
+         fi   
+      fi
+      
+      if [ $retc -eq 0 ]; then
+         if [ -f $copyfile ]; then
+            filename=${copyfile##*/}
+            targetdirfile="$targetdir/$filename"
+            infmsg "$ls copy $copyfile to $srvuser@$srvname:$targetdirfile"
+            cmd='sshpass -p '$srvpass' scp -q -p -o StrictHostKeyChecking=no '$copyfile' '$srvuser'@'$srvname':'$targetdirfile
+            tracemsg "$ls  cmd: $cmd"
+            OUTPUT=$(2>&1 $cmd)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               debmsg "$ls   ok"
+               cpcok=$((cpcok+1))
+            else
+               if [[ "$OUTPUT" =~ $regex_remotechanged ]] ; then
+                  warnmsg "$ls   SSH Keys changed - delete old SSH Key"
+                  cpcfail=$((cpcfail+1))
+               elif [[ "$OUTPUT" =~ $regex_nofile ]] ; then
+                  warnmsg "$ls   cannot copy to $targetdirfile"
+                  cpcfail=$((cpcfail+1))
+               elif [[ "$OUTPUT" =~ $regex_port ]] ; then
+                  warnmsg "$ls   server $srvname offline or no route to host"
+                  cpcfail=$((cpcfail+1))
+               else
+                  warnmsg "$ls   cannot copy sourcedir file $sourcedirfile rc=$retc"
+                  warnmsg "$ls   [$OUTPUT]"
+                  cpcfail=$((cpcfail+1))
+               fi
+            fi
+         fi
+      fi
+
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function do_job() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local srv_fqdn=$1
+   local srv_user=$2
+   local srv_userpw=$3
+   local job=$4
+   
+   
+   if [ $retc -eq 0 ]; then
+      srvonline $srv_fqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         debmsg "$ls execute command now ..."
+         tracemsg "$ls    cmd: $job"
+         if [ $printsrv -eq 1 ]; then
+            echo -n " $srv_fqdn : "
+         fi
+         2>&1 sshpass -p $srv_userpw ssh -q -o StrictHostKeyChecking=no $srv_user@$srv_fqdn "$job"
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            debmsg "$ls command run successful"
+         else
+            errmsg "error executing command on server $srv_fqdn - rc [$retc]"
+            errmsg "please investigate server logfile [$logfile]"
+         fi
+      else
+         warnmsg "$ls   server [$srv_fqdn] offline"
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+
+function goon() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local nocheck=$1
+   local srv_fqdn=$2
+   local srv_user=$3
+   local srv_userpw=$4
+   local copyfile=$5
+   local copydir=$6
+   local job=$7
+   tracemsg "$ls  parameter: [$nocheck][$srv_fqdn][$srv_user][$srv_userpw][$copyfile][$copydir][$job]"
+   
+   if [ $nocheck -eq 0 ]; then
+      if [ "$copyfile" != "none" ]; then
+         infmsg "$ls  found copy file"
+         copy_file $srv_fqdn $srv_user $srv_userpw $copyfile $copydir
+         retc=$?
+      fi
+      if [ "$job" != "none" ] && [ $retc -eq 0 ]; then
+         infmsg "$ls  found job to do"
+         do_job $srv_fqdn $srv_user $srv_userpw "$job"
+         retc=$?
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+if [ "$copyfile" == "none" ] && [ "$job" == "none" ]; then
+   echo ""
+   echo "ERROR: Nothing to do - need job or file to copy"
+   help
+   exit 3
+fi
+
+
+if [ -z "$typ" ] && [ -z "$pool" ] && [ -z "$tree" ] && [ -z "$model" ] && [ -z "$vc" ] && [ -z "$server" ]; then
+   echo ""
+   echo "ERROR: No target given - need to know where I must go"
+   help
+   exit 2
+fi
+
+debmsg "Start $progname - $ver"
+
+if [ -z "$server" ]; then
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         tracemsg "$ls [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         get_srv_data $mac
+         retc=$?
+         tracemsg "$ls   servername: $srv_fqdn / $srv_shortname"
+         
+         if [ $retc -eq 0 ]; then
+            if [ "$tree" != "" ] && [ "$tree" == "$srv_tree" ] && [ "$srv_tree" != "-" ]; then
+               infmsg "$ls  server $srv_shortname found for tree $srv_tree"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$tree" != "" ] && [ "$tree" == "ALL" ] && [ "$srv_tree" != "-" ]; then
+               infmsg "$ls  server $srv_shortname found for tree $srv_tree"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$typ" != "" ] && [ "$typ" == "$srv_typ" ] && [ "$srv_typ" != "-" ]; then
+               infmsg "$ls  server $srv_shortname found for typ $srv_typ"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$typ" != "" ] && [ "$typ" == "ALL" ] && [ "$srv_typ" != "-" ]; then
+               infmsg "$ls  server $srv_shortname found for typ $srv_typ"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$model" != "" ] && [ "$model" == "$srv_model" ] && [ "$srv_model" != "-" ]; then
+               infmsg "$ls  linux server $srv_shortname found for model $srv_model"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$model" != "" ] && [ "$model" == "ALL" ] && [ "$srv_model" != "-" ]; then
+               infmsg "$ls  linux server $srv_shortname found for model $srv_model"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$vc" != "" ] && [ "$vc" == "$srv_vc" ] && [ "$srv_vc" != "-" ]; then
+               infmsg "$ls  esxi server $srv_shortname found for vc $srv_vc"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$vc" != "" ] && [ "$vc" == "ALL" ] && [ "$srv_vc" != "-" ]; then
+               infmsg "$ls  esxi server $srv_shortname found for vc $srv_vc"
+               goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+               retc=$?
+            elif [ "$srv_pool" != "-" ]; then    # detect xenserver with pool
+               if [ $masteronly -eq 1 ]; then    # only on master or on all?
+                  mastersrv=$(/opt/fsi/portal/tools/findmaster -q -p "$srv_pool")
+                  if [ "$mastersrv" == "" ]; then
+                     warnmsg "$ls  no master found in pool [$srv_pool] - ignore"
+                  else
+                     if [ "$mastersrv" == "$srv_shortname" ] && [ "$pool" == "$srv_pool" ]; then
+                        infmsg "$ls  xen server [$srv_shortname] found for pool [$srv_pool]"
+                        goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+                        retc=$?
+                     elif [ "$mastersrv" == "$srv_shortname" ] && [ "$pool" == "ALL" ]; then
+                        infmsg "$ls  xen server [$srv_shortname] found for pool [$srv_pool]"
+                        goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+                        retc=$?
+                     fi
+                  fi
+               else
+                  if [ "$pool" != "" ] && [ "$pool" == "$srv_pool" ]; then
+                     infmsg "$ls  xen server [$srv_shortname] found for pool [$srv_pool]"
+                     goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+                     retc=$?
+                  elif [ "$pool" != "" ] && [ "$pool" == "ALL" ]; then
+                     infmsg "$ls  xen server [$srv_shortname] found for pool [$srv_pool]"
+                     goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+                     retc=$?
+                  fi
+               fi
+            else
+               tracemsg "$ls  server $srv_shortname not in filter - ignore"
+            fi
+         elif [ $retc -eq 99 ]; then
+            warnmsg "$ls  ignore server with mac [$mac]"
+            retc=0
+         fi
+      fi
+      if [ $retc -ne 0 ]; then
+         errmsg "error in subroutine - abort"
+         break
+      fi
+   done
+else
+   get_srv_data $server
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      warnmsg "$ls cannot find server data for $server - abort"
+   else
+      goon "$nocheck" "$srv_fqdn" "$srv_user" "$srv_userpw" "$copyfile" "$copydir" "$job"
+      retc=$?
+   fi
+fi
+
+debmsg "$ls files copy: $cpcok"
+debmsg "$ls files failed: $cpcfail"
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

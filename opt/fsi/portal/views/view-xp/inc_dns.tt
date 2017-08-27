@@ -1,0 +1,47 @@
+<div id="myChangeDNS" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Change DNS Settings</h2>
+   </div>
+
+   <div class="modal-body">
+   
+         Please choose the dns server for this pool [[% pool %]] or enter new:
+         <br>
+         <br>
+         <select class="btn-group-sm selectpicker" style="display: none;" name="dnsserver" multiple data-max-options="3" data-width="400px" >
+               [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.dns.keys.sort %]
+                  [% IF rzconfig.rz.${vienv}.xensrv.dns.$srv.default == "true" %]
+                     <option value="[% srv %]" selected>[% srv %]</option>
+                  [% ELSE %]
+                     <option value="[% srv %]" >[% srv %]</option>
+                  [% END %]
+               [% END %]
+         </select>
+         <br>
+         <br>
+         <input type="text" name="dnssrv" placeholder="manual: <ip only>[,<ip>][,<ip>]" maxlength="255" autocomplete="on" size="54"/> 
+         <br>
+         <br>
+         <div class="alert alert-danger"><i class="fa fa-hand-paper-o" aria-hidden="true"></i>  Attention: with a wrong dns server ip you can damage your xenserver pool</div>
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="ChangeDNS" value="[% pool %]" ><img src="/images/16_dns-setting-icon.png" alt="" /> ChangeDNS</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+[% IF BLOCKRELOAD=="NO" %]
+<script>
+    $('#myChangeDNS').on('show.bs.modal', function (e) {
+        clearInterval(GetInfoID); 
+    })
+    $('#myChangeDNS').on('hide.bs.modal', function (e) {
+        var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+    })
+</script>
+[% END %]

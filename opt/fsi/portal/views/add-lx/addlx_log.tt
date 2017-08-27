@@ -1,0 +1,79 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="text-align: right">Sylog Server: </td>
+      <td>
+       [% IF rzconfig.rz.${vienv}.lx.syslog.size %]
+          <select class="btn-group-sm selectpicker show-tick" style="display: none;" name="lx_sysloglist" data-width="350px" multiple >
+            [% FOREACH srv IN rzconfig.rz.${vienv}.lx.syslog.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.lx.syslog.$srv.port %]
+                  [% SET syslogport=rzconfig.rz.${vienv}.lx.syslog.$srv.port %]
+               [% ELSE %]
+                  [% SET syslogport=514 %]
+               [% END %]
+               [% IF rzconfig.rz.${vienv}.lx.syslog.$srv.prot %]
+                  [% SET syslogprot=rzconfig.rz.${vienv}.lx.syslog.$srv.prot %]
+               [% ELSE %]
+                  [% SET syslogprot="udp" %]
+               [% END %]
+               [% IF rzconfig.rz.${vienv}.lx.syslog.$srv.default == "true" %]
+                  <option value="[% srv %]" selected>[% rzconfig.rz.${vienv}.lx.syslog.$srv.ip %] : [% syslogport %] : [% syslogprot %]</option>   
+               [% ELSE %]
+                  <option value="[% srv %]">[% rzconfig.rz.${vienv}.lx.syslog.$srv.ip %] : [% syslogport %] : [% syslogprot %]</option>   
+               [% END %]
+            [% END %]
+          </select>
+          <br/>
+       [% END %]
+       <input type="text" name="lx_syslog_manual" placeholder="enter here ip/name" size="40" maxlength="255" autocomplete="on" />
+       <input type="text" name="lx_syslogport_manual" placeholder="514" maxlength="6" size="6" autocomplete="on" /> 
+      </td>
+      <td > </td>
+      <td > </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+   <tr>
+      <td style="text-align: right">NTP Server: </td>
+      <td style="text-align: left">
+       <select class="btn-group-sm selectpicker" style="display: none;" name="lx_ntpsrvlist" data-width="400px" multiple >
+         [% FOREACH srv IN rzconfig.rz.${vienv}.lx.ntpsrv.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.lx.ntpsrv.$srv.default %]
+               <option value="[% srv %]" selected>[% srv %]</option>
+            [% ELSE %]
+               <option value="[% srv %]" >[% srv %]</option>
+            [% END %]
+         [% END %]
+       </select>
+         <br/>
+         <input type="text" name="lx_ntpsrv_manual" placeholder="manual enter here" maxlength="255" autocomplete="on" size="58"/> 
+      </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+   <tr>
+       <td style="text-align: right">DNS Server: </td>
+       <td style="text-align: left">
+        <select class="btn-group-sm selectpicker" style="display: none;" name="lx_dnssrvlist" data-width="370px" multiple >
+          [% FOREACH srv IN rzconfig.rz.${vienv}.lx.dns.keys.sort %]
+             [% IF rzconfig.rz.${vienv}.lx.dns.$srv.default %]
+                <option value="[% srv %]" selected>[% srv %]</option>
+             [% ELSE %]
+                <option value="[% srv %]" >[% srv %]</option>
+             [% END %]
+          [% END %]
+        </select>
+          <br>
+          <input type="text" name="lx_dnssrv_manual" placeholder="or manual enter here" maxlength="255" autocomplete="on" size="58"/> 
+       </td>
+   </tr>
+
+
+</table>

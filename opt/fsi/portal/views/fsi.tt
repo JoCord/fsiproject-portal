@@ -1,0 +1,28 @@
+<div id="fsi" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">flexible server installation portal</h2>
+   </div>
+
+   <div class="modal-body">
+      fsi portal (flexible server installation portal) is a portal for installation and configuration a infrastructure with pyhsical and virtual servers.</br> 
+      At the moment we support following version:
+      <ul>
+         <li>XEN x.x.x - y.y.z for XenServer 6.20, 6.50 </li>
+         <li>ESXi x.x.x - y.y.z for ESXi 4.1u2 HP, ESXi 5.1u2 HP, ESXi 5.1u3 HP, ESXi 5.5u2 HP </li>
+         <li>CentOS x.x.x - y.y.z for CentOS 5.x, 6.x, 7.x </li>
+         <li>RedHat x.x.x - y.y.z for RedHat Enterprise 5.x, 6.x, 7.x </li>
+      </ul>
+      For more informationen see our <a href="http://www.fsiproject.org" target="_blank">fsi project website</a>. See our history on <a href="http://wiki.fsiproject.org/doku.php/history" target="_blank">wiki history page</a> and the used <a href="http://wiki.fsiproject.org/doku.php/libs" target="_blank">library list</a>
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+   </div>
+   
+  </div>
+ </div> 
+</div>

@@ -1,0 +1,134 @@
+<table class="table borderless">
+    <tbody>
+     <tr>
+        <td style="vertical-align: top; width:808px;">
+         [% IF session.role == "Master" %]
+             <h2>VMC Logfiles:&nbsp;Scroll: <span id="fsi_printscroll">0</span></h2>
+         [% ELSE %]
+         <h2>VMC Logfiles:</h2>
+         [% END %]
+            <div class="class_restore">
+            [% IF vmclogs.size %]
+               <table id="fsi_vmclogs" class="tablesorter table table-condensed table-hover table-striped">
+                  <thead>
+                     <tr class="fsitableheader">
+                        <th class="group-false" style="width: 18px"></th>
+                        <th class="group-date-monthyear" style="width: 100px">Date</th>
+                        <th class="group-false"  style="width: 70px">Time</th>
+                        <th class="group-word" style="width: 75%">Logfile</th>
+                     </tr>
+                  </thead>
+                  <tbody id="fsi_vmclogs_body">
+                     [% FOREACH vmclogfile = vmclogs.sort %]
+                     <tr>
+                        <td>
+                        <input name="vmclogfile" id="[% vmclogfile %]" type="radio" value="[% vmclogfile %]" style="width: 18px">
+                        </td>
+                        <td style="width: 100px">
+                           [% SET year=vmclogs.${vmclogfile}.substr(0,4) %]
+                           [% SET month=vmclogs.${vmclogfile}.substr(4,2) %]
+                           [% SET day=vmclogs.${vmclogfile}.substr(6,2) %]
+                           &nbsp;&nbsp;[% month %]/[% day %]/[% year %]
+                        </td>
+                        <td style="width: 70px">
+                           [% SET hour=vmclogs.${vmclogfile}.substr(9,2) %]
+                           [% SET min=vmclogs.${vmclogfile}.substr(11,2) %]
+                           &nbsp;[% hour %]:[% min %]
+                        </td>
+                        <td style="width: 75%">
+                           &nbsp;&nbsp;[% vmclogfile %]
+                        </td>
+                     </tr>
+                     [% END %]
+                  </tbody>
+               </table>
+           [% ELSE %]
+            <br>
+             No VMC logfiles found found !
+           [% END %]
+           </div>
+        </td>
+        <td style="vertical-align: top; width:10px;">
+         &nbsp;
+        </td>
+        <td style="vertical-align: top; width:360px;">
+         <h2>Config:</h2>
+         <table  class="table borderless" style="text-align: left;  width: 360px;" id="check_backup">
+             <tbody>
+                <tr>
+                 <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% global.portaldir %]/etc/clonejobs" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit CloneJobs</button> </td>
+                 <td style="width: 100%;">Edit fsi vmc clone jobs configuration file</td>
+                </tr>
+                <tr>
+                 <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% global.portaldir %]/etc/clonematrix" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit CloneMatrix</button> </td>
+                 <td style="width: 100%;">Edit fsi vmc clone matrix configuration file for vms</td>
+                </tr>
+                <tr>
+                 <td>
+                    &nbsp;
+                 </td>
+                </tr>
+                <tr>
+                 <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="CronRestart" value="yes" ><img src="/images/16_App-Quick-restart-icon.png" alt="" /> CronD Restart</button> </td>
+                 <td style="width: 100%;">Restart cron daemon to activate new clone jobs</td>
+                </tr>
+              <tr>
+             </tbody>
+           </table>
+        [% IF vmclogs.size %]
+          </br>
+         <h2>Actions:</h2>
+         <table  class="table borderless" style="text-align: left;  width: 360px;" id="check_backup">
+             <tbody>
+                 <tr>
+                  <td><button class="btn [% global.button_typ %] [% global.button_size %]" name="viewlog" value="yes"><img src="/images/16_Folder-White-Configure-icon.png" alt="" /> View Logfile</input> </td>
+                  <td>View the marked logfile</td>
+                 </tr>
+              <tr>
+             </tbody>
+           </table>
+        </td>
+        [% END %]
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+     </tr>
+   </tbody>
+</table>
+
+<script>
+    $(document).ready(function () {
+       $("#fsi_vmclogs")
+        .on('tablesorter-ready', function() {
+            var posOverview = localStorage["fsi_vmclogs_scroll"];
+            if (posOverview) {
+               $("#fsi_vmclogs_body")[0].scrollTop = posOverview;
+            };
+            var fsi_vmclogs_save_chkbox = JSON.parse(localStorage.getItem('fsi_vmclogs_save_chkbox')) || {};
+            if (fsi_vmclogs_save_chkbox) {
+               $.each(fsi_vmclogs_save_chkbox, function(key, value) {
+                  $("#" + key).prop('checked', value);
+               });
+            };
+         })
+        .tablesorter({
+          theme: "bootstrap",
+          showProcessing   : true, 
+          headerTemplate: '{content} {icon}',
+          widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter"],
+          headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        },
+                     1: { sortInitialOrder: 'desc' },
+                     2: { sortInitialOrder: 'desc' }
+                   },
+          widgetOptions: {
+             filter_reset : 'button.reset',
+             filter_hideFilters: false,
+             filter_ignoreCase: true,
+             filter_saveFilters: true,
+             filter_cssFilter: "form-control",
+          },
+        })
+    });
+</script>    

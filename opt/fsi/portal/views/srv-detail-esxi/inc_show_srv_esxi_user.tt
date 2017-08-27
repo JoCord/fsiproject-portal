@@ -1,0 +1,51 @@
+<div style="width:1238px;height:642px;">
+   <br>
+   <table>
+         <tr>
+            <td valign="top" style="width: 400px">
+               <h2>&nbsp;Local User Config: </h2>            
+            </td>
+            <td valign="top" style="width: 400px">
+               <h2>&nbsp;&nbsp;Local Roles Config: </h2>            
+            </td>
+            <td valign="top" style="width: 438px">
+               <h2>&nbsp;&nbsp;Local Permissions Configs: </h2>            
+            </td>
+         </tr>
+   </table>
+   
+   <div style="width:1238px;height:588px;overflow:auto;">
+   <table>
+      <tr>
+         <td valign="top" style="width: 400px">
+            [% TRY %]
+               <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/locusers"  %]</pre>
+            [% CATCH %]
+ No user config information found</pre>
+            [% END %]
+         </td>
+
+         <td>&nbsp;&nbsp;</td>
+
+         <td valign="top" style="width: 400px">
+            [% TRY %]
+               <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/locroles"  %]</pre>
+            [% CATCH %]
+ No roles information found</pre>
+            [% END %]
+         </td>
+
+         <td>&nbsp;&nbsp;</td>
+
+         <td valign="top" style="width: 438px">
+            [% TRY %]
+               <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/locroleperm"  %]</pre>
+            [% CATCH %]
+ No roles information found</pre>
+            [% END %]
+         </td>
+
+      </tr>
+   </table>
+   </div>
+</div>

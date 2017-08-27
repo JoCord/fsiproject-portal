@@ -1,0 +1,19 @@
+<div id="page">
+     [% INCLUDE 'headerline/error.tt' %]
+
+      <table>
+        [% INCLUDE 'include/inc_envhead.tt' %]
+        <tbody>
+            <tr style="background-color: red; color: white;">
+              <td style="width: 60px; text-align: center;">
+                  [% IF msg %]
+                     <div class=error> [% msg %] </div>
+                  [% ELSE %]
+                     <div class=error> Unknown Error ! </div>
+                  [% END %]
+              </td>
+            </tr>
+         </tbody>
+      </table>
+   </div>
+</div>

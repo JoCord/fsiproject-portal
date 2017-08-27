@@ -1,0 +1,24 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<div id="page">
+   <form action="logout" method=post>
+     <div class=loginsession>
+     [% INCLUDE headerline/logout.tt %]
+     </div>
+     <table width="1236px">
+      [% INCLUDE 'include/inc_envhead.tt' %]
+      <tbody>
+          <tr class="fsitableheader">
+            <td style="width: 60px; text-align: center;">
+              <div>Logged off - please login first</div>
+            </td>
+          </tr>
+          <tr>
+             <td height="600" align="center">
+                <h1><a href="/login" style="color: #E0E6F8" class="fsilogostyle"><span style="">fsi</span></a></h1>
+             </td>
+          </tr>
+       </tbody>
+     </table>
+   </form>
+</div>

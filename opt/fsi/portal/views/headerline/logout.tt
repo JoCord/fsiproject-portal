@@ -1,0 +1,14 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+     <div class=" [% global.button_group %]">
+      [% IF not session.logged_in %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Login" value="yes"><img src="/images/16_Sign-LogIn-icon.png" alt=""> Login </button>
+      [% ELSE %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Logout" value="yes"><img src="/images/16_Sign-LogOff-icon.png" alt=""> Logout </button>
+      [% END %]
+      [% IF msg %]
+         [% msg %]
+      [% END %]
+     </div>
+   </div>
+</div>

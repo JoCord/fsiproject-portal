@@ -1,0 +1,1081 @@
+#!/bin/bash
+#
+# fsi -  This starts and stops fsi services on redhat/centos fsi servers
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#  
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+# chkconfig: 2345 99 12
+# description: fsi
+# processname: fsi
+# pidfile: /var/run/fsi.pid
+### BEGIN INIT INFO
+# Provides: $fsi
+### END INIT INFO
+
+ver="2.1.13 - 20.1.2017"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]; do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/../tools/etc/func.sh
+deb2scr="no"
+
+# Source function library.
+. /etc/init.d/functions
+
+logdir="${progdir}/../logs"
+
+if [ "$osmain" == "" ]; then
+   debmsg "running on unknown linux version"
+   exit 98
+elif [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+   debmsg "  running on redhat or centos version 5 or 6"
+elif [ $osmain -eq 7 ]; then
+   infmsg "  running on redhat or centos version 7"
+else
+   debmsg "running on unknown linux version"
+   exit 99
+fi      
+
+
+if [ "$(id -u)" != "0" ]; then
+   echo " This script must be run as root"
+   exit 3
+fi
+
+
+
+fsilock="/var/lock/subsys/fsi"
+dienste=(
+   fsichk
+   fsiro
+)
+
+if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+   s_pg=$(basename /etc/init.d/postgresql*)
+   s_nfs="nfs"
+   s_httpd="httpd"
+   s_pgb="pgbouncer"
+   s_cron="crond"
+elif [ $osmain -eq 7 ]; then
+   s_pg="postgresql-9.4"
+   s_nfs="nfs-server"
+   s_httpd="httpd"
+   s_pgb="pgbouncer"
+   s_cron="crond"
+fi      
+
+services=(
+   $s_nfs
+   $s_httpd
+   $s_pg
+   $s_pgb
+   $s_cron
+)
+
+
+for ((i=0; i<${#dienste[*]}; i++)); do
+   prog="$progdir/${dienste[$i]}.pl" 
+   rc=0
+   [ -x $prog ] || rc=99
+   if [ $rc -ne 0 ]; then
+      errmsg "fsi daemon $prog does not exist - abort"
+      retc=99
+   fi
+done
+
+if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+   for ((i=0; i<${#services[*]}; i++)); do
+      prog="/etc/init.d/${services[$i]}"
+      rc=0
+      [ -x $prog ] || rc=99
+      if [ $rc -ne 0 ]; then
+         errmsg "service $prog does not exist - abort"
+         retc=99
+         break
+      fi
+   done
+fi
+   
+if [ -f /usr/bin/plackup ]; then
+   _plackup='/usr/bin/plackup'
+elif [ -f /usr/local/bin/plackup ]; then
+   _plackup='/usr/local/bin/plackup'
+else
+   echo cannot find plackup - abort
+   retc=99
+fi
+
+if [ $retc -ne 0 ]; then
+   exit $retc
+fi
+
+RETVAL=0
+
+setlog() {
+   infmsg " set log level to $1"
+   echo -n "Set log level to $1 ..."
+   levelup=$(echo $1 | tr '[:lower:]' '[:upper:]')
+   retc=$?
+
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      levellow=$(echo $1 | tr '[:upper:]' '[:lower:]')
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile, Screen, Maillog/" "$progdir/../etc/log4p_vmc"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile, Screen/" "$progdir/../etc/log4p_fsi"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile, Screen/" "$progdir/../etc/log4p_fsic"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile/" "$progdir/../etc/log4p_fsic_quiet"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile, Screen/" "$progdir/../etc/log4p_fsi"
+      retc=$?
+   fi
+
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile/" "$progdir/../etc/log4p_fsi_quiet"
+      retc=$?
+   fi
+
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile/" "$progdir/../etc/log4p_runonce"
+      retc=$?
+   fi
+
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile/" "$progdir/../etc/log4p_fsichk"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/export debug=/ s/.*/export debug=\"$levellow\"/" "$progdir/../tools/etc/func.sh"
+      retc=$?
+   fi
+   
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/^\$loglevel =/ s/.*/\$loglevel = \$$levelup\;/" "$progdir/../lib/r_cl.pl"
+      retc=$?
+   fi
+
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/\"logprod\"/ s/.*/                \"logprod\"                  => \$$levelup\,/" "$progdir/../lib/fsi.pm"
+      retc=$?
+   fi
+   if [ $retc -eq 0 ]; then
+      echo -n .
+      sudo sed -i "/\"logprod\"/ s/.*/                \"logprod\"         => \$$levelup\,/" "$progdir/../bin/fsic.pl"
+      retc=$?
+   fi
+   
+   # log4perl.category = TRACE, Logfile, Screen
+   for i in $(ls -d $progdir/../../inst/xen*); do 
+      if [ -f $i/ks/create-customize.sh ]; then
+         echo -n .
+         sudo sed -i "/log4perl.category =/ s/.*/log4perl.category = $levelup, Logfile, Screen/" "$i/ks/create-customize.sh"
+      else
+         echo -n e
+      fi
+   done   
+
+   if [ $retc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+}
+
+
+start() {
+   tput setaf 2
+   echo
+   echo "Start fsi v.$ver ($osmain)"
+   infmsg "Start fsi v.$ver ($osmain)"
+   tput sgr0
+   if [ ! -f $progdir/../etc/rzenv.xml ]; then
+      echo rzenv.xml does not exist in etc dir - abort
+      retc=99
+   else
+      if [ -f $fsilock ]; then
+         echo " Already started"
+      else
+         tput setaf 3
+         infmsg " start system services"
+         echo "System services:"
+         tput sgr0
+         for ((i=0; i<${#services[*]}; i++)); do
+            if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+               tracemsg "  find status of ${services[$i]} (5/6)"
+               OUTPUT=$(2>&1 service ${services[$i]} status)
+               RETVAL=$?
+            elif [ $osmain -eq 7 ]; then
+               tracemsg "  find status of ${services[$i]} (7)"
+               OUTPUT=$(2>&1 systemctl is-active ${services[$i]})
+               RETVAL=$?
+            fi
+            
+            if [ $RETVAL -eq 0 ]; then
+               echo "${services[$i]} already running "
+               echo_success
+            else
+               if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+                  tracemsg "  start service ${services[$i]} (5/6)"
+                  service ${services[$i]} start
+               elif [ $osmain -eq 7 ]; then
+                  tracemsg "  start service ${services[$i]} (7)"
+                  echo -n Start ${services[$i]}:
+                  systemctl start ${services[$i]} 
+                  retc=$?
+                  if [ $retc -eq 0 ]; then
+                     echo_success
+                  else
+                     echo_failure
+                     break
+                  fi
+                  echo    
+               fi  
+            fi       
+         done
+      
+         tput setaf 3
+         infmsg " start fsi services"
+         echo "Start fsi services:"
+         tput sgr0
+         touch $fsilock
+         for ((i=0; i<${#dienste[*]}; i++)); do
+            echo -n " Starting ${dienste[$i]}: "
+            prog="$progdir/${dienste[$i]}.pl" 
+            daemon $prog
+            RETVAL=$?
+            PID=$!
+            echo $PID > /var/run/${dienste[$i]}.pid
+            echo
+         done
+      
+   #      echo -n " Enable fsi in httpd: "
+   #      /usr/bin/cp -f $progdir/../etc/fsi.conf /etc/httpd/conf.d/fsi.conf
+   #      RETVAL=$?
+   #      if [ $RETVAL -eq 0 ]; then
+   #         echo_success
+   #      else
+   #         echo_failure
+   #      fi
+   #      echo
+   #      service httpd restart
+   
+         startp
+         startd
+         starto     
+      
+         echo -n " Setting cron links: "
+         if [ -f $progdir/../etc/rotate ]; then
+            echo -n .
+            if [ ! -f /etc/cron.d/rotate ]; then
+               ln -s $progdir/../etc/rotate /etc/cron.d
+               rc=$?
+            else
+               rc=0
+            fi
+         else
+            echo -n m
+         fi
+         if [ $rc -eq 0 ]; then
+            if [ -f $progdir/../etc/clonejobs ]; then
+               echo -n .
+               if [ ! -f /etc/cron.d/clonejobs ]; then
+                  ln -s $progdir/../etc/clonejobs /etc/cron.d
+                  rc=$?
+               else
+                  rc=0
+               fi
+            else
+               echo -n m
+            fi
+         fi
+         if [ $rc -eq 0 ]; then
+            echo_success
+         else
+            echo_failure
+         fi
+         echo
+      fi
+   fi
+}
+
+clearfsi() {
+   infmsg " clear fsi installation"
+   echo "Clear fsi installation"
+   echo -n " delete log files"
+   OUTPUT=$(2>&1 rm -f ${logdir}/*)
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+   echo -n " delete sessions files"
+   OUTPUT=$(2>&1 rm -f $progdir/../sessions/* )
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+
+   echo -n " delete esxi create files"
+   OUTPUT=$(2>&1 rm -f $progdir/../tools/create/esxi/*)
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+
+   echo -n " delete xen create files"
+   OUTPUT=$(2>&1 rm -f $progdir/../tools/create/xen/*)
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+   
+   echo -n " delete rubbish files"
+   OUTPUT=$(2>&1 rm -f -r $progdir/../rubbish/*)
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+   
+   echo -n " clean pxe sysmlink files"
+   OUTPUT=$(2>&1 find $progdir/../..//pxe/pxelinux.cfg  -mindepth 1 -maxdepth 1 -name '01*' -exec rm -rvf {} \;)
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+   
+   
+   
+   mconf="/etc/multitail.conf"
+   if [ -f $mconf ]; then
+      out=$(2>&1 grep -i "fsilog" $mconf )
+      found=$?
+      if [ $found -eq 1 ]; then
+         echo -n " configure multitail for logs from fsi"
+         cat >>$mconf << EOfsi
+
+# fsi Color Scheme
+colorscheme:fsilog
+cs_re_s:green:(.*INFO   :.*$)
+cs_re_s:yellow:(.*DEBUG  :.*$)
+cs_re_s:yellow:(.*WARN   :.*$)
+cs_re_s:red,,bold:(.*ERROR  :.*$)
+cs_re_s:magenta:(.*TRACE  :.*$)
+EOfsi
+         rc=$?
+         if [ $rc -eq 0 ]; then
+            echo_success
+         else
+            echo_failure
+         fi
+      else
+         echo -n " multitail already configure for fsi"
+         echo_success
+      fi
+      echo
+   else
+      echo -n " no multitail installed - please install multitail first"
+      echo_failure
+      echo
+   fi
+}
+
+startp() {
+   infmsg "  starting fsi portal"
+   echo -n " Starting fsi portal: "      
+   echo -n "."
+   cmd="$progdir/fsic.pl --chkcfg"
+   out=$(2>&1 $cmd)
+   rc=$?
+   if (( $rc )); then
+      echo_failure
+   else
+      echo -n "."
+      # -E deployment/development/test
+      if [ -f /var/run/fsi.pid ]; then
+         echo -n "r"
+         OUT=$( /bin/rm -f /var/run/fsi.pid )
+         rc=$?
+         if [ $rc -ne 0 ]; then
+            echo_failure
+            rc=99
+         fi
+      fi
+      if [ $rc -eq 0 ]; then
+         echo -n "."
+         export DANCER_CONFDIR="$progdir/../etc"
+         export DANCER_ENVDIR="$progdir/../etc"
+         cmd="$_plackup --access-log $logdir/fsiaccess.log -E development -D -s Starman --pid /var/run/fsi.pid --workers=10 -a $progdir/fsi.psgi -p 3000"
+         # https: --enable-ssl --ssl-key=/etc/ssh/ssh_host_key --ssl-cert=/etc/pki/tls/cert.pem 
+         $cmd &
+         rc=$?
+         #PID=$!
+         if [ $rc -eq 0 ]; then
+            #echo $PID > /var/run/fsi.pid
+            echo_success
+         else
+            echo_failure
+         fi
+      fi
+   fi
+   echo
+   return $rc
+}
+
+stopp() {
+   infmsg "  shutting down fsi portal"
+   echo -n " Shutting down fsi portal: "
+   if [ -f /var/run/fsi.pid ]; then
+      kill $(cat /var/run/fsi.pid)
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+         rm -f /var/run/fsi.pid
+         echo_success
+         sleep 1
+      else
+         echo_failure
+      fi
+   else
+      echo_passed
+   fi
+   echo      
+   return $RETVAL
+}
+
+stopghost() {
+   ghostfsi=$(ps ax | grep "starman worker" | wc -l)
+   if [ $ghostfsi -gt 1 ]; then
+      debmsg "  found ghost process - kill"
+      echo -n " Found ghost fsi process - try to kill ..."  
+      pkill -f "starman"
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+         echo_success
+      else
+         echo_failure
+      fi
+   else
+      echo -n " no ghost process found"
+      echo_success
+   fi
+   echo
+
+   openports=$(netstat -n | grep ":3000" | grep -i fin_wait)
+   if [ "$openports" != "" ]; then
+      debmsg "  found open ports"
+      echo -n  " Found open ports - waiting ..."
+      waitend=20
+      waittime=9
+      waitcount=0
+      RETVAL=99
+      while [ $waitcount -le $waitend ]; do
+         echo -n "."
+         sleep $waittime
+         openports=$(netstat -n | grep ":3000")
+         if [ "$openports" == "" ]; then
+            RETVAL=0
+            break
+         fi
+         waitcount=$((waitcount+1))
+      done
+      if [ $RETVAL -eq 0 ]; then
+         echo_success
+      else
+         echo_failure
+      fi
+   else
+      echo -n " no open ports found"
+      echo_success
+   fi
+    
+   echo
+   return $RETVAL
+}
+
+starto() {
+   infmsg " starting fsi online check daemon"
+   echo -n " Starting fsi online check daemon: "      
+   cmd="$progdir/fsic.pl -q --chkon --daemon -l $logdir/fsichkon"
+   $cmd &
+   RETVAL=$?
+   PID=$!
+   if [ $RETVAL -eq 0 ]; then
+      echo $PID > /var/run/fsichkon.pid
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+   return $RETVAL
+}
+
+stopo() {
+   infmsg "  shutting down fsi online check daemon"
+   echo -n " Shutting down fsi online check daemon: "
+   if [ -f /var/run/fsichkon.pid ]; then
+      kill -9 $(cat /var/run/fsichkon.pid)
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+         rm -f /var/run/fsichkon.pid
+         echo_success
+      else
+         echo_failure
+      fi
+   else
+      echo_passed
+   fi
+   echo      
+   return $RETVAL
+}
+
+
+startd() {
+   infmsg " starting fsi check all daemon"      
+   echo -n " Starting fsi check all daemon: "      
+   cmd="$progdir/fsic.pl -q --chkall --daemon -l $logdir/fsid"
+   $cmd &
+   RETVAL=$?
+   PID=$!
+   if [ $RETVAL -eq 0 ]; then
+      echo $PID > /var/run/fsid.pid
+      echo_success
+   else
+      echo_failure
+   fi
+   echo
+}
+stopd() {
+   infmsg " shutting down fsi check all daemon"
+   echo -n " Shutting down fsi check all daemon: "
+   if [ -f /var/run/fsid.pid ]; then
+      kill -9 $(cat /var/run/fsid.pid)
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+         rm -f /var/run/fsid.pid
+         echo_success
+      else
+         echo_failure
+      fi
+   else
+      echo_passed
+   fi
+   echo      
+}
+
+
+stop() {
+   tput setaf 2
+   echo
+   infmsg "stop fsi"
+   echo "Stop fsi v.$ver ($osmain)"
+   tput sgr0
+
+   if [ -f $fsilock ]; then
+      tput setaf 3
+      echo "Stop fsi services"
+      tput sgr0
+
+      for ((i=0; i<${#dienste[*]}; i++)); do
+         echo -n " Shutting down ${dienste[$i]}: "
+         prog="${dienste[$i]}.pl"
+         killproc $prog
+         RETVAL=$?
+         echo
+         if [ $RETVAL -eq 0 ]; then
+           rm -f /var/run/${dienste[$i]}.pid
+           RETVAL=$?
+         fi
+         if [ $RETVAL -eq 0 ]; then
+            echo_success
+         else
+            echo_failure
+         fi
+
+      done
+      rm -f $fsilock
+      
+
+#      echo -n " Disable fsi in httpd: "
+#      rm -f /etc/httpd/conf.d/fsi.conf
+#      RETVAL=$?
+#      if [ $RETVAL -eq 0 ]; then
+#         echo_success
+#      else
+#         echo_failure
+#      fi
+#      echo
+#      service httpd restart      
+
+      stopp
+      stopghost
+      stopd
+      stopo
+
+
+      tput setaf 3
+      echo "System services:"
+      tput sgr0
+
+      for ((i=0; i<${#services[*]}; i++)); do
+         if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+            tracemsg "  found version 5 or 6"
+            OUTPUT=$(2>&1 service ${services[$i]} status)
+            RETVAL=$?
+         elif [ $osmain -eq 7 ]; then
+            tracemsg "  found version 7"
+            OUTPUT=$(2>&1 systemctl is-active ${services[$i]})
+            RETVAL=$?
+         fi      
+         RETVAL=$?
+         if [ $RETVAL -eq 0 ]; then
+            if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+               service ${services[$i]} stop
+            elif [ $osmain -eq 7 ]; then
+               echo -n Stop ${services[$i]}:
+               systemctl stop ${services[$i]} 
+               retc=$?
+               if [ $retc -eq 0 ]; then
+                  echo_success
+               else
+                  echo_failure
+                  break
+               fi
+               echo
+            fi
+         else
+            echo -n "${services[$i]} already stopped "
+            echo_success
+         fi   
+      done
+     
+      echo -n " Removing cron jobs: "
+      rm -f /etc/cron.d/rotate
+      rm -f /etc/cron.d/clonejobs
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+         rm -f /var/run/fsid.pid
+         echo_success
+      else
+         echo_failure
+      fi
+      echo
+      
+   else
+      echo " Not started"
+      stopghost
+   fi 
+    
+}
+
+fsistatus() {
+   echo
+   tput setaf 2
+   echo "fsi service status overview v.$ver ($osmain)"
+   tput sgr0
+   echo
+   tput setaf 3
+   echo "System services:"
+   tput sgr0
+   for ((i=0; i<${#services[*]}; i++)); do
+      if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+         service ${services[$i]} status
+      elif [ $osmain -eq 7 ]; then
+         echo ${services[$i]} is $(systemctl is-active ${services[$i]})
+      fi
+   done
+   echo
+   tput setaf 3
+   echo "fsi portal daemons:"
+   tput sgr0
+   for ((i=0; i<${#dienste[*]}; i++)); do
+      prog="${dienste[$i]}.pl"
+      status $prog
+   done
+   status -p /var/run/fsid.pid fsi-chkall
+   status -p /var/run/fsichkon.pid fsi-chkon
+   echo
+   tput setaf 3
+   echo "fsi portal:"
+   tput sgr0
+   status -p /var/run/fsi.pid fsi-portal
+   echo
+}
+
+newdb() {
+   infmsg " create new db"
+   local pqon=0
+   if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+      tracemsg "  check $s_pg status (5/6)"
+      OUTPUT=$(service $s_pg status)
+      rc=$?
+   elif [ $osmain -eq 7 ]; then
+      tracemsg "  check $s_pg status (7)"
+      OUTPUT=$(systemctl is-active $s_pg)
+      rc=$?
+   fi      
+   if [ $rc -eq 3 ]; then
+      pqon=1
+      if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+         tracemsg "  start $s_pg (5/6)"
+         OUTPUT=$(service $s_pg start)
+         rc=$?
+      elif [ $osmain -eq 7 ]; then
+         tracemsg "  start $s_pg (7)"
+         OUTPUT=$(systemctl start $s_pg)
+         rc=$?
+      fi      
+   fi
+
+   if [ $rc -eq 0 ]; then
+      echo -n "Create new fsi db: "
+      OUTPUT=$(2>&1 $progdir/fsic.pl --new)
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         echo_success
+      else
+         echo_failure
+      fi
+      echo
+   fi
+   
+   if [ $rc -eq 0 ]; then
+      if [ $pqon -eq 1 ]; then
+         if [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+            tracemsg "  stop $s_pg (5/6)"
+            OUTPUT=$(service $s_pg stop)
+            rc=$?
+         elif [ $osmain -eq 7 ]; then
+            tracemsg "  stop $s_pg (7)"
+            OUTPUT=$(systemctl stop $s_pg)
+            rc=$?
+         fi      
+      fi
+   fi
+}
+
+restart() {
+    echo "Restarting fsi daemons: "
+    stop
+    sleep 2
+    start
+}
+
+start_tool() {
+   if [ "$1" == "" ]; then
+      echo
+      tput setaf 2
+      echo "       Help for fsi tool commands:"    
+      tput sgr0
+      echo
+      for f in $(find $progdir/../tools -maxdepth 1 \! -iname "crypt" \! -iname "esxihost*" \! -iname "esxiusr" \! -iname "vicfg*" -type f -printf '%f\n' | sort -n); do 
+         $progdir/../tools/$f -H
+      done
+      echo
+      exit 2
+   else
+      if [ -f $progdir/../tools/$1 ]; then
+         $progdir/../tools/$*
+      else
+         tput setaf 3   
+         echo "ERROR: tool [$1] does not exist - abort"
+         tput sgr0
+         exit 4
+      fi
+   fi
+}
+
+showlog() {
+   if [ -f /usr/bin/multitail ]; then
+      if [ -e $1 ]; then
+          multitail -p l -cS fsilog -f $1
+      else
+         echo no $1 exist - end
+      fi   
+   else
+       echo "No /usr/bin/multitail found - please install first"
+   fi
+#   if [ -f /usr/bin/lnav ]; then
+#      if [ -e $1 ]; then
+#          lnav $1
+#      else
+#         echo no $1 exist - end
+#      fi   
+#   else
+#       echo "No /usr/bin/lnav found - please install first"
+#   fi
+}
+
+help() {
+   echo
+   tput setaf 2
+   echo " Help for service $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  fsi control"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "    help           show this help"
+   echo "    start[pdo]     start all [or single fsi/check all or check on daemon]"
+   echo "    stop[pdo]      stop all [or single fsi/check all or check on daemon]"
+   echo "    restart[pdo]   restart all [or single fsi/check all or check on daemon]"
+   echo "    status         show status of fsi and all daemons"
+   echo "    clear          clear fsi installation - e.g. logs"
+   echo "    new            stop, clear, create new db, start fsi"
+   echo "    newdb          create new db"   
+   echo "    cmd <command>  use commands for fsi, if no command given, a help is shown"
+   echo "    tool <name>    call fsi tool, if no tool show list of tools"
+   echo
+   tput setaf 3
+   echo "  Set Log-Level:"
+   tput sgr0
+   echo "    info           set loglevel to Info"
+   echo "    debug          set loglevel to Debug"
+   echo "    trace          set loglevel to Trace"
+   echo
+   tput setaf 3
+   echo "  Show Log:"
+   tput sgr0
+   echo "    log            show $progname.log in tail"
+   echo "    logr           show fsiro.log in tail"
+   echo "    loga           show fsi portal access log"   
+   echo "    logh           show both httpd/apache logs access/error"
+   echo "    logd           show chk all daemon log in tail"
+   echo "    logv           show fsic.pl log in tail"
+   echo "    logc           show chk log daemon log in tail"
+   echo "    logo           show chk on daemon log in tail"
+   echo "    logw           show web dancer log in tail"
+   echo "    mlog           show fsi, chkon and fsid.log in multitail"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "     1 = help"
+   echo "     3 = not running as root - abort"
+   echo "    99 = error starting/stopping"
+   echo
+
+
+
+
+if [ "$osmain" == "" ]; then
+   echo "ERROR: running on unknown linux version"
+   exit 98
+elif [ $osmain -eq 5 ] || [ $osmain -eq 6 ]; then
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    service $progname stop"
+   echo "    service $progname help"
+   echo "    service $progname start"
+   echo
+   tput setaf 3
+   echo "  Bootconfig:"
+   tput sgr0
+   echo "    chkconfig $progname on    = start fsi after boot"
+   echo "    chkconfig $progname off   = do not start fsi after boot"
+   echo
+elif [ $osmain -eq 7 ]; then
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname stop"
+   echo "    $progname help"
+   echo "    $progname start"
+   echo
+   tput setaf 3
+   echo "  Bootconfig:"
+   tput sgr0
+   echo "    systemctl enable $progname  = start fsi after boot"
+   echo "    systemctl disable $progname = do not start fsi after boot"
+   echo
+else
+   echo "ERROR: running on unknown linux version"
+   exit 99
+fi      
+   exit 1
+}
+
+case "$1" in
+    cmd)
+      shift
+      $progdir/../bin/fsic.pl $*
+      retc=$?
+    ;;
+    tool)
+      shift
+      start_tool $*
+    ;;
+    start)
+        start
+    ;;
+    stop)
+        stop
+    ;;
+    startd)
+        startd
+    ;;
+    stopo)
+        stopo
+    ;;
+    starto)
+        starto
+    ;;
+    stopp)
+        stopp
+    ;;
+    startp)
+        startp
+    ;;
+    stopd)
+        stopd
+    ;;
+    status)
+        fsistatus
+    ;;
+    restart)
+        restart
+    ;;
+    restartp)
+        stopp
+        startp
+    ;;
+    restartd)
+        stopd
+        startd
+    ;;
+    restarto)
+        stopo
+        starto
+    ;;
+    mlog)
+        if [ -f /usr/bin/multitail ]; then
+            multitail -p l -cS fsilog -f "$logdir/fsi.log" -p l -cS fsilog -f "$logdir/fsid.log" -p l -cS fsilog -f "$logdir/fsichkon.log"
+        else
+            echo "No /usr/bin/multitail found - please install first"
+        fi
+    ;; 
+    log)
+        showlog "$logdir/fsi.log"
+    ;;
+    logr)
+        showlog "$logdir/fsiro.log"
+    ;;
+    logd)
+        showlog "$logdir/fsid.log"
+    ;;
+    logv)
+        showlog "$logdir/fsic.log"
+    ;;
+    logc)
+        showlog "$logdir/fsichk.log"
+    ;;
+    logo)
+        showlog "$logdir/fsichkon.log"
+    ;;
+    logw)
+        showlog "$logdir/fsidancer.log"
+    ;;
+    logh)
+        multitail -p l -cS apache -f /var/log/httpd/*_log
+    ;;
+    loga)
+        lnav "$logdir/fsiaccess.log"
+    ;;
+    clear)
+        clearfsi
+    ;;
+    trace)
+        setlog TRACE
+    ;;
+    info)
+        setlog INFO
+    ;;
+    debug)
+        setlog DEBUG
+    ;;
+    newdb)
+        newdb
+    ;;
+    new)
+        stop
+        clearfsi
+        newdb
+        start
+    ;;
+    help)
+        help
+    ;;
+    *)
+        help
+    ;;
+esac
+
+exit $retc

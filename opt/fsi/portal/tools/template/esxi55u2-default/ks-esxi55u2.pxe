@@ -1,0 +1,4 @@
+DEFAULT esxi55u2
+LABEL esxi55u2
+  kernel img/esxi55u2/mboot.c32
+  append -c sys/##MAC##/ks-esxi55u2-boot.cfg

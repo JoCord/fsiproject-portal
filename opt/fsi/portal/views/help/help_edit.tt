@@ -1,0 +1,61 @@
+<div id="edithelp" class="modal fade bs-modal-xs" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xs">
+   <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+        <h2 id="myModalLabel">Help: Editor</h2>
+      </div>
+   
+      <div class="modal-body">
+          <table class="table table-condensed table-striped" style="width: 100%" border="0">
+            <thead>
+               <tr class="fsitableheader">
+                  <td>Key</td>
+                  <td>Description</td>
+               </tr>
+            </thead> 
+               <tbody>
+                 <tr>
+                   <td>ctrl + f</td>
+                   <td>Find Dialog (default marked text)</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + f and ctrl+f</td>
+                   <td>Search and Replace Dialog (default marked text)</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + g</td>
+                   <td>Repeat last find</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + l</td>
+                   <td>Go to line number</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + z</td>
+                   <td>Undo last change in editor</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + a</td>
+                   <td>Mark all</td>
+                 </tr>
+                 <tr>
+                   <td>ctrl + d</td>
+                   <td>Delete line</td>
+                 </tr>
+                 [% IF session.role == "Master" %]
+                 <tr>
+                   <td>ctrl + ,</td>
+                   <td>Advanced menue</td>
+                 </tr>
+                 [% END %]
+               </tbody>
+             </table>
+      </div>
+   
+      <div class="modal-footer">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+   </div>
+ </div>
+</div>

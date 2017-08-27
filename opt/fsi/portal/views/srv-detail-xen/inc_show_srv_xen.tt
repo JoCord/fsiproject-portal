@@ -1,0 +1,180 @@
+<ul class="nav nav-tabs" id="mySrvTabs">
+   <li class="active"><a href="#srv_start" data-toggle="tab">Overview</a></li> 
+   [% IF session.role == "Master" %] 
+      <li><a href="#srv_params" data-toggle="tab">P</a></li>  
+   [% END %]
+   [% IF srvhash.size %]
+      <li><a href="#srv_net" data-toggle="tab">Network</a></li>  
+      <li><a href="#srv_pifs" data-toggle="tab">NIC</a></li>  
+      <li><a href="#srv_store" data-toggle="tab">Storage</a></li> 
+      <li><a href="#srv_df" data-toggle="tab">DiskFree</a></li> 
+
+      [% IF srvhash.xenparams.item('external-auth-type') %] 
+         <li><a href="#srv_domain" data-toggle="tab">Domain</a></li>
+      [% ELSE %]
+         <li class="disabled"><a href="#" data-toggle="tab disabled">Domain</a></li>
+      [% END %]   
+   
+      [% IF srvhash.xenpool.item('ha-enabled') == "true" %]
+         <li><a href="#srv_ha" data-toggle="tab">HA</a></li>
+      [% ELSE %]
+         [% IF srvhash.xenpool.item('ha-host-failures-to-tolerate') == "0" %] 
+            <li class="disabled"><a href="#" data-toggle="tab disabled">HA</a></li>
+         [% ELSE %]
+            <li><a href="#srv_ha" data-toggle="tab">HA</a></li>
+         [% END %]
+      [% END %]
+      <li><a href="#srv_vm" data-toggle="tab">VM List</a></li>  
+      <li><a href="#srv_ntp" data-toggle="tab">NTP/DNS</a></li>
+      <li><a href="#srv_syslog" data-toggle="tab">Syslog</a></li>
+      <li><a href="#srv_update" data-toggle="tab">Update</a></li>
+      <li><a href="#srv_boot" data-toggle="tab">Reboots</a></li>
+      <li><a href="#srv_log" data-toggle="tab">Log</a></li>
+
+      <script>
+          $(document).ready(function () {
+             $("#fsi_srvnet")
+                 .tablesorter({
+                   theme: "bootstrap",
+                   showProcessing   : true, 
+                   headerTemplate: '{content} {icon}',
+                   headers : { 3 : { sortInitialOrder: "desc" } },
+                   widthFixed: true,
+                   widgets: ["storage", "saveSort", "uitheme", "filter", "scroller"],
+                   widgetOptions: {
+                      filter_reset : 'button.reset',
+                      filter_hideFilters: false,
+                      filter_ignoreCase: true,
+                      filter_saveFilters: true,
+                      filter_cssFilter: "form-control",
+                      scroller_height: 553,
+                      scroller_upAfterSort: false,
+                      scroller_jumpToHeader: false,
+                   }
+             });
+
+             $("#fsi_srvsrl")
+                 .tablesorter({
+                   theme: "bootstrap",
+                   showProcessing   : true, 
+                   headerTemplate: '{content} {icon}',
+                   widthFixed: true,
+                   widgets: ["storage", "saveSort", "uitheme", "filter", "scroller"],
+                   widgetOptions: {
+                      filter_reset : 'button.reset',
+                      filter_hideFilters: false,
+                      filter_ignoreCase: true,
+                      filter_saveFilters: true,
+                      filter_cssFilter: "form-control",
+                      scroller_height: 103,
+                      scroller_upAfterSort: false,
+                      scroller_jumpToHeader: false,
+                   }
+             });
+             $("#fsi_srvsrn")
+                 .tablesorter({
+                   theme: "bootstrap",
+                   showProcessing   : true, 
+                   headerTemplate: '{content} {icon}',
+                   widthFixed: true,
+                   widgets: ["storage", "saveSort", "uitheme", "filter", "scroller"],
+                   widgetOptions: {
+                      filter_reset : 'button.reset',
+                      filter_hideFilters: false,
+                      filter_ignoreCase: true,
+                      filter_saveFilters: true,
+                      filter_cssFilter: "form-control",
+                      scroller_height: 361,
+                      scroller_upAfterSort: false,
+                      scroller_jumpToHeader: false,
+                   }
+             });
+      
+      
+             $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                 $('.tab-pane.active').find('table').trigger('applyWidgets');
+                 // $(window).resize();
+             });              
+          });
+      </script>
+
+   [% ELSE %]
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Network</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">NIC</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Storage</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">DiskFree</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Domain</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">HA</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">VM List</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">NTP/DNS</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Syslog</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Update</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Reboots</a></li>
+      <li class="disabled"><a href="#" data-toggle="tab disabled">Log</a></li>
+   [% END %]   
+
+      <li><a href="#srv_ssh" data-toggle="tab">SSH</a></li>
+      
+   [% IF session.role.match('XenAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+     <li><a href="#srv_cfg" data-toggle="tab">Config</a></li>
+     <li><a href="#srv_actions" data-toggle="tab">Actions</a></li>
+   [% END %]
+</ul>
+
+<div id="mySrvTabs" class="tab-content">
+   <div style="height: 620px;" class="tab-pane active" id="srv_start">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_start.tt' %]
+   </div>
+   [% IF session.role == "Master" %] 
+      <div style="height: 620px;" class="tab-pane" id="srv_params">
+        [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_params.tt' %]
+      </div>
+   [% END %]
+   <div style="height: 620px;" class="tab-pane" id="srv_net">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_net.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_pifs">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_pifs.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_store">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_srs.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_df">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_df.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_domain">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_dom.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ha">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_ha.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_vm">
+     [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_vms.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_update">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_upd.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_log">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_log.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_cfg">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_cfg.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_boot">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_reboot.tt' %]
+   </div>
+   [% IF session.role.match('XenAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+    <div style="height: 620px;" class="tab-pane" id="srv_actions">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_action.tt' %]
+    </div>
+   [% END %]
+   <div style="height: 620px;" class="tab-pane" id="srv_ntp">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_ntp.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ssh">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_ssh.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_syslog">
+      [% INCLUDE 'srv-detail-xen/inc_show_srv_xen_syslog.tt' %]
+   </div>
+</div>

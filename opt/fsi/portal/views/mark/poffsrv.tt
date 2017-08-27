@@ -1,0 +1,24 @@
+[% IF session.logged_in %]
+ [% INCLUDE 'layouts/global.tt' %]   
+ <form action="poffsrvmark" method=post>
+  [% IF session.logged_in %]
+     [% INCLUDE 'headerline/back.tt' %]
+     [% INCLUDE 'include/inc_liste.tt' %]
+      [% IF entries.size %]
+         <div>
+            <span style="font-weight: bold;"><br />Power OFF this server: </span>
+            <div class="btn-group">
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="yes"><img src="/images/16_Sign-Select-icon.png" alt="" />OK</button> 
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+            </div>
+         </div>
+      [% ELSE %]
+         <div>
+         <br />
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+         </div>
+      [% END %] 
+  [% END %]
+ </form>
+[% END %]
+

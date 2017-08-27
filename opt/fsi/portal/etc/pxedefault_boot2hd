@@ -1,0 +1,10 @@
+SAY .
+SAY .
+SAY Boot to local hard drive ...
+SAY .
+SAY .
+DEFAULT local
+PROMPT 0
+label local
+   LOCALBOOT -1
+   

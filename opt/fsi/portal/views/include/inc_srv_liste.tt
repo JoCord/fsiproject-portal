@@ -1,0 +1,45 @@
+[% IF entries.$id.s_insterr == 'E' %]
+   <tr class="error">
+[% ELSIF entries.$id.s_insterr == 'W' %]   
+   <tr class="warning">
+[% ELSE %]
+   <tr>
+[% END %]   
+
+   [% INCLUDE 'include/inc_srvactions.tt' %]                    
+
+  <td style="width: 330px;"><a href="/showsrv/[% entries.$id.id %]">[% entries.$id.db_srv %]</a></td>
+
+  <td style="font-family:courier; width: 110px; text-align: left;">
+     [% IF entries.$id.s_insterr %]
+        <div data-toggle="tooltip" title="[% entries.$id.db_srv %]: [% entries.$id.s_msg %]" placement=top>
+     [% END %]   
+     [% IF entries.$id.s_online %][% entries.$id.s_online %][% ELSE %]-[% END %][% IF entries.$id.s_xenmaster %][% entries.$id.s_xenmaster %][% ELSE %]-[% END %][% IF entries.$id.s_xenha %][% entries.$id.s_xenha %][% ELSE %]-[% END %][% IF entries.$id.s_inststart %][% entries.$id.s_inststart %][% ELSE %]-[% END %][% IF entries.$id.s_insterr %][% entries.$id.s_insterr %][% ELSE %]-[% END %][% IF entries.$id.s_instrun %][% entries.$id.s_instrun %][% ELSE %]-[% END %][% IF entries.$id.s_block %][% entries.$id.s_block %][% ELSE %]-[% END %][% IF entries.$id.s_instwait %][% entries.$id.s_instwait %][% ELSE %]-[% END %]
+     [% IF entries.$id.s_insterr %]
+        </div>
+     [% END %]   
+  </td>
+
+
+  <td style="width: 120px;">
+     [% IF entries.$id.s_patchlevel %]
+        <div data-toggle="tooltip" title="[% entries.$id.db_srv %] : [% entries.$id.s_patchlevels %]" placement=top>
+           [% entries.$id.s_patchlevel %]
+        </div>
+     [% ELSE %]
+        -
+     [% END %]   
+  </td>
+  
+  [% IF entries.$id.s_online %]
+     <td style="width: 110px;">
+        <a href="ssh://root@[% entries.$id.mgmt_ip %]" target="_blank">[% entries.$id.mgmt_ip %]</a>
+     </td>   
+  [% ELSE %]
+     <td style="width: 110px;">[% entries.$id.mgmt_ip %]</td>
+  [% END %] 
+  
+  <td style="width: 140px;">[% entries.$id.db_mac %]</td>    
+  
+  </td>
+</tr>

@@ -1,0 +1,10 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>Syslog Config: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/syslog"  %]</pre>
+   [% CATCH %]
+ No syslog config information found</pre>
+   [% END %]
+
+</div>

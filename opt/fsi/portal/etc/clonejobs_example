@@ -1,0 +1,100 @@
+# Cron Matrix 
+#
+# put original file in /etc/cron.d/ with name vipclonejobs
+#
+# srv7 Dauer ca. 10 Minuten
+#
+0  0  *   *  1	      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv7 >>/opt/fsi/portal/log/clone-srv7.screen 2>&1
+0  0  *   *  5        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv7 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv7.screen 2>&1
+#
+# ws3 Dauer ca. 
+30 0  *   *  1,3,5,7  root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws3 >>/opt/fsi/portal/logs/clone-ws3.screen 2>&1 
+30 0  *   *  2,4,6    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws3 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-ws3.screen 2>&1
+#
+# ws2 Dauer ca.
+00 1  *   *  1,3,5,7  root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws2 >>/opt/fsi/portal/logs/clone-ws2.screen 2>&1
+00 1  *   *  2,4,6    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws2 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-ws2.screen 2>&1
+#
+# srv5 - VI Admin Server Dauer ca. 40 Minuten
+7 23  *   *  1        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv5 >>/opt/fsi/portal/logs/clone-srv5.screen 2>&1
+7 23  *   *  5        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv5 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv5.screen 2>&1
+#
+30 2  *   *  1,3,5    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 >>/opt/fsi/portal/logs/clone-srv11.screen 2>&1
+30 2  *   *  2,4      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv11.screen 2>&1
+30 2  *   *  6        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 --optvm _week >>/opt/fsi/portal/logs/clone-srv11_week.screen 2>&1
+30 2  *   *  7        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 --optvm _week --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv11_week_q3.screen 2>&1
+#
+
+1  0  *   *  1,3,5    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv8 >>/opt/fsi/portal/logs/clone-srv8.screen 2>&1
+1  0  *   *  2,4,6    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv9 >>/opt/fsi/portal/logs/clone-srv9.screen 2>&1
+
+# VI Temp Server
+0  0  *   *  1,3,5    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm vitemp >>/opt/fsi/portal/logs/clone-vitemp.screen 2>&1
+0  0  *   *  2,4      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm vitemp --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-vitemp.screen 2>&1
+
+#
+0  1  *   *  2,6      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm labdc >>/opt/fsi/portal/logs/clone-labdc.screen 2>&1 
+0  1  *   *  4,7      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm labdc --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-labdc.screen 2>&1
+#
+0  1  *   *  1,5      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm aislic01 >>/opt/fsi/portal/logs/clone-aislic01.screen 2>&1
+0  1  *   *  3        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm aislic01 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-aislic01.screen 2>&1
+#
+30 1  *   *  4        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv6 >>/opt/fsi/portal/logs/clone-srv6.screen 2>&1
+30 1  *   *  2        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv6 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv6.screen 2>&1
+#
+# 30 5  *   *  1,3,5,7  root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv4 >>/opt/fsi/portal/logs/clone-srv4.screen 2>&1
+# 30 5  *   *  2,4,6    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv4 --storage nfs_qnap3_vmbak >>/opt/fsi/portal/logs/clone-srv4.screen 2>&1
+
+#
+# srv7 Dauer ca. 10 Minuten
+#
+0  0  *   *  1	      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv7 >>/opt/fsi/portal/logs/clone-srv7.screen 2>&1
+
+# ws3 Dauer ca. 
+30 0  *   *  1,5      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws3 >>/opt/fsi/portal/logs/clone-ws3.screen 2>&1 
+
+
+# ws2 Dauer ca.
+00 1  *   *  *        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm ws2 >>/opt/fsi/portal/logs/clone-ws2.screen 2>&1
+
+
+# srv5 - VI Admin Server Dauer ca. 40 Minuten
+7 23  *   *  1,4      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv5 >>/opt/fsi/portal/logs/clone-srv5.screen 2>&1
+
+
+# srv11 - Zimbra 
+30 2  *   *  1-6      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 >>/opt/fsi/portal/logs/clone-srv11.screen 2>&1
+30 2  *   *  7        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv11 --optvm _week >>/opt/fsi/portal/logs/clone-srv11_week.screen 2>&1
+
+
+# srv8 - ToDo
+1  0  *   *  *        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv8 >>/opt/fsi/portal/logs/clone-srv8.screen 2>&1
+
+
+# srv9 - WebFiler
+1  0  *   *  *        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv9 >>/opt/fsi/portal/logs/clone-srv9.screen 2>&1
+
+
+# VI Temp Server
+0  0  *   *  *        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm vitemp >>/opt/fsi/portal/logs/clone-vitemp.screen 2>&1
+
+
+# Windows Labor Domain Controller
+0  1  *   *  2,6      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm labdc >>/opt/fsi/portal/logs/clone-labdc.screen 2>&1 
+
+
+# Windows XenServer Lizenz Server
+0  1  *   *  1,5      root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm aislic01 >>/opt/fsi/portal/logs/clone-aislic01.screen 2>&1
+
+
+# Windows Admin Server
+30 1  *   *  *        root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv6 >>/opt/fsi/portal/logs/clone-srv6.screen 2>&1
+
+
+# srv4 Telefonserver
+30 1  *   *  1,5    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv4 >>/opt/fsi/portal/logs/clone-srv4.screen 2>&1
+
+
+# srv10 VC
+30 5  *   *  1,5    root /usr/bin/perl /opt/fsi/portal/bin/clone.pl --vm srv10 >>/opt/fsi/portal/logs/clone-srv10.screen 2>&1
+

@@ -1,0 +1,101 @@
+<br />
+  <table style="width:650px">
+    <tr>
+      <td>
+         [% FOREACH domain IN master.item('domain').keys %]
+          [% IF NOT xensrv.item('external-auth-type').size %]   
+            <div class="alert alert-danger">
+            Pool is not joined to domain [[% domain %]]
+            </div>
+          [% ELSE %]
+            <div class="alert alert-success">
+            Pool is successfull joined to domain [[% domain %]]
+            </div>
+          [% END %]
+         [% END %]
+      </td>
+      <td style="width:20px">
+         &nbsp;
+      </td>
+      <td valign="top">
+         Action:<br>
+         [% IF NOT xensrv.item('external-auth-type').size %]   
+            <a href="#myChangeAuth" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img class="icon ad" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABPElEQVRIie2UsYrCMBzGfQPRpFBQg6sP4O7oW9yBiSC46XI3aG/Q5FYfQHwB8SbXRHyBLt3sVarpJvQNeotVtPWoTUZ/kKF/vn7fF/iTQuGFLur00EJMeohJr04PLe0BiMo9YjI6H09/AAvCSwCVe+0B5tCeo6kfoqkfmkN7rtUc4E0DEuHE35AIB+BNQ1vAveF9oKr5CGJuJeaYW5CIUW7jGj2+V77cj/+aQiKcivX7ib6Pb0+ZIxos4o2pTfzVwxITf3XdrGCRPeC67xFiMlLVpf34k6VZVl0CQETTHNiuObBdQERTVZfAwGIGurwPurxvYDFT1SWAWJyKvW2p2NuWIBYnVd0N5Q5vG0SsLy2JWJc7vJ1XdwOi0kJMRtXxbhnPquPd8vzAWc/qkgEpK6cye3iDtLZ5Zi8y8Qdvmwth3+CNnwAAAABJRU5ErkJggg==" width="16" height="16"> Set Pool Auth to AD </a>
+         [% ELSE %]
+            <a href="#myChangeAuth" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img class="icon ad" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABPElEQVRIie2UsYrCMBzGfQPRpFBQg6sP4O7oW9yBiSC46XI3aG/Q5FYfQHwB8SbXRHyBLt3sVarpJvQNeotVtPWoTUZ/kKF/vn7fF/iTQuGFLur00EJMeohJr04PLe0BiMo9YjI6H09/AAvCSwCVe+0B5tCeo6kfoqkfmkN7rtUc4E0DEuHE35AIB+BNQ1vAveF9oKr5CGJuJeaYW5CIUW7jGj2+V77cj/+aQiKcivX7ib6Pb0+ZIxos4o2pTfzVwxITf3XdrGCRPeC67xFiMlLVpf34k6VZVl0CQETTHNiuObBdQERTVZfAwGIGurwPurxvYDFT1SWAWJyKvW2p2NuWIBYnVd0N5Q5vG0SsLy2JWJc7vJ1XdwOi0kJMRtXxbhnPquPd8vzAWc/qkgEpK6cye3iDtLZ5Zi8y8Qdvmwth3+CNnwAAAABJRU5ErkJggg==" width="16" height="16"> Set Pool Auth to LOCAL </a>
+         [% END %]
+      </td>
+   </tr>
+ </table>   
+<div class="list" style="width:1238px;height:600px;overflow:auto;" >
+   [% FOREACH domain IN master.item('domain').keys %]
+      <table class="list table table-condensed table-hover table-striped">
+         <caption class="fsisectionheader">Pool master domain configuration:</caption>
+         <tbody>
+               <tr>
+                  <td style="width:400px;">Domain name: </td>
+                  <td>[% domain %]</td>
+               </tr>
+               <tr>
+                  <td>Domain dns name: </td>
+                  <td>[% master.domain.$domain.item('dnsdom') %]</td>
+               </tr>
+               <tr>
+                  <td>Domain OU: </td>
+                  <td>[% master.domain.$domain.item('ou') %]</td>
+               </tr>
+               <tr>
+                  <td>Connection typ: </td>
+                  <td>[% master.domain.$domain.item('contyp') %]</td>
+               </tr>
+               <tr>
+                  <td>Join domain user: </td>
+                  <td>[% master.domain.$domain.item('user') %]</td>
+               </tr>
+               
+               [% IF master.domain.$domain.group.size %]
+                  <tr>
+                     <td>&nbsp;</td>
+                     <td></td>
+                  </tr>
+                  <table class="list table table-condensed table-hover table-striped">
+                     <caption class="fsisectionheader">Domain group assignment:</caption>
+                     <tbody>
+                       [% FOREACH group IN master.domain.$domain.item('group').keys %]
+                        <tr>
+                           <td style="width:400px;">[% group %]</td>
+                           <td>[% master.domain.$domain.group.$group.item('role')%]</td>
+                        </tr>
+                       [% END %]
+                     </tbody>
+                  </table>
+               [% END %]
+         </tbody>
+      </table>
+   [% END %]
+   
+   <br />
+   
+   [% IF xensrv.item('external-auth-type').size %]   
+      <table class="list table table-condensed table-hover table-striped">
+         <caption class="fsisectionheader">Retrieved domain settings:</caption>
+         <tbody>
+            <tr>
+               <td style="width:400px;">External-auth-typ</td>
+               <td>[% xensrv.item('external-auth-type')%]</td>
+            </tr>
+            <tr>
+               <td>External-auth-service-name</td>
+               <td>[% xensrv.item('external-auth-service-name')%]</td>
+            </tr>
+            <tr>
+               <td>External-auth-configuration</td>
+               <td>[% xensrv.item('external-auth-configuration')%]</td>
+            </tr>
+         </tbody>
+      </table>
+   [% END %]         
+   
+   
+   </div>
+

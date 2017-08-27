@@ -1,0 +1,166 @@
+<td style="vertical-align: top; width: 90px; padding: 1px 1px 1px 4px ! important;"> 
+  [% IF session.role.match('Admin') OR  session.role == "Master" OR  session.role.match('Install') %]
+   <div class="btn-group [% global.action_button_group %]">
+      [% IF entries.$id.j_inst %]
+         <button class="btn [% global.button_typ %] [% global.action_button_size %]" name="Abort" value="id_[% entries.$id.id %]" >Abort&nbsp;</button> 
+      [% ELSE %]
+         <button class="btn [% global.button_typ %] [% global.action_button_size %]" name="Install" value="id_[% entries.$id.id %]" >Install</button> 
+      [% END %]
+     <button class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+     <ul class="dropdown-menu">
+         [% IF entries.$id.s_block == 'b' %]
+            <li class="menubut"><button class="menubut" name="ResetBlock" value="id_[% entries.$id.id %]" >Reset Blockade</button></li>
+            <li class="divider"></li>
+         [% END %]
+         [% IF entries.$id.s_insterr %]
+            <li class="menubut"><button class="menubut" name="ResetMsg" value="id_[% entries.$id.id %]" >Reset Message</button></li>
+            <li class="divider"></li>
+         [% END %]
+         [% IF entries.$id.j_inst %]
+             <li class="disabled"><a tabindex="-1" href="#">Update Server</a></li>
+         [% ELSE %]   
+            [% IF entries.$id.s_online %]
+               [% IF entries.$id.s_xenha != "H" %]
+                <li class="menubut"><button class="menubut" name="Update" value="id_[% entries.$id.id %]" >Update Server</button></li>
+               [% ELSE %]
+                   <li class="disabled"><a tabindex="-1" href="#">Update Server</a></li>
+               [% END %] 
+            [% ELSE %]
+                <li class="disabled"><a tabindex="-1" href="#">Update Server</a></li>
+            [% END %] 
+         [% END %]
+         <li class="menubut"><button  class="menubut" name="Delete" value="id_[% entries.$id.id %]" >Remove Server</button></li>
+         [% IF entries.$id.j_logshow %]
+             <li class="menubut"><button class="menubut" name="ShowLog" value="id_[% entries.$id.id %]" >Show Log</button></li> 
+             <li class="menubut"><button class="menubut" name="DelLog" value="id_[% entries.$id.id %]" >Delete Log</button></li>
+         [% END %]
+         <li class="divider"></li>
+         [% IF entries.$id.s_online %]
+            <li><a href="ssh://root@[% entries.$id.mgmt_ip %]" target="_blank">Console SSH</a></li>
+         [% ELSE %]
+            <li class="disabled"><a tabindex="-1" href="#">Console SSH</a></li>
+         [% END %]   
+         [% IF entries.$id.rc_http %]
+               <li><a href="[% entries.$id.rc_http %]" target="_blank">Remote Control Web</a></li>
+         [% END %]     
+         [% IF entries.$id.rc_ssh %]
+               <li><a href="[% entries.$id.rc_ssh %]" target="_blank">Remote Control SSH</a></li>
+         [% END %]     
+         [% IF entries.$id.rc_type != "none" %]
+               <li class="menubut"><button class="menubut" name="PowerON" value="id_[% entries.$id.id %]" >Power ON</button></li> 
+               <li class="menubut"><button class="menubut" name="PowerOFF" value="id_[% entries.$id.id %]" >Power OFF</button></li> 
+         [% END %]     
+         [% IF entries.$id.s_online %]
+             <li class="menubut"><button class="menubut" name="Reboot" value="id_[% entries.$id.id %]" >Reboot Server</button></li>
+             <li class="menubut"><button class="menubut" name="Shutdown" value="id_[% entries.$id.id %]" >Shutdown Server</button></li>
+             [% IF entries.$id.s_online == "M" %]
+                <li class="divider"></li>                                
+                <li class="menubut"><button class="menubut" name="ExitMaintenanceMode" value="id_[% entries.$id.id %]" >Exit Maintenance</button></li>
+             [% ELSE %]
+               [% IF entries.$id.db_typ.match('^xen') %]
+                 <li class="divider"></li>                                
+                 <li class="menubut"><button class="menubut" name="SetMaintenanceMode" value="id_[% entries.$id.id %]" >Set Xen Maintenance</button></li>
+               [% ELSIF entries.$id.db_typ.match('^esxi') %]
+                 <li class="divider"></li>                                
+                 <li class="menubut"><button class="menubut" name="SetMaintenanceMode" value="id_[% entries.$id.id %]" >Set ESXi Maintenance</button></li>
+               [% END %]                       
+             [% END %] 
+         [% ELSE %]
+             <li class="disabled"><a tabindex="-1" href="#">Reboot Server</a></li>
+             <li class="disabled"><a tabindex="-1" href="#">Shutdown Server</a></li>
+         [% END %] 
+         
+            [% IF entries.$id.db_typ.match('^xen') %]
+              [% use MAC = String entries.$id.db_mac %]
+              [% macadr = MAC.replace(':','-') %]
+              [% rcini = "/opt/fsi/portal/etc/sys/$macadr/rc.ini" %]
+              
+              [% xenconf = "" %]
+              [% TRY %]
+                 [% USE File("/opt/fsi/pxe/sys/$macadr/xen6.conf") %]
+                    [% xenconf = "/opt/fsi/pxe/sys/$macadr/xen6.conf" %]
+                    [% xenext = "/opt/fsi/pxe/sys/$macadr/xen6.ext" %]
+                    [% xenpool = "/opt/fsi/pxe/sys/$macadr/xen6.pool" %]
+                    [% xenxml = "/opt/fsi/pxe/sys/$macadr/xen6.xml" %]
+                    [% xenpxe = "/opt/fsi/pxe/sys/$macadr/xen6.pxe" %]
+              [% CATCH File %]      
+              [% END %]
+              
+              [% TRY %]
+                 [% USE File("/opt/fsi/pxe/sys/$macadr/xen7.conf") %]
+                    [% xenconf = "/opt/fsi/pxe/sys/$macadr/xen7.conf" %]
+                    [% xenext = "/opt/fsi/pxe/sys/$macadr/xen7.ext" %]
+                    [% xenpool = "/opt/fsi/pxe/sys/$macadr/xen7.pool" %]
+                    [% xenxml = "/opt/fsi/pxe/sys/$macadr/xen7.xml" %]
+                    [% xenpxe = "/opt/fsi/pxe/sys/$macadr/xen7.pxe" %]
+              [% CATCH File %]      
+              [% END %]
+
+              <li class="dropdown-submenu">
+                <a tabindex="-1" href="#">XenServer Config</a>
+                <ul class="dropdown-menu">
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% xenconf %]:[% entries.$id.db_srv %]:space" >Edit Conf</button>
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% xenext %]:[% entries.$id.db_srv %]" >Edit Ext</button>
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% xenpool %]:[% entries.$id.db_srv %]" >Edit Pool</button>
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% xenxml %]:[% entries.$id.db_srv %]:xml" >Edit XML</button>
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% xenpxe %]:[% entries.$id.db_srv %]:xml" >Edit PXE</button>
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% rcini %]:[% entries.$id.db_srv %]:space" >Edit RC</button> 
+                </ul>
+              </li>
+            [% ELSIF entries.$id.db_typ.match('^esx') %]
+                [% use MAC = String entries.$id.db_mac %]
+                [% macadr = MAC.replace(':','-') %]
+                [% kscfg = "/opt/fsi/pxe/sys/$macadr/ks-${entries.$id.item('db_typ')}.cfg" %]
+                [% pxecfg = "/opt/fsi/pxe/sys/$macadr/ks-${entries.$id.item('db_typ')}.pxe" %]
+                [% rcini = "/opt/fsi/portal/etc/sys/$macadr/rc.ini" %]
+ 
+                <li class="dropdown-submenu">
+                  <a tabindex="-1" href="#">ESXi Config</a>
+                  <ul class="dropdown-menu">
+                     <li class="menubut"><button class="menubut" name="EditFile" value="[% kscfg  %]:[% entries.$id.db_srv %]:space" >Edit KS config</button>
+                     <li class="menubut"><button class="menubut" name="EditFile" value="[% pxecfg  %]:[% entries.$id.db_srv %]:space" >Edit PXE config</button>
+                     <li class="menubut"><button class="menubut" name="EditFile" value="[% rcini %]:[% entries.$id.db_srv %]" >Edit RC</button> 
+                  </ul>
+                </li>
+            [% ELSIF entries.$id.db_typ.match('^rh') %]
+               [% use MAC = String entries.$id.db_mac %]
+               [% macadr = MAC.replace(':','-') %]
+               [% kscfg = "/opt/fsi/pxe/sys/$macadr/${entries.$id.item('db_typ')}.cfg" %]
+               [% pxecfg = "/opt/fsi/pxe/sys/$macadr/${entries.$id.item('db_typ')}.pxe" %]
+               [% rcini = "/opt/fsi/portal/etc/sys/$macadr/rc.ini" %]
+
+              <li class="dropdown-submenu">
+                <a tabindex="-1" href="#">RedHat Config</a>
+                <ul class="dropdown-menu">
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% kscfg  %]:[% entries.$id.db_srv %]" >Edit KS config</button> 
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% pxecfg  %]:[% entries.$id.db_srv %]" >Edit PXE config</button>                    
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% rcini %]:[% entries.$id.db_srv %]" >Edit RC</button> 
+                </ul>
+              </li>
+            [% ELSIF entries.$id.db_typ.match('^co') %]
+               [% use MAC = String entries.$id.db_mac %]
+               [% macadr = MAC.replace(':','-') %]
+               [% kscfg = "/opt/fsi/pxe/sys/$macadr/${entries.$id.item('db_typ')}.cfg" %]
+               [% pxecfg = "/opt/fsi/pxe/sys/$macadr/${entries.$id.item('db_typ')}.pxe" %]
+               [% rcini = "/opt/fsi/portal/etc/sys/$macadr/rc.ini" %]
+              <li class="dropdown-submenu">
+                <a tabindex="-1" href="#">CentOS Config</a>
+                <ul class="dropdown-menu">
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% kscfg  %]:[% entries.$id.db_srv %]" >Edit KS config</button> 
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% pxecfg  %]:[% entries.$id.db_srv %]" >Edit PXE config</button>                    
+                   <li class="menubut"><button class="menubut" name="EditFile" value="[% rcini %]:[% entries.$id.db_srv %]" >Edit RC</button> 
+                </ul>
+              </li>
+            [% END %]
+         
+         
+         
+     </ul>
+   </div>
+  [% ELSE %]
+     <div class="btn-group [% global.button_group %]">
+       <button class="btn [% global.button_typ %] [% global.button_size %] disabled" name="" >Install</button> 
+       <button class="btn [% global.button_typ %] dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
+     </
+  [% END %]    
+</td>

@@ -1,0 +1,25 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<div id="page">
+   <div id="content">
+      <div class=loginsession>
+      <div class=headerline>
+         [% IF not session.logged_in %]
+            <button name="Login" value="yes" ><img src="/images/16_Sign-LogIn-icon.png" alt="" />Login</button>
+         [% ELSE %]
+            <button name="Logout" value="yes" ><img src="/images/16_Sign-LogOff-icon.png" alt="" />Logout</button>
+         [% END %]
+      </div>
+   </div>
+   <table>
+     [% INCLUDE 'include/inc_envhead.tt' %]
+     <tbody>
+          <tr class="fsitableheader">
+           <td style="width: 60px; text-align: center;">
+             <div>Logged off - please login first</div>
+           </td>
+         </tr>
+      </tbody>
+   </table>
+   </div>
+</div>

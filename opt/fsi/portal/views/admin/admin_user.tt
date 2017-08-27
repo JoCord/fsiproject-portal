@@ -1,0 +1,17 @@
+<table class="table borderless">
+  <tbody>
+   <tr>
+    <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="edituser" value="yes"><img src="/images/16_user-icon.png" alt="" />Edit User Access</input> </td>
+    <td style="width: 100%;">Edit fsi portal access for user/groups and roles</td>
+   </tr>
+   <tr>
+    <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="usersessions" value="yes"><img src="/images/16_community-users-icon.png" alt="" />User Sessions</input> </td>
+    <td style="width: 100%;">Administrate fsi portal online user sessions</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+  </tbody>
+</table>
+

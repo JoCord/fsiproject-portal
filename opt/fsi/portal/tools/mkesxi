@@ -1,0 +1,1728 @@
+#!/bin/sh
+#
+#   mkesxi - create server config
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+# 
+#
+ver="2.1.11 - 6.1.2017"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+debug=trace
+
+insttmpl="default"
+
+mac=""
+srvname=""
+srvdns=""
+lic=""
+mgmtip=""
+mgmtnm="255.255.255.0"
+mgmtgateway=""
+mgmtvlan=0
+mgmtflags="m"
+mgmtnics=""
+mgmtcomment=""
+mgmtmtu=""
+maintenance="disable"
+
+ll1=""
+ll2=""
+ll3=""
+ll4=""
+blocksize=""
+
+scratch=""
+
+vcname=""
+vcuser=""
+vcpw=""
+vcdc=""
+
+mgmtpw=""
+mgmtu="root"
+
+vmncount=0
+vmkcount=0
+vscount=0
+storecount=0
+ntpcount=0
+dnscount=0
+usercount=0
+urolecount=0
+advcount=0
+syscount=0
+sysparcount=0
+
+emptypar="_empty_"
+remotessh="true"
+localshell="true"
+instlevel="trace"
+
+esxiver="41u2"
+
+rctype="none"
+rcparms=""
+
+fsisrv=$(ip a s|sed -ne '/127.0.0.1/!{s/^[ \t]*inet[ \t]*\([0-9.]\+\)\/.*$/\1/p}'|head -n 1) 
+
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  Create esxi server configuration files"
+   echo
+   tput setaf 3
+   echo "  Single Parameter:"
+   tput sgr0
+   echo "   -E <esxi hostname>, <dns-suffix>, <mac>, <lic>                                                  - base esxi config"
+   echo "   -M <ip>,<netmask>,<gateway>,<vlan>, <flags>, <mtu>, <nics>, <comment>                           - mgmt network config"
+   echo "   -L [esxi4: <log location datastore>,<path>]                                                     - log location"
+   echo "      [esxi5/6: <log location path>, <rotate number to keep>, <size KiB>, <optional: unique dir>]"
+   echo "   -S </vmfs/volumes/scratch location path>                                                        - path to scratch location"
+   echo "   -V <virtual center>, <vc user>, [vc user domain], <vc password>, <datacenter>                   - virtual center config"
+   echo "   -P <root password>                                                                              - root password"
+   echo "   -B <size>                                                                                       - block size local storage e.g. 2m"
+   echo "   -A                                                                                              - enable maintenance mode"
+   echo
+   echo "   -R <syslog server>, <optional: port>, <optional: tcp/udp - only esxi 5/6>                       - esxi 5 and 6 multiple, esxi4 only one syslog srv"
+   echo
+   tput setaf 3
+   echo "  Optional Remote Control"
+   tput sgr0
+   echo "   -r <rc type>,[<parameter list for mkrc in rc dir>]                                              - type (same as dir name) default = none"
+   echo "                                                                                                     parameter different, call mkrc for help - all as one string!"
+   echo
+   tput setaf 3
+   echo "  Multiple Parameter:"
+   tput sgr0
+   echo "   -n <switch>, <vlan>, <nics>, <mtu>, <loadbalance>, <comment flag to portgroup>                  - vmnetwork port config"
+   echo "   -k <ip>, <switch>, <vlan>, <netmask>, <gateway>, <flags>,  ...                                  - vm kernel port config"
+   echo "      <mtu>, <nics>, <loadbalance>, <comment flag to portgroup>"
+   echo "   -s <typ: nfs>, <storeage name>, <server>, <path> - datastore                                    - datastore config"
+   echo "   -w <switch>, <nics>, <loadbalance>, <mtu>                                                       - virtual switch"
+   echo "   -T <ntp server>"
+   echo "   -d <dns server>"
+   echo "   -p <role name>, [<privileges> <...>]                                                            - local permission roles"
+   echo "   -u <user>, <password>, <group>, [optional: <description>, <login: yes/no>, <permission role>    - local user"
+   echo "   -a <advanced-option-key>,<typ>,<value>                                                          - set adv. parameter"
+   echo "   -o <log service>,<optional: rotation>,<optional: size>                                          - syslog"
+   echo "   -m <vm>                                                                                         - not supported at moment"
+   echo
+   tput setaf 3
+   echo "  Override:"
+   tput sgr0
+   echo "   -e <true/false>    enable local shell, default: $localshell"
+   echo "   -G <true/false>    enable ssh login, default: $remotessh"
+   echo "   -O <loglevel>      installation loglevel, default: $instlevel"
+   echo "   -x <esxi version>  override found version $esxiver"
+   echo "   -v <vi temp ip>    override found ip                            "
+   echo "   -z <rz>            override found rz                                     "
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -t <template>      override default template"
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo   
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = one or more parameter not given "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Found:"
+   tput sgr0
+   echo "   RZ: $rz"
+   echo "   fsi Server: $fsisrv"
+   echo "   ESXi default version: $esxiver"
+   echo
+}
+
+
+
+# tracemsg "OPTIND starts at $OPTIND"
+while getopts ":l:hHE:M:L:S:R:V:P:B:G:An:k:o:s:w:t:d:u:a:m:e:O:T:x:v:r:z:p:q012" optname; do
+   # tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "create esxi server configuration files"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "A")                                                                                                  # -A
+         debmsg "enable maintenance mode"
+         maintenance="enable"
+        ;; 
+      "E")                                                                                                  # -E <esxi hostname>, <dns-suffix>, <mac>, <lic>
+         debmsg "base esxi config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 4 ]; then  
+            debmsg "ok"
+            srvname=${param[0]}
+            srvdns=${param[1]}
+            mac=${param[2]}
+            lic=${param[3]}
+            mac=$(echo $mac | tr 'A-Z' 'a-z')
+            if [[ ! $mac =~ $regex_mac ]]; then
+               errmsg "[$mac] is not a valid MAC directory - ignore"
+               exit 77
+            fi    
+            mac=$(echo $mac | tr ':' '-')                    
+         else   
+            errmsg "Parameter -E count: ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;;                          
+      "r")                                                                                                  # -r <rc type>,[<parameter list for mkrc in rc dir>] 
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         if [[ $temppar == ,* ]]; then
+            tracemsg "first parameter empty"
+            temppar=$emptypar$temppar
+         fi
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 3 ]; then  
+            errmsg "to much parameter for -w"
+            exit 99
+         else
+            if [ "${param[0]}" == "" ]; then         
+               tracemsg "no rc_desc given - take default"
+            else
+               rctype=${param[0]//_js_/ }
+               tracemsg "rctype $rctype"
+            fi
+            if [ "${param[1]}" == "" ]; then         
+               tracemsg "no parameter given"
+            else
+               rcparms=${param[1]//_js_/ }
+               tracemsg "rcparms: $rcparms"
+            fi
+         fi
+        ;;      
+      "M")                                                                                                  # -M <ip>,<netmask>,<gateway>,<vlan>, <flags>, <mtu>, <nics>, <comment>"
+         debmsg "main mgmt config found"
+         temppar=${OPTARG// /_js_}
+         temppar=${temppar//,,/,_empty_,}
+         temppar=${temppar//,,/,_empty_,}
+         temppar=${temppar//,,/,_empty_,}
+         tracemsg "opt: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 8 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=${param[3]}
+            if [ "${param[4]}" == "$emptypar" ]; then
+               debmsg " no default mgmt flag given - take default [m]"
+               mgmtflags="m"
+            else
+               mgmtflags=${param[4]//_js_/ }
+            fi
+            mgmtmtu=${param[5]}
+            mgmtnics=${param[6]}
+            mgmtcomment=${param[7]//_js_/ }
+         elif [ ${#param[@]} -eq 7 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=${param[3]}
+            if [ "${param[4]}" == "$emptypar" ]; then
+               debmsg " no default mgmt flag given - take default [m]"
+               mgmtflags="m"
+            else
+               mgmtflags=${param[4]//_js_/ }
+            fi
+            mgmtmtu=${param[5]}
+            mgmtnics=${param[6]}
+            mgmtcomment=$emptypar
+         elif [ ${#param[@]} -eq 6 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=${param[3]}
+            if [ "${param[4]}" == "$emptypar" ]; then
+               debmsg " no default mgmt flag given - take default [m]"
+               mgmtflags="m"
+            else
+               mgmtflags=${param[4]//_js_/ }
+            fi
+            mgmtmtu=${param[5]}
+            mgmtnics=$emptypar
+            mgmtcomment=$emptypar
+         elif [ ${#param[@]} -eq 5 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=${param[3]}
+            if [ "${param[4]}" == "$emptypar" ]; then
+               debmsg " no default mgmt flag given - take default [m]"
+               mgmtflags="m"
+            else
+               mgmtflags=${param[4]//_js_/ }
+            fi
+            mgmtmtu=$emptypar
+            mgmtnics=$emptypar
+            mgmtcomment=$emptypar
+         elif [ ${#param[@]} -eq 4 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=${param[3]}
+            mgmtflags="m"
+            mgmtmtu=$emptypar
+            mgmtnics=$emptypar
+            mgmtcomment=$emptypar
+         elif [ ${#param[@]} -eq 3 ]; then  
+            debmsg "ok"
+            mgmtip=${param[0]}
+            if [[ ! $mgmtip =~ $regex_ip ]]; then
+               errmsg "mgmt port need ip - found [$mgmtip]"
+               exit 66
+            fi
+            mgmtnm=${param[1]}
+            mgmtgateway=${param[2]}
+            if [[ ! $mgmtgateway =~ $regex_ip ]]; then
+               errmsg "mgmt gateway need ip - found [$mgmgateway]"
+               exit 66
+            fi
+            mgmtvlan=$emptypar
+            mgmtflags="m"
+            mgmtmtu=$emptypar
+            mgmtnics=$emptypar
+            mgmtcomment=$emptypar
+         else   
+            errmsg "Parameter -M count: ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;; 
+      "L")                                                                                                  # -L 4:<log location datastore>,<path> or 5:<log location path>,<rotate>,<size>,<dir>
+         # esxi 5.x
+         #key     pfad                                 rotate number to keep   size KiB  : unique dir
+         #logloc: /vmfs/volumes/nfs_vitemp_logesxi/ :  5                     : 2048      : true
+         
+         # esxi 4.x
+         #logloc: [nfs_vitemp_logesxi] /test1-messages 
+
+         debmsg "log location config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         param=(${temppar//,/ })
+
+         if [ ${#param[@]} -ge 5 ]; then  
+            errmsg "to much parameter for -L"
+            exit 99
+         else
+            debmsg "ok"
+            ll1=${param[0]}
+            
+            if [ "${param[1]}" == "$emptypar" ] || [ "${param[1]}" == "" ]; then         
+               tracemsg "no second parameter found - make empty"
+               ll2=""
+            else
+               ll2=${param[1]}
+               tracemsg "second parameter $ll2"
+            fi
+            if [ "${param[2]}" == "$emptypar" ] || [ "${param[2]}" == "" ]; then         
+               tracemsg "no third parameter found - make empty"
+               ll3=""
+            else
+               ll3=${param[2]}
+               tracemsg "third parameter $ll3"
+            fi
+            if [ "${param[3]}" == "$emptypar" ] || [ "${param[3]}" == "" ]; then         
+               tracemsg "no fourth parameter found - take true"
+               ll4="true"
+            else
+               ll4=${param[3]}
+               tracemsg "fourth parameter $ll4"
+            fi
+         fi
+        ;; 
+      "S")                                                                                                  # -S </vmfs/volumes/scratch location path>
+         debmsg "scratch location config found"
+         scratch="$OPTARG"
+        ;; 
+      "o")                                                                                                  # -o <log service>,<optional: rotation>,<optional: size>
+         debmsg "syslog parameter found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         param=(${temppar//,/ })
+
+         if [ ${#param[@]} -ge 4 ]; then  
+            errmsg "to much parameter for -R"
+            exit 99
+         else
+            sysparcount=$((sysparcount + 1))   
+            syspar_id[$sysparcount]=${param[0]}
+            if [ "${param[1]}" == "$emptypar" ] || [ "${param[1]}" == "" ]; then         
+               tracemsg "no rotation given - take default 8"
+               syspar_rot[$sysparcount]=8
+            else
+               syspar_rot[$sysparcount]=${param[1]}
+               tracemsg "given syslog parameter for rotation ${syspar_rot[$sysparcount]}"
+            fi
+            if [ "${param[2]}" == "$emptypar" ] || [ "${param[2]}" == "" ]; then         
+               tracemsg "no rotation size given - take default 1024"
+               syspar_size[$sysparcount]=1024
+            else
+               syspar_size[$sysparcount]=${param[2]}
+               tracemsg "given rotation size ${syspar_size[$sysparcount]}"
+            fi
+         fi
+        ;;
+      "R")                                                                                                  # -R <syslog server>, <optional: port>, <optional udp/tcp>
+         # esxi 5.x (mehrfach)
+         #syssrv: 10.10.10.60 : 514 : tcp
+
+         # esxi 4.x (einfach)
+         #syssrv: 10.10.10.60 
+         #sysport: 514 
+
+         debmsg "log location config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         param=(${temppar//,/ })
+
+         if [ ${#param[@]} -ge 4 ]; then  
+            errmsg "to much parameter for -R"
+            exit 99
+         else
+            syscount=$((syscount + 1))   
+            syslog[$syscount]=${param[0]}
+            if [ "${param[1]}" == "$emptypar" ] || [ "${param[1]}" == "" ]; then         
+               tracemsg "no port given - take default 514"
+               sysport[$syscount]=514
+            else
+               sysport[$syscount]=${param[1]}
+               tracemsg "given port ${sysport[$syscount]}"
+            fi
+            if [ "${param[2]}" == "$emptypar" ] || [ "${param[2]}" == "" ]; then         
+               tracemsg "no protocol given - take default udp"
+               sysprot[$syscount]="udp"
+            else
+               sysprot[$syscount]=${param[2]}
+               tracemsg "given protokoc ${sysprot[$syscount]}"
+            fi
+         fi
+        ;; 
+      "V")                                                                                                  # -V <virtual center>, <vc user>, [vc user domain], <vc password>, <datacenter>
+         debmsg "virtual center config found - config join vc"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         tracemsg "opt: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 5 ]; then  
+            debmsg "ok"
+            vcname=${param[0]}
+            vcusr=${param[1]}
+            vcdom=${param[2]//$emptypar/ }
+            pass=${param[3]}
+            vcpass=$(/usr/bin/openssl enc -base64 <<< $pass)
+            vcdc=${param[4]//_js_/ }
+         else   
+            errmsg "Parameter -V count: ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;; 
+      "P")                                                                                                  # -P Password for root
+         debmsg "password for esxi root user found"
+         mgmtpw="$OPTARG"
+         cpass=$(/usr/bin/openssl passwd -1 $mgmtpw)
+         hpass=$(/usr/bin/openssl enc -base64 <<< $mgmtpw)
+        ;; 
+      "B")                                                                                                  # -B blocksize
+         debmsg "local store block size config"
+         blocksize="$OPTARG"
+        ;; 
+      "n")                                                                                                  # -n <switch>, <vlan>, <nics>, <mtu>, <loadbalance>, <comment flag to portgroup>
+         debmsg "VM Network port config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         if [[ $temppar == ,* ]]; then
+            tracemsg "first parameter empty"
+            temppar=$emptypar$temppar
+         fi
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 7 ]; then  
+            errmsg "to much parameter for -w"
+            exit 99
+         else
+            vmncount=$((vmncount + 1))   
+         
+            if [ "${param[0]}" == "" ]; then         # switch - default 0     
+               tracemsg "no switch given - take 0"
+               vmn_nr[$vmncount]=0
+            elif [ "${param[0]}" == "$emptypar" ]; then
+               tracemsg "empty string found - take 0"
+               vmn_nr[$vmncount]=0
+            else
+               vmn_nr[$vmncount]=${param[0]}
+               tracemsg "given switch ${vs_nr[$vmncount]}"
+            fi
+
+            if [ "${param[1]}" == "" ]; then         # vlan     ============> =="" ? oder =="$emptypar"
+               tracemsg "no vlan given - take 0"
+               vmn_vlan[$vmncount]=0
+            else
+               vmn_vlan[$vmncount]=${param[1]}
+               tracemsg "given vlan ${vmn_vlan[$vmncount]}"
+            fi
+
+            if [ "${param[2]}" == "" ]; then         # nics
+               tracemsg "no nics given - empty"
+               vmn_nics[$vmncount]=$emptypar
+            else
+               vmn_nics[$vmncount]=${param[2]//_js_/ }
+               tracemsg "given nics ${vs_nics[$vmncount]}"
+            fi
+
+            if [ "${param[3]}" == "" ]; then         # mtu
+               tracemsg "no mtu given - empty"
+               vmn_mtu[$vmncount]=$emptypar
+            else
+               vmn_mtu[$vmncount]=${param[3]}
+               tracemsg "given mtu ${vmn_mtu[$vmncount]}"
+            fi
+
+            if [ "${param[4]}" == "" ]; then         # lb
+               tracemsg "no loadbalance given - empty"
+               vmn_lb[$vmncount]=$emptypar
+            else
+               vmn_lb[$vmncount]=${param[4]}
+               tracemsg "given lb ${vs_lb[$vmncount]}"
+            fi
+
+            if [ "${param[5]}" == "" ]; then         # comment flags
+               tracemsg "no comment flags given - empty"
+               vmn_cflags[$vmncount]=$emptypar
+            else
+               vmn_cflags[$vmncount]=${param[5]//_js_/ }
+               tracemsg "given comment flags ${vmn_cflags[$vmncount]}"
+            fi
+         fi
+        ;; 
+      "k")                                                                                                  # -k <ip>, <switch>, <vlan>, <netmask>, <gateway>, <flags>, <mtu>, <nics>, <loadbalance>, <comment flag to portgroup>
+         debmsg "vmkernel port config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         param=(${temppar//,/ })
+         tracemsg "parameter: $temppar"
+         if [ ${#param[@]} -ge 11 ]; then  
+            errmsg "to much parameter for -k"
+            exit 99
+         else
+            vmkcount=$((vmkcount + 1))   
+            if [[ "${param[0]:+isset}" == "isset" ]]; then  # ip - no default, abort if not given
+               vmk_ip[$vmkcount]=${param[0]}
+               tracemsg "ip: ${vmk_ip[$vmkcount]}"
+               if [[ ! ${vmk_ip[$vmkcount]} =~ $regex_ip ]]; then
+                  errmsg "vmkernl port need ip - found ${vmk_ip[$vmkcount]}"
+                  exit 66
+               fi
+            else
+               errmsg "vmkernel need ip !"
+               exit 99
+            fi
+            
+            if [[ "${param[9]:+isset}" == "isset" ]]; then   # comment flags - _empty_ if no
+               vmk_cflags[$vmkcount]=${param[9]//_js_/ }
+            else
+               vmk_cflags[$vmkcount]=$emptypar
+            fi
+
+            if [[ "${param[8]:+isset}" == "isset" ]]; then   # load balance - _empty_ if no
+               vmk_lb[$vmkcount]=${param[8]}
+            else
+               vmk_lb[$vmkcount]=$emptypar
+            fi
+            
+            if [[ "${param[7]:+isset}" == "isset" ]]; then   # nics - _empty_ if no
+               vmk_nics[$vmkcount]=${param[7]//_js_/ }
+            else
+               vmk_nics[$vmkcount]=$emptypar
+            fi
+
+            if [[ "${param[6]:+isset}" == "isset" ]]; then   # mtu - _empty_ if no
+               vmk_mtu[$vmkcount]=${param[6]}
+            else
+               vmk_mtu[$vmkcount]=$emptypar
+            fi
+
+            if [[ "${param[5]:+isset}" == "isset" ]]; then   # flags - _empty_ if no
+               vmk_flags[$vmkcount]=${param[5]//_js_/ }
+            else
+               vmk_flags[$vmkcount]=$emptypar
+            fi
+
+            if [[ "${param[4]:+isset}" == "isset" ]]; then   # gateway - _empty_ if no
+               vmk_gw[$vmkcount]=${param[4]}
+               if [ "${vmk_gw[$vmkcount]}" == "$emptypar" ]; then
+                  debmsg "  no gateway given - take default mgmt gw"
+               else
+                  debmsg "  new gateway found - test if ip norm"
+                  if [[ ! ${vmk_gw[$vmkcount]} =~ $regex_ip ]]; then
+                     warnmsg "gateway must ip norm if define [${vmk_gw[$vmkcount]}] - set to empty"
+                     vmk_gw[$vmkcount]=$emptypar
+                  fi
+               fi  
+            else
+               vmk_gw[$vmkcount]=$emptypar
+            fi
+
+            if [[ "${param[3]:+isset}" == "isset" ]]; then   # netmask - default 255.255.255.0
+               vmk_nm[$vmkcount]=${param[3]}
+               if [ "${vmk_nm[$vmkcount]}" == "$emptypar" ]; then
+                  vmk_nm[$vmkcount]="255.255.255.0"
+               else
+                  if [[ ! ${vmk_nm[$vmkcount]} =~ $regex_ip ]]; then
+                     warnmsg "netmask must ip norm if define [${vmk_nm[$vmkcount]}] - take default"
+                     vmk_nm[$vmkcount]="255.255.255.0"
+                  fi
+               fi
+            else
+               vmk_nm[$vmkcount]="255.255.255.0"
+            fi
+
+            if [[ "${param[2]:+isset}" == "isset" ]]; then   # vlan - default 0
+               vmk_vlan[$vmkcount]=${param[2]}
+               if [ "${param[2]}" == "$emptypar" ]; then
+                  vmk_vlan[$vmkcount]=0
+               fi
+            else
+               vmk_vlan[$vmkcount]=0
+            fi
+            
+            if [[ "${param[1]:+isset}" == "isset" ]]; then   # switch - default 0
+               vmk_vs[$vmkcount]=${param[1]}
+               if [ "${param[1]}" == "$emptypar" ]; then
+                  vmk_vs[$vmkcount]=0
+               fi
+            else
+               vmk_vs[$vmkcount]=0
+            fi
+         fi
+        ;; 
+      "s")                                                                                                  # -s <typ: nfs>, <storeage name>, <server>, <path>
+         debmsg "vSwitch Config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 4 ]; then  
+            debmsg "ok - 4"
+            storecount=$((storecount + 1))
+            s_typ[$storecount]=$(echo ${param[0]} | tr 'A-Z' 'a-z')
+            if [ "${s_typ[$storecount]}" == "nfs" ]; then
+               s_name[$storecount]=${param[1]}
+               s_srv[$storecount]=${param[2]}
+               s_path[$storecount]=${param[3]}
+            else
+               errmsg "unsupported storage type [${s_typ[$storecount]}] - ignore"
+               storecount=$((storecount - 1))
+            fi
+         else   
+            debmsg "Parameter -s count: ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;; 
+      "w")                                                                                                  # -w <switch>, <nics>, <loadbalance>, <mtu>
+         debmsg "vSwitch Config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..3}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         if [[ $temppar == ,* ]]; then
+            tracemsg "first parameter empty"
+            temppar=$emptypar$temppar
+         fi
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 5 ]; then 
+            errmsg "to much parameter for -w"
+            exit 99
+         else
+            vscount=$((vscount + 1))   
+         
+            if [ "${param[0]}" == "" ]; then         # switch - default 0
+               tracemsg "no switch given - take 0"
+               vs_nr[$vscount]=0
+            elif [ "${param[0]}" == "$emptypar" ]; then
+               tracemsg "empty string found - take 0"
+               vs_nr[$vscount]=0
+            else
+               vs_nr[$vscount]=${param[0]}
+               tracemsg "given switch ${vs_nr[$vscount]}"
+            fi
+
+            if [ "${param[1]}" == "" ]; then         # nics
+               tracemsg "no nics given - empty"
+               vs_nics[$vscount]=$emptypar
+            else
+               vs_nics[$vscount]=${param[1]//_js_/ }
+               tracemsg "given nics ${vs_nics[$vscount]}"
+            fi
+
+            if [ "${param[2]}" == "" ]; then         # lb
+               tracemsg "no loadbalance given - empty"
+               vs_lb[$vscount]=$emptypar
+            else
+               vs_lb[$vscount]=${param[2]}
+               tracemsg "given lb ${vs_lb[$vscount]}"
+            fi
+
+            if [ "${param[3]}" == "" ]; then         # mtu
+               tracemsg "no mtu given - empty"
+               vs_mtu[$vscount]=$emptypar
+            else
+               vs_mtu[$vscount]=${param[3]}
+               tracemsg "given mtu ${vs_mtu[$vscount]}"
+            fi
+         fi
+        ;; 
+      "t")                                                                                                  # -t <template>, default
+         insttmpl=$OPTARG
+         debmsg "template override found: $insttmpl"
+        ;;
+      "T")                                                                                                  # -T <ntpserver>
+         debmsg "found ntp server"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 2 ]; then  
+            errmsg "to much parameter for -t"
+         else
+            debmsg "ok"
+            ntpcount=$((ntpcount + 1))
+            ntp_srv[$ntpcount]=${param[0]}
+         fi
+        ;; 
+      "d")                                                                                                  # -d <dns server>
+         debmsg "found dns server"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 2 ]; then  
+            errmsg "to much parameter for -d"
+         else
+            debmsg "ok"
+            dnscount=$((dnscount + 1))
+            dns_srv[$dnscount]=${param[0]}
+            if [[ ! ${dns_srv[$dnscount]} =~ $regex_ip ]]; then
+               warnmsg "dns server must ip - [${dns_srv[$dnscount]}] - abort"
+               exit 88
+            fi
+         fi
+        ;;
+      "p")                                                                                                  # -p <role name>, [<privileges> <...>] 
+         debmsg "User role config found"
+         temppar=${OPTARG// /_js_}
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 3 ]; then  
+            errmsg "to much parameter for -p"
+            exit 99
+         else
+            urolecount=$((urolecount + 1))   
+         
+            if [ "${param[0]}" == "" ]; then
+               tracemsg "no role name given - abort"
+               exit 99
+            else
+               u_rolename[$urolecount]=${param[0]}
+               tracemsg "  role name: ${u_rolename[$urolecount]}"
+            fi
+
+            if [ "${param[1]}" == "" ]; then
+               tracemsg "no role privileges given - empty"
+               u_rolepriv[$urolecount]=""
+            else
+               u_rolepriv[$urolecount]=${param[1]//_js_/ }
+               tracemsg "  role privs: ${u_rolepriv[$urolecount]}"
+            fi
+         fi
+        ;;
+      "u")                                                                                                  # -u <user>, <password>, <group>, [optional: <description>, <login: yes/no>, <permission role>
+         debmsg "User add config found"
+         temppar=${OPTARG// /_js_}
+         for i in {1..5}; do
+            temppar=${temppar//,,/,$emptypar,}
+         done
+         if [[ $temppar == ,* ]]; then
+            tracemsg "first parameter empty"
+            temppar=$emptypar$temppar
+         fi
+         tracemsg "parameter: $temppar"
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -ge 7 ]; then  
+            errmsg "to much parameter for -u, max 6 parameters"
+            exit 99
+         else
+            usercount=$((usercount + 1))
+
+            if [ "${param[0]}" == "" ]; then         # no user name
+               errmsg "no user name given - abort"
+               exit 99
+            else 
+               u_name[$usercount]=${param[0]}
+               tracemsg "  user[$usercount]: ${u_name[$usercount]}"
+            fi
+            
+            if [ "${param[1]}" == "" ]; then         # password
+               errmsg "no user password given - abort"
+               exit 99
+            else
+               u_pass[$usercount]=$(/usr/bin/openssl passwd -1 ${param[1]})
+               tracemsg "  user pw hash: ${u_pass[$usercount]}"
+            fi
+            
+            if [ "${param[2]}" == "" ]; then         # group
+               u_group[$usercount]=""
+               tracemsg "  no user group given = empty"
+            elif [ "${param[2]}" == "$emptypar" ]; then
+               tracemsg "  user group - empty string found = emtpy"
+               u_group[$usercount]=""
+            else
+               u_group[$usercount]=${param[2]}
+               tracemsg "  user group: ${u_group[$usercount]}"
+            fi
+            
+            if [ "${param[3]}" == "" ]; then         # description
+               tracemsg "   no user description = ESXi LocU"
+               u_descr[$usercount]="ESXi LocU"
+            elif [ "${param[3]}" == "$emptypar" ]; then
+               tracemsg "  user description - empty string found = ESXi LocU"
+               u_descr[$usercount]="ESXi LocU"
+            else
+               u_descr[$usercount]=${param[3]//_js_/ }
+               tracemsg "   user description: ${u_descr[$usercount]}"
+            fi
+            
+            if [ "${param[4]}" == "" ]; then         # login
+               tracemsg "   no user login = no"
+               u_login[$usercount]="no"
+            elif [ "${param[4]}" == "$emptypar" ]; then
+               tracemsg "  user login - empty string found = no"
+               u_login[$usercount]="no"
+            else
+               u_login[$usercount]=${param[4]}
+               tracemsg "   user login: ${u_login[$usercount]}"
+            fi
+            
+            if [ "${param[5]}" == "" ]; then         # role
+               tracemsg "   no user role = empty"
+               u_role[$usercount]=""
+            elif [ "${param[5]}" == "$emptypar" ]; then
+               tracemsg "  user role - empty string found = empty"
+               u_role[$usercount]=""
+            else
+               u_role[$usercount]=${param[5]}
+               tracemsg "   user role: ${u_role[$usercount]}"
+            fi
+         fi
+        ;; 
+      "a")                                                                                                  # -a <advanced-option-key>,<typ>,<value>
+         debmsg "User add config found"
+         temppar=${OPTARG// /_js_}
+         param=(${temppar//,/ })
+         if [ ${#param[@]} -eq 3 ]; then  
+            tracemsg "ok - 4"
+            advcount=$((advcount + 1))   
+            adv_key[$advcount]=${param[0]}
+            adv_typ[$advcount]=${param[1]}
+            adv_value[$advcount]=${param[2]}
+         else   
+            errmsg "Parameter -a count: ${#param[@]} = not ok"
+            exit 99
+         fi
+        ;; 
+      "m")                                                                                                  # -m <vm> - not supported at moment
+        ;; 
+      "e")                                                                                                  # -e <true/false> - enable local shell 
+         debmsg "local shell config found"
+         tempshell=$(echo $OPTARG | tr 'A-Z' 'a-z')
+         if [ "$tempshell" == "true" ]; then
+            debmsg "  enable local shell config found"
+            localshell=$tempshell
+         elif [ "$tempshell" == "false" ]; then
+            localshell=$tempshell
+            debmsg "  disable local shell config found"
+         else
+            warnmsg "unknown option for local shell config: [$tempshell]"
+         fi
+        ;; 
+      "G")                                                                                                  # -G <true/false> - enable ssh login 
+         debmsg "ssh login config found"
+         tempssh=$(echo $OPTARG | tr 'A-Z' 'a-z')
+         tracemsg "ssh: [$tempssh]"
+         if [ "$tempssh" == "true" ]; then
+            debmsg "  enable ssh login config found"
+            remotessh=$tempssh
+         elif [ "$tempssh" == "false" ]; then
+            remotessh=$tempssh
+            debmsg "  disable ssh login config found"
+         else
+            warnmsg "unknown option for ssh config: [$tempssh]"
+         fi
+        ;; 
+      "O")                                                                                                  # -O <loglevel> - installation loglevel 
+         debmsg "installation loglevel config found"
+         tmpll=$(echo $OPTARG | tr 'A-Z' 'a-z')
+         if [ "$tmpll" == "trace" ] || [ "$tmpll" == "debug" ] || [ "$tmpll" == "info" ]; then
+            instlevel=$tmpll
+            debmsg "  found new setting: $tmpll"
+         else
+            warnmsg "unknown option for install loglevel: [$tmpll]"
+         fi
+        ;; 
+      "x")                                                                                                  # -x <esxi version> - override found version $esxiver
+         debmsg "esxi server version override found"
+         esxiver=$OPTARG
+        ;; 
+      "v")                                                                                                  # -v <vi temp ip>  - override found ip
+         debmsg "vi temp ip override found"
+         vitemp=$OPTARG
+        ;;
+      "z")                                                                                                  # -z <rz> - override found rz
+         debmsg "rz override found"
+         rz=$OPTARG
+        ;;
+      "?")
+        echo "Unknown option $OPTARG"
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+   esac
+   # tracemsg "OPTIND is now $OPTIND"
+done
+
+
+if [ -z $mgmtpw ] && [ -z $mac ] && [ -z $srvname ] && [ -z $srvdns ] && [ -z $lic ] && [ -z $mgmtip ] && [ -z $mgmtgateway ] ; then   # no parameter given
+   help
+   exit 1
+fi
+
+esxicore=$(echo $esxiver | cut -c -1)
+
+debmsg "Start $progname - $ver"
+
+
+tracemsg "Print all settings:"
+tracemsg " Template: $insttmpl"
+tracemsg " vc: $vcname"
+tracemsg " usr: $vcusr"
+tracemsg " usr dom: $vcdom"
+tracemsg " pw: $pass"
+tracemsg " pw: $vcpass"
+tracemsg " pw: $hpass"
+tracemsg " dc: $vcdc"
+tracemsg " name: $srvname"
+tracemsg " dns suffix: $srvdns"
+tracemsg " mac: $mac"
+tracemsg " lic: $lic"
+tracemsg " blocksize: $blocksize"
+tracemsg " mgmt ip: $mgmtip"
+tracemsg " mgmt nm: $mgmtnm"
+tracemsg " mgmt gw: $mgmtgateway"
+tracemsg " mgmt vlan: $mgmtvlan"
+tracemsg " mgmt flags: $mgmtflags"
+tracemsg " mgmt nics: $mgmtnics"
+tracemsg " mgmt comment: $mgmtcomment"
+tracemsg " mgmt mtu: $mgmtmtu"
+
+if [ "$esxicore" == "5" ] || [ "$esxicore" == "6" ]; then  
+   tracemsg " log loc: $ll1 : $ll2 : $ll3 : $ll4"
+else
+   if [ "$ll2" == "" ]; then
+      errmsg "version 4 needs two parameter"
+      tracemsg " log loc: $ll1 $ll2"
+   fi
+fi
+        
+if [ $debug == "trace" ]; then
+   tracemsg " scratch: $scratch"
+   tracemsg " root pw: $mgmtpw"
+   tracemsg " root crypt pw: $cpass"
+   tracemsg " ilo: $ilo"
+   tracemsg " ssh: $remotessh"
+   tracemsg " shell: $localshell"
+   tracemsg " level: $instlevel"
+              
+   tracemsg " esxiver: $esxiver"
+   tracemsg " esxi core: $esxicore"
+              
+   if [ "$esxicore" == "5" ] || [ "$esxicore" == "6" ]; then  
+      tracemsg " Find ESXi Core version $esxicore"
+      tracemsg " syslogs: $syscount"
+      if [ $syscount -ge 1 ]; then
+         #syssrv: 10.10.10.60 : 514 : tcp
+         printf " syssrv: %-12s %-8s %-8s \n" "ip" "port" "protocol"
+         echo " -------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+         for i in "${!syslog[@]}"; do
+            printf " syssrv: %-12s %-8s %-8s \n" "${syslog[$i]}" "${sysport[$i]}" "${sysprot[$i]}"
+         done
+      fi
+   else
+      tracemsg " Find ESXi Core version $esxicore"
+      tracemsg " syslog server: ${syslog[1]}"
+      tracemsg " sysport: ${sysport[1]}"
+   fi
+   
+   tracemsg " vswitches: $vscount"
+   if [ $vscount -ge 1 ]; then
+      printf " vswitches: %-5s %-40s %-20s %-6s \n" "vNr" "nics" "loadbalance" "mtu"
+      echo "-------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!vs_nr[@]}"; do
+         printf " vswitches: %-5s %-40s %-20s %-6s \n" "${vs_nr[$i]}" "${vs_nics[$i]}" "${vs_lb[$i]}" "${vs_mtu[$i]}"
+      done
+   fi
+   if [ $storecount -ge 1 ]; then
+      tracemsg " datestores: $storecount"
+      printf " datastore: %-20s %-6s %-20s %-40s \n" "name" "typ" "server" "path"
+      echo " -------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!s_name[@]}"; do
+         printf " datastore: %-20s %-6s %-20s %-40s \n" "${s_name[$i]}" "${s_typ[$i]}" "${s_srv[$i]}" "${s_path[$i]}"
+      done
+   fi
+   if [ $vmkcount -ge 1 ]; then
+      tracemsg " vmkernel: $vmkcount"
+      printf " vmkernel: %-16s : %-8s : %-8s : %-16s : %-16s : %-8s : %-8s : %-18s : %-30s : %-8s \n" "ip" "vs" "vlan" "netmask" "gateway" "flags" "mtu" "loadbalance" "nics" "comment flags"
+      echo " ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!vmk_ip[@]}"; do
+        printf " vmkernel: %-16s : %-8s : %-8s : %-16s : %-16s : %-8s : %-8s : %-18s : %-30s : %-8s \n" "${vmk_ip[$i]}" "${vmk_vs[$i]}" "${vmk_vlan[$i]}" "${vmk_nm[$i]}" "${vmk_gw[$i]}" "${vmk_flags[$i]}" "${vmk_mtu[$i]}" "${vmk_lb[$i]}" "${vmk_nics[$i]}" "${vmk_cflags[$i]}"
+      done
+   fi   
+   if [ $vmncount -ge 1 ]; then
+      tracemsg " vm network: $vmncount"
+      printf " vm network: %-16s : %-8s : %-50s : %-8s : %-30s : %-8s \n" "vs" "vlan" "nics" "mtu" "loadbalance" "comment flags"
+      echo " ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!vmn_nr[@]}"; do
+        printf " vm network: %-16s : %-8s : %-50s : %-8s : %-30s : %-8s \n" "${vmn_nr[$i]}" "${vmn_vlan[$i]}" "${vmn_nics[$i]}" "${vmn_mtu[$i]}" "${vmn_lb[$i]}" "${vmn_cflags[$i]}"
+      done
+   fi   
+   if [ $ntpcount -ge 1 ]; then
+      tracemsg " ntp: $ntpcount"
+      for i in "${!ntp_srv[@]}"; do
+        printf " ntp srv: %-40s \n" "${ntp_srv[$i]}"
+      done
+   fi   
+   if [ $dnscount -ge 1 ]; then
+      tracemsg " dns: $dnscount"
+      for i in "${!dns_srv[@]}"; do
+        printf " dns srv: %-40s \n" "${dns_srv[$i]}"
+      done
+   fi   
+   if [ $urolecount -ge 1 ]; then
+      tracemsg " roles: $urolecount"
+      printf " role: %-20s : %s \n" "name" "privileges"
+      echo " ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!u_rolename[@]}"; do
+        printf " role: %-20s : %s \n" "${u_rolename[$i]}" "${u_rolepriv[$i]}"
+      done
+   fi   
+   if [ $usercount -ge 1 ]; then
+      tracemsg " user: $usercount"
+      printf " user: %-20s : %-40s : %-20s : %-60s : %-20s : %-20s \n" "name" "password" "group" "description" "login" "role"
+      echo " ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!u_name[@]}"; do
+        printf " user: %-20s : %-40s : %-20s : %-60s : %-20s : %-20s \n" "${u_name[$i]}" "${u_pass[$i]}" "${u_group[$i]}" "${u_descr[$i]}" "${u_login[$i]}" "${u_role[$i]}"
+      done
+   fi   
+   if [ $advcount -ge 1 ]; then
+      tracemsg " adv: $advcount"
+      printf " adv: %-30s : %-10s : %-50s \n" "key" "typ" "value"
+      echo " ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      for i in "${!adv_key[@]}"; do
+        printf " adv: %-30s : %-10s : %-50s \n" "${adv_key[$i]}" "${adv_typ[$i]}" "${adv_value[$i]}"
+      done
+   fi   
+fi
+
+debmsg "Now test if all parameter given"
+if [ "$esxicore" == "4" ]; then  
+   tracemsg " esxi core version 4"
+elif [ "$esxicore" == "5" ]; then
+   tracemsg " esxi core version 5"
+elif [ "$esxicore" == "6" ]; then
+   tracemsg " esxi core version 6"
+else
+   errmsg "unknown esxi core version"
+   exit 2
+fi
+
+if [[ -z $mgmtpw ]]; then
+   errmsg "No password given - abort"
+   help
+   exit 2
+fi
+if [[ -z $mac ]]; then
+   errmsg "No server config given - mac, ip, gateway ... - abort"
+   help
+   exit 2
+fi
+if [[ -z $srvname ]]; then
+   errmsg "No server name given - abort"
+   help
+   exit 2
+fi
+if [[ -z $lic ]]; then
+   errmsg "No license for esxi server - abort"
+   help
+   exit 2
+fi
+if [[ -z $mgmtip ]]; then
+   errmsg "No mgmt ip given - abort"
+   help
+   exit 2
+fi
+if [[ -z $mgmtgateway ]]; then
+   errmsg "No mgmt gateway given - abort"
+   help
+   exit 2
+fi
+if [[ -z $srvdns ]]; then
+   errmsg "No server dns suffix given - abort"
+   help
+   exit 2
+fi
+
+if [ $dnscount -eq 0 ]; then
+   errmsg "No dns server given - abort"
+   help
+   exit 2
+fi
+
+if [ "$esxicore" == "4" ]; then  
+   if [ "$ll2" == "" ]; then
+      errmsg "version 4 needs two parameter for log location (-L)"
+      exit 2
+   elif [[ $ll2 =~ $regex_char ]] ; then
+      errmsg "version 4 needs second parameter as path for log location (-L) - not number"
+      exit 2
+   elif ! [[ $ll1 =~ $regex_bracket ]] ; then
+      errmsg "version 4 needs storage name (with square brackets) and path for log location (-L)"
+      exit 2
+   fi
+elif [ "$esxicore" == "5" ] || [ "$esxicore" == "6" ]; then
+   re='^[0-9]+$'
+   if ! [[ $ll2 =~ $re ]] ; then
+      errmsg "version 5/6 needs second parameter as number for rotation"
+      exit 2
+   fi
+fi
+
+infmsg "All needed parameter found - start creating config now"
+
+template="${progdir}/template/esxi${esxiver}-$insttmpl"
+tracemsg " template: $template"
+rcmacdir="$rcsysdir/$mac"
+
+if [ $retc -eq 0 ]; then
+   if [ -d "$macdir/$mac" ]; then
+      errmsg "found install config dir - abort"
+      retc=99
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ -d $rcmacdir ]; then
+      errmsg "found remote control config dir - abort"
+      exit 99
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   tracemsg "check if given vmkernel ip already ping / online"
+   for i in "${!vmk_ip[@]}"; do
+      tracemsg "  => ${vmk_ip[$i]}"
+      ping -c 2 ${vmk_ip[$i]} 2>&1 >/dev/null
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         errmsg "can ping vmkernel ip [${vmk_ip[$i]}] - maybe double ip adr found - abort"
+         retc=99
+      fi
+   done 
+fi
+if [ $retc -eq 0 ]; then
+   tracemsg "ping mgmt ip"
+   ping -c 2 $mgmtip 2>&1 >/dev/null
+   rc=$?
+   if [ $rc -eq 0 ]; then
+      errmsg "can ping mgmt ip [$mgmtip] - maybe double ip adr found - abort"
+      retc=99
+   fi
+fi
+
+  
+# Erst Config-Dir erstellen
+   
+if [ $retc -eq 0 ]; then
+   debmsg "create config dir"
+   OUTPUT=$(2>&1 mkdir "$macdir/$mac")
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot create mac config dir - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "copy plain config files"
+   OUTPUT=$(2>&1 /bin/cp $template/*.* $macdir/$mac)
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot copy template files - $retc "
+      errmsg "$OUTPUT"
+   else
+      debmsg "ok"
+   fi
+fi   
+
+if [ $retc -eq 0 ]; then
+   kspxe=$macdir"/"$mac"/ks-esxi"${esxiver}".pxe"
+   tracemsg "kspxe: $kspxe"
+   kscfg=$macdir"/"$mac"/ks-esxi"${esxiver}".cfg"
+   tracemsg "kscfg: $kscfg"
+   ksboot=$macdir"/"$mac"/ks-esxi"${esxiver}"-boot.cfg"
+   tracemsg "ksboot: $ksboot"
+
+   infmsg "Change $kspxe config file now:"
+   infmsg " Change vi temp server"
+   change "##FSISRV##" $fsisrv $kspxe
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change mac"
+   change "##MAC##" $mac $kspxe
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg "Change $kscfg config file now:"
+   infmsg " Change hostname"
+   change "##SRVNAME##" "$srvname.$srvdns" $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change VITemp"
+   change "##FSISRV##" $fsisrv $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change ESXi Version"
+   change "##ESXIVER##" $esxiver $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change Password"
+   change "##PASSWORD##" $cpass $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change Mgmt IPv4"
+   change "##SRVIP##" $mgmtip $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change Gateway IPv4"
+   change "##GATEWAY##" $mgmtgateway $kscfg
+   retc=$?
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change Mgmt Netmask"
+   if [ "$mgmtnm" == "$emptypar" ]; then
+      change "##NETMASK##" "255.255.255.0" $kscfg
+   else
+      change "##NETMASK##" $mgmtnm $kscfg
+   fi
+   retc=$?
+fi
+
+
+if [ $retc -eq 0 ]; then
+   debmsg " Build dns search list"
+   dnslist=""
+   for i in "${!dns_srv[@]}"; do
+      tracemsg "dns: $dnslist"
+      tracemsg "dns srv: ${dns_srv[$i]}"
+      dnslist+=${dns_srv[$i]}","
+   done
+   dnslist=${dnslist%?}
+   infmsg " Change dns search IPv4"
+   change "##NAMESRV##" $dnslist $kscfg
+   retc=$?
+   
+fi   
+
+if [ $retc -eq 0 ]; then
+   if [ -f $ksboot ]; then
+      debmsg " Change $ksboot " 
+      if [ $retc -eq 0 ]; then
+         infmsg " Change vi temp server"
+         change "##FSISRV##" $fsisrv $ksboot
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         infmsg " Change mac"
+         change "##MAC##" $mac $ksboot
+         retc=$?
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add vSwitches"
+   if [ $vscount -ge 1 ]; then
+      for i in "${!vs_nr[@]}"; do
+         printf "#vsw: %s : %s : %s : %s \n" "${vs_nr[$i]}" "${vs_nics[$i]}" "${vs_lb[$i]}" "${vs_mtu[$i]}" >>$kscfg
+      done
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add datastores"
+   if [ $storecount -ge 1 ]; then
+      for i in "${!s_name[@]}"; do
+         printf "#%s: %s : %s : %s \n" "${s_typ[$i]}" "${s_name[$i]}" "${s_srv[$i]}" "${s_path[$i]}" >>$kscfg
+      done
+   fi
+fi   
+ 
+if [ $retc -eq 0 ]; then
+   infmsg " Add vmkernel ports"
+   if [ $vmkcount -ge 1 ]; then
+      for i in "${!vmk_ip[@]}"; do
+        printf "#vmk: %s : %s : %s : %s : %s : %s : %s : %s : %s : %s \n" "${vmk_vs[$i]}" "${vmk_vlan[$i]}" "${vmk_ip[$i]}" "${vmk_nm[$i]}" "${vmk_gw[$i]}" "${vmk_flags[$i]}" "${vmk_mtu[$i]}" "${vmk_nics[$i]}" "${vmk_lb[$i]}" "${vmk_cflags[$i]}" >>$kscfg
+      done
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add VM Network ports"
+   if [ $vmncount -ge 1 ]; then
+      for i in "${!vmn_nr[@]}"; do
+        printf "#vmn: %s : %s : %s : %s : %s : %s \n" "${vmn_nr[$i]}" "${vmn_vlan[$i]}" "${vmn_nics[$i]}" "${vmn_mtu[$i]}" "${vmn_lb[$i]}" "${vmn_cflags[$i]}" >>$kscfg
+      done
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add mgmt port"
+   if [ "$mgmtgateway" = "$emptypar" ]; then
+      mgmtgateway=""
+   fi
+   if [ "$mgmtvlan" = "$emptypar" ]; then
+      mgmtvlan=0
+   fi
+   if [ "$mgmtflags" = "$emptypar" ]; then
+      mgmtflags="m"
+   fi
+   if [ "$mgmtnics" = "$emptypar" ]; then
+      mgmtnics=""
+   fi
+   if [ "$mgmtcomment" = "$emptypar" ]; then
+      mgmtcomment=""
+   fi
+   if [ "$mgmtmtu" = "$emptypar" ]; then
+      mgmtmtu=""
+   fi
+   printf "#vmm: %s : %s : %s : %s : %s : %s \n" "$mgmtvlan" "$mgmtflags" "$mgmtgateway" "$mgmtmtu" "$mgmtnics" "$mgmtcomment" >>$kscfg
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$vcname" == "" ]; then
+      infmsg " no join vc configure"
+   else
+      infmsg " configure join vc now"
+      printf "#vc: %s \n" "$vcname" >>$kscfg
+      if [ "$vcdom" == " " ]; then
+         tracemsg "  no domain for user given"
+         printf "#vcusr: %s \n" "$vcusr" >>$kscfg
+      else
+         tracemsg "  domain for user [$vcdom]"
+         printf "#vcusr: %s\\\\\\%s \n" "$vcdom" "$vcusr" >>$kscfg
+      fi
+      printf "#vcpass: %s \n" "$vcpass" >>$kscfg
+      printf "#huser: root \n" >>$kscfg
+      printf "#hpass: %s \n" "$hpass" >>$kscfg
+      printf "#dc: %s \n" "$vcdc" >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add ntp Server"
+   if [ $ntpcount -ge 1 ]; then
+      for i in "${!ntp_srv[@]}"; do
+        printf "#ntpsrv: %s \n" "${ntp_srv[$i]}" >>$kscfg
+      done
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add user roles"
+   if [ $urolecount -ge 1 ]; then
+      infmsg "  configure roles now ..."
+      for i in "${!u_rolename[@]}"; do
+        tracemsg "  add ${u_rolename[$i]}"
+        printf "#role: %s : %s \n" "${u_rolename[$i]}" "${u_rolepriv[$i]}" >>$kscfg
+      done
+   else
+      infmsg "  no roles found"
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add user"
+   if [ $usercount -ge 1 ]; then
+      infmsg "  configure user now ..."
+      for i in "${!u_name[@]}"; do
+        tracemsg "  add ${u_name[$i]}"
+        printf "#user: %s : %s : %s : %s : %s : %s \n" "${u_name[$i]}" "${u_pass[$i]}" "${u_group[$i]}" "${u_descr[$i]}" "${u_login[$i]}" "${u_role[$i]}" >>$kscfg
+      done
+   else
+      infmsg "  no user found"
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add advanced options"
+   if [ $advcount -ge 1 ]; then
+      for i in "${!adv_key[@]}"; do
+        printf "#advopt: %s : %s : %s \n" "${adv_key[$i]}" "${adv_typ[$i]}" "${adv_value[$i]}" >>$kscfg
+      done
+   fi   
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " Add environment"
+   printf "#esxenv: %s \n" $rz >>$kscfg
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$blocksize" == "" ]; then
+      debmsg " no blocksize configure - take default"infmsg
+   else
+      infmsg " change local storage blocksize to $blocksize"
+      printf "#locbs: %s \n" $blocksize >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$ll1" == "" ]; then
+      debmsg " no log location configure"
+   else
+      if [ "$esxicore" == "5" ] || [ "$esxicore" == "6" ]; then  
+         infmsg " add log location config esxi 5.x: $ll1 : $ll2 : $ll3 : $ll4"
+         printf "#logloc: %s : %s : %s : %s %s \n" "$ll1" "$ll2" "$ll3" "$ll4"  >>$kscfg
+      else
+         infmsg " add log location config esxi 4.x $ll1 $ll2"
+         printf "#logloc: %s %s \n" "$ll1" "$ll2" >>$kscfg
+      fi
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$scratch" == "" ]; then
+      debmsg " no scratch location configure"
+   else
+      infmsg " add scratch location"
+      printf "#scratch: %s \n" "$scratch" >>$kscfg
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   if [ $syscount -ge 1 ]; then
+      tracemsg "  esxi core version: $esxicore"
+      if [ "$esxicore" == "5" ] || [ "$esxicore" == "6" ]; then  
+         infmsg "  configure syslog for esxi 5"
+         for i in "${!syslog[@]}"; do
+            printf "#syssrv: %s : %s : %s \n" "${syslog[$i]}" "${sysport[$i]}" "${sysprot[$i]}" >>$kscfg
+         done
+      else
+         infmsg "  configure syslog for esxi 4"
+         printf "#sysport: %s \n" "${sysport[1]}" >>$kscfg
+         printf "#syssrv: %s \n" "${syslog[1]}" >>$kscfg
+      fi
+   else
+      debmsg " no syslog configure found"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ $sysparcount -ge 1 ]; then
+      infmsg " syslog parameter settings found"
+      for i in "${!syspar_id[@]}"; do
+         printf "#syspar: %s : %s : %s \n" "${syspar_id[$i]}" "${syspar_rot[$i]}" "${syspar_size[$i]}" >>$kscfg
+      done
+   else
+      debmsg " no syslog parameter settings found"
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$localshell" == "true" ]; then
+      infmsg " add remote shell configuration"
+      printf "#local: enable \n" >>$kscfg
+   else
+      debmsg " disable remote shell config"
+      printf "#local: disable \n" >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$remotessh" == "true" ]; then
+      infmsg " add ssh configuration"
+      printf "#ssh: enable \n" >>$kscfg
+   else
+      debmsg " disable ssh config"
+      printf "#ssh: disable \n" >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$instlevel" == "" ]; then
+      debmsg " no install level set"
+   else
+      infmsg " set install log level to $instlevel"
+      printf "#log: $instlevel \n" >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ "$ilo" == "" ]; then
+      debmsg " no iLO ip found"
+   else
+      infmsg " add iLO ip"
+      printf "#iloip: %s \n" "$ilo" >>$kscfg
+   fi
+fi
+
+
+if [ $retc -eq 0 ]; then
+   if [ "$lic" == "" ]; then
+      debmsg " no esxi license found"
+   else
+      infmsg " add esxi lic ip"
+      printf "#lic: %s \n" "$lic" >>$kscfg
+   fi
+fi
+
+if [ $retc -eq 0 ]; then
+   infmsg " add maintenance setting to $maintenance"
+   printf "#maintenance: %s \n" "$maintenance" >>$kscfg
+fi
+
+
+if [ $retc -eq 0 ]; then
+   infmsg " Change $emptypar"
+   change "$emptypar" "" $kscfg
+   retc=$?
+fi
+
+
+if [ $retc -eq 0 ]; then
+   mkdir -p "$rcmacdir"
+   retc=$?
+   if [ $retc -eq 0 ]; then
+      pw=$mgmtpw
+      crypw
+      echo 'srv_cmd="ssh://<% entries.$id.mgmt_ip %>"' >$rcmacdir/rc.ini
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         change_param 'srv_type' '"ssh"' $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_pw' "'"$pwv"'" $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_pwc' $pwc $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         change_param 'mgmt_user' "'"$mgmtu"'" $rcmacdir/rc.ini
+         retc=$?
+      fi
+      if [ $retc -eq 0 ]; then
+         if [ "$rctype" == "none" ]; then
+            infmsg "$ls  no remote control type given, save only mgmt config in rc.ini"
+            change_param 'rc_type' '"none"' $rcmacdir/rc.ini
+         elif [ "$rcparms" == "" ]; then
+            infmsg "$ls  no rc params given, save only mgmt config in rc.ini"
+            change_param 'rc_type' '"none"' $rcmacdir/rc.ini
+         else
+            infmsg "$ls  found remote control type $rctype"
+            change_param 'rc_type' "'"$rctype"'" $rcmacdir/rc.ini
+            if [ -f $rcbindir/$rctype/mkrc ]; then
+               tracemsg "cmd: $rcbindir/$rctype/mkrc $quietmode -l $logfile -m $mac $rcparms"
+               $rcbindir/$rctype/mkrc $quietmode -l $logfile -m $mac $rcparms                         # rcparms: e.g. hpilo => '-p <password> -i <ilo ip> [-u <ilo user>]'
+               retc=$?
+               if [ $retc -eq 0 ]; then
+                  debmsg " external mkrc call ok"
+               else
+                  errmsg " external mkrc call failed"
+               fi
+            else
+               errmsg "cannot find mkrc from rc type $rctype - ignore parameters, set rc_type=none"
+               change_param 'rc_type' "none" $rcmacdir/rc.ini
+            fi
+         fi
+      fi
+   else
+      errmsg "cannot create remote control mac sys dir [$rcmacdir]"
+   fi
+fi
+
+
+if [ $retc -ne 0 ]; then
+   warnmsg "$ls  cleanup config files to rubbish"
+   if [ -d $rcmacdir ]; then
+      tracemsg "$ls   move rc config dir to rubbish"
+      mv --backup -f $rcmacdir/ $progdir/../rubbish/esxi-rcsys_$mac_$(date +%Y%m%d%H%M%S)/
+   fi
+   if [ -d "$macdir/$mac" ]; then
+      tracemsg "$ls   move inst config dir to rubbish"
+      mv --backup -f $macdir/$mac $progdir/../rubbish/esxi-pxesys_$mac_$(date +%Y%m%d%H%M%S)/
+   fi
+fi
+
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

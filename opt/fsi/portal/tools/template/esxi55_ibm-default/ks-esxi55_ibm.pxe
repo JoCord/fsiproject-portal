@@ -1,0 +1,4 @@
+DEFAULT esxi55
+LABEL esxi55
+  kernel img/esxi55_ibm/mboot.c32
+  append -c sys/##MAC##/ks-esxi55_ibm-boot.cfg

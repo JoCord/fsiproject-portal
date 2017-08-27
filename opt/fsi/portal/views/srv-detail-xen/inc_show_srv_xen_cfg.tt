@@ -1,0 +1,64 @@
+[% use MAC = String entries.db_mac %]
+[% macadr = MAC.replace(':','-') %]
+
+[% xenconf = "" %]
+[% TRY %]
+   [% USE File("/opt/fsi/pxe/sys/$macadr/xen6.conf") %]
+      [% xenconf = "/opt/fsi/pxe/sys/$macadr/xen6.conf" %]
+      [% xenext = "/opt/fsi/pxe/sys/$macadr/xen6.ext" %]
+      [% xenpool = "/opt/fsi/pxe/sys/$macadr/xen6.pool" %]
+      [% xenxml = "/opt/fsi/pxe/sys/$macadr/xen6.xml" %]
+[% CATCH File %]      
+[% END %]
+
+[% TRY %]
+   [% USE File("/opt/fsi/pxe/sys/$macadr/xen7.conf") %]
+      [% xenconf = "/opt/fsi/pxe/sys/$macadr/xen7.conf" %]
+      [% xenext = "/opt/fsi/pxe/sys/$macadr/xen7.ext" %]
+      [% xenpool = "/opt/fsi/pxe/sys/$macadr/xen7.pool" %]
+      [% xenxml = "/opt/fsi/pxe/sys/$macadr/xen7.xml" %]
+[% CATCH File %]      
+[% END %]
+
+
+<div style="width:1238px;height:647px;overflow:auto;">
+   [% IF xenconf == "" %]
+      no XenServer config files found 
+   [% ELSE %]
+      
+   <h2>XenServer config file: [% xenconf %]</h2>   
+   [% TRY %]
+      <pre><xmp>[% INCLUDE $xenconf  %]</xmp></pre>
+      [% IF session.role.match('Admin') OR  session.role == "Master" %]&nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% xenconf %]:[% entries.db_srv %]:space" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit Conf&nbsp;&nbsp;</button>[% END %]
+   [% CATCH %]
+ No [% xenconf %] config information found</xmp></pre>
+   [% END %]
+   <br>
+   <br>
+   <h2>XenServer config file: [% xenext %]</h2>
+   [% TRY %]
+      <pre><xmp>[% INCLUDE $xenext  %]</xmp></pre>
+      [% IF session.role.match('Admin') OR  session.role == "Master" %]&nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% xenext %]:[% entries.db_srv %]" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit Ext&nbsp;&nbsp;&nbsp;&nbsp;</button> [% END %]
+   [% CATCH %]
+ No [% xenext %] config information found</xmp></pre>
+   [% END %]
+   <br>
+   <br>
+   <h2>XenServer config file: [% xenpool %]</h2>
+   [% TRY %]
+      <pre><xmp>[% INCLUDE $xenpool  %]</xmp></pre>
+      [% IF session.role.match('Admin') OR  session.role == "Master" %]&nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% xenpool %]:[% entries.db_srv %]" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit Pool&nbsp;&nbsp;</button> [% END %]
+   [% CATCH %]
+ No [% xenpool %] config information found</xmp></pre>
+   [% END %]
+   <br>
+   <br>
+   <h2>XenServer config file: [% xenxml %]</h2>
+   [% TRY %]
+      <pre><xmp>[% INCLUDE $xenxml  %]</xmp></pre>
+      [% IF session.role.match('Admin') OR  session.role == "Master" %]&nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% xenxml %]:[% entries.db_srv %]:xml" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit XML&nbsp;&nbsp;&nbsp;</button> [% END %]
+   [% CATCH %]
+ No [% xenxml %] config information found</xmp></pre>
+   [% END %]
+   [% END %]
+</div>

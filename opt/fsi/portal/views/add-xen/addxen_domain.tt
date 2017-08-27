@@ -1,0 +1,56 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="text-align: right"><input type="checkbox" name="joindomain" value="yes" checked/></td>
+      <td style="text-align: left">&nbsp;Xen Pool join Domain</td>
+   </tr>
+   <tr>
+      <td></td>
+      <td></td>
+      <td style="text-align: right"> Xen Access Groups:</td>
+   </tr>
+   <tr>
+      <td style="text-align: right">Short Domain Name: </td>
+      <td><input type="text" style="width:350px;" name="shortdom" placeholder="[% rzconfig.rz.${vienv}.xensrv.dom_join %]" maxlength="17" autocomplete="on" /> </td>
+      <td style="text-align: right">Pool Admin: </td>
+      <td><input type="text" style="width:350px;" name="xg-pooladmin" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.pool_admin.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">DNS Domain Name: </td>
+      <td><input type="text" style="width:350px;" name="longdom" placeholder="[% rzconfig.rz.${vienv}.xensrv.dom_dns %]" maxlength="17" autocomplete="on" /> </td>
+      <td style="text-align: right">Pool Operator: </td>
+      <td><input type="text" style="width:350px;" name="xg-pooloperator" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.pool_operator.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">OU: </td>
+      <td><input type="text" style="width:350px;" name="domou" placeholder="[% rzconfig.rz.${vienv}.xensrv.dom_ou %]" maxlength="255" autocomplete="on" /> </td>
+      <td style="text-align: right">Read Only: </td>
+      <td><input type="text" style="width:350px;" name="xg-readonly" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.read_only.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">Join Domain User: </td>
+      <td><input type="text" style="width:350px;" name="domuser" placeholder="[% rzconfig.rz.${vienv}.xensrv.dom_user %]" maxlength="17" autocomplete="on" /> </td>
+      <td style="text-align: right">VM Operator: </td>
+      <td><input type="text" style="width:350px;" name="xg-vmoperator" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.vm_operator.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">Domain User Password: </td>
+      <td><input type="text" style="width:350px;" name="dompw" placeholder="********" maxlength="17" autocomplete="on" /> </td>
+      <td style="text-align: right">VM Power Admin: </td>
+      <td><input type="text" style="width:350px;"name="xg-vmpoweradmin" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.vm_power_admin.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+      <td></td>
+      <td></td>
+      <td style="text-align: right">VM Admin: </td>
+      <td><input type="text" style="width:350px;" name="xg-vmadmin" placeholder="[% rzconfig.rz.${vienv}.xensrv.xenrole.vm_admin.domgroup %]" maxlength="255" autocomplete="on" /> </td>
+   </tr>
+   </tr>
+      <td style="text-align: right">Domain Connection Type: </td>
+      <td>
+         <input type="radio" name="domconnect" value="icmp" checked/>&nbsp;&nbsp;ICMP<br />
+         <input type="radio" name="domconnect" value="tcp"/>&nbsp;&nbsp;TCP<br />
+         <input type="radio" name="domconnect" value="off"/>&nbsp;&nbsp;OFF
+      </td>
+      <td></td>
+      <td></td>
+   </tr>
+</table>

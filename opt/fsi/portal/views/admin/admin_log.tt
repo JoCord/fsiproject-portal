@@ -1,0 +1,54 @@
+<table class="table borderless">
+  <tbody>
+   <tr>
+    <td nowrap>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsi.log&tail=yes"> <span class="glyphicon icon-folder-open"></span>tail</a>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsi.log&tail=no"> <span class="glyphicon icon-folder-open"></span>full</a>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiRestartPortal" value="yes" ><img src="/images/16_Clockwise-arrow-icon.png" alt="" /></button>
+    </td>
+    <td width="100%">View logfile or restart fsi portal</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+   <tr>
+    <td nowrap>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsichk.log&tail=yes"> <span class="glyphicon icon-folder-open"></span>tail</a>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsichk.log&tail=no"> <span class="glyphicon icon-folder-open"></span>full</a>
+    </td>
+    <td width="100%">Open and view fsi portal check logfile daemon logfile</td>
+   </tr>
+    <td nowrap>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsiro.log&tail=yes"> <span class="glyphicon icon-folder-open"></span>tail</a>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsiro.log&tail=no"> <span class="glyphicon icon-folder-open"></span>full</a>
+    </td>
+    <td width="100%">Open and view fsi runonce daemon logfile</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+   <tr>
+    <td nowrap>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsid.log&tail=yes"> <span class="glyphicon icon-folder-open"></span>tail</a>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsid.log&tail=no"> <span class="glyphicon icon-folder-open"></span>full</a>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiStartCheck" value="yes" ><img src="/images/16_Start-icon.png" alt="" /></button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiStopCheck" value="yes" ><img src="/images/16_Stop-red-icon.png" alt="" /></button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiRestartCheck" value="yes" ><img src="/images/16_Clockwise-arrow-icon.png" alt="" /></button>
+    </td>
+    <td width="100%">View logfile or start,stop,restart fsi check daemon</td>
+   </tr>
+
+   <tr>
+    <td nowrap>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsichkon.log&tail=yes"> <span class="glyphicon icon-folder-open"></span>tail</a>
+      <a class="btn [% global.button_typ %] [% global.button_size %]" href="/showportallog?log=fsichkon.log&tail=no"> <span class="glyphicon icon-folder-open"></span>full</a>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiStartOnline" value="yes" ><img src="/images/16_Start-icon.png" alt="" /></button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiStopOnline" value="yes" ><img src="/images/16_Stop-red-icon.png" alt="" /></button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiRestartOnline" value="yes" ><img src="/images/16_Clockwise-arrow-icon.png" alt="" /></button>
+    </td>
+    <td width="100%">View logfile or start,stop,restart fsi check online daemon</td>
+   </tr>
+  </tbody>
+</table>

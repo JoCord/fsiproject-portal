@@ -1,0 +1,159 @@
+
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2> Configuration: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;">
+            Mgmt IP :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            <a href="ssh://[% entries.item('mgmt_ip') %]" target="_blank">[% entries.item('mgmt_ip') %]</a>
+         </td>
+         <td style="text-align: right;">
+            Version :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% entries.item('db_typ') %]
+         </td>
+         <td style="text-align: right;">
+            Produkt :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/prodname"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+      </tr>
+      <tr>
+         <td style="text-align: right;">
+            Mgmt MAC :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% entries.item('db_mac') %]
+         </td>
+         <td style="text-align: right;">
+            Build :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/version"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+         <td style="text-align: right;">
+            Lizenz :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/license"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+      </tr>
+      <tr>
+         <td style="text-align: right;">
+            VC :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            <a href="/showvc/[% entries.item('db_control') %]">[% entries.item('db_control') %]</a>
+         </td>
+      </tr>      
+      <tr>
+       <td>&nbsp;</td>
+      </tr>
+
+      </tr>
+   </table>
+
+   <h2> Hardware: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;  width: 100px">
+            CPU :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left; width: 300px">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/cpu_model"  %]
+            [% CATCH %]
+               not found
+            [% END %]
+         </td>
+         <td style="text-align: right;">
+            CPU Sockets/Cores/Threads :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left; width: 300px">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/cpu_pkgs"  %]/
+            [% CATCH %]
+ NA/
+            [% END %]
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/cpu_cores"  %]/
+            [% CATCH %]
+ NA/
+            [% END %]
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/cpu_threads"  %]
+            [% CATCH %]
+ NA
+            [% END %]
+         </td>
+         <td style="text-align: right;">
+            MHz :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left; width: 200px">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/cpu_mhz"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+      </tr>
+      <tr>
+         <td style="text-align: right;">
+            Mem :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/mem"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+      </tr>
+      <tr>
+       <td>&nbsp;</td>
+      </tr>
+   </table>
+
+   <h2> System: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;">
+            Install start:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% use MAC = String entries.db_mac %]
+            [% macadr = MAC.replace(':','-') %]
+            [% TRY %][% INCLUDE  "/opt/fsi/pxe/sys/$macadr/inst.start" %][% CATCH %]unknown[% END %]
+         </td>
+         <td style="text-align: right;">
+            Install end:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %][% INCLUDE  "/opt/fsi/pxe/sys/$macadr/inst.end" %][% CATCH %]unknown[% END %]
+         </td>
+         <td style="text-align: right;">
+            uptime:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %][% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/uptime" %][% CATCH %]not found[% END %]
+         </td>
+      </tr>
+   </table>
+</div>

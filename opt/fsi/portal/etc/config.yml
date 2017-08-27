@@ -1,0 +1,35 @@
+appname: "fsi"
+charset: "UTF-8"
+
+startup_info: 0
+no_server_tokens: 0
+
+layout: "main"
+
+#warnings: 1
+show_errors: 1
+views: "/opt/fsi/portal/views"
+
+#serializer: 'JSON'
+
+logger: "File"
+session: "YAML"
+template: "template_toolkit"
+
+engines:
+  logger:
+    File:
+      log_dir: "/opt/fsi/portal/logs"
+      file_name: "fsidancer.log"
+      log_level: core
+  session:
+    YAML:
+      session_dir: "/opt/fsi/portal/sessions"                # location of yaml session files
+      cookie_path: "/"                                       # The path of the cookie to create for storing the session key. Defaults to "/".
+      cookie_name: "fsi_session"                             # The name of the cookie to store the session ID in.
+      cookie_duration: 86400                                 # 24h timeout
+      is_secure: 0                                           # The user's session ID is stored in a cookie
+      is_http_only: 0                                        # This setting defaults to 1 and instructs the session cookie to be created with the HttpOnly option active, meaning that JavaScript will not be able to access to its value.
+  template:
+    template_toolkit:
+

@@ -1,0 +1,52 @@
+#
+#  XenServer Pool Extended Configuration - 2 bonds
+#
+
+<net Management>
+        typ mgmt                       
+        <bond BondMgmt>
+                <nic eth3>
+                </nic>
+                <nic eth0>
+                </nic>
+                mode lacp
+        </bond>
+        descr Management Connection
+        dnssearch ##DNSSEARCH##
+</net>
+
+<net VirtualMachines>
+        <bond BondVMs>
+                <nic eth1>
+                </nic>
+                <nic eth2>
+                </nic>
+                mode lacp
+        </bond>
+        descr Virtual Machine Connection
+        dnssearch ##DNSSEARCH##
+</net>
+
+
+# Tagconfiguration
+<tag XenHostTag>
+    typ host
+    do add
+    key XenServer Pool RZ:##RZ## fsi server:##FSISRV##
+</tag>
+
+# SR Rename
+<srren LocalSR>
+   sr Local storage
+   to Local SR $HOSTNAME
+</srren>
+
+# SR Delete
+<srdel RemovableSR>
+   sr Removable storage
+</srdel>
+
+<srdel RemovableCD>
+   sr DVD drives
+</srdel>
+

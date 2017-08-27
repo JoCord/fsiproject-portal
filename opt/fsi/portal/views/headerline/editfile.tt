@@ -1,0 +1,9 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% INCLUDE headerline/mainmenu.tt %]
+        <div class="btn-group">
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Abort</button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Save" value="yes" ><img src="/images/16_Actions-document-close-icon.png" alt="" /> Save & Close</button>
+        </div>
+   </div>
+</div>

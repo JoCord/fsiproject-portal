@@ -1,0 +1,90 @@
+<div class="btn-group">
+   <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" />Back</button>
+</div>
+<div style="width:1238px;">
+   <table>
+      [% INCLUDE 'include/inc_envhead.tt' %]
+      <tbody>
+           <tr class="fsitableheader">
+              <td style="width: 220px;"><div>Server</div></td>
+              <td style="width: 80px;"><div>Typ</div></td>
+              <td style="width: 100px;"><div>Status</div></td>
+              <td style="width: 120px;"><div>Patch Level</div></td>
+              <td style="width: 110px;"><div>Mgmt. IP</div></td>
+              <td style="width: 140px;"><div>MAC</div></td>
+              <td style="width: 350px;"><div>Control</div></td>
+           </tr>
+      </tbody>
+   </table>
+</div>
+<div style="width:1240px; height:670px; overflow:auto;">
+      <table class="table table-striped table-condensed table-hover" style="width:1230px;">
+         <tbody>    
+            [% IF entries.size %]
+               <tr>
+                  <td style="width: 220px;"><a href="/showsrv/[% entries.id %]">[% entries.db_srv %]</a></td>
+                  <td style="width: 80px;">[% entries.db_typ %]</td>
+                  <td style="width: 100px; text-align: left;">
+                     [% IF entries.s_online %]
+                        [% entries.s_online %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                     [% IF entries.s_xenmaster %]
+                        [% entries.s_xenmaster %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                     [% IF entries.s_inststart %]
+                        [% entries.s_inststart %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                     [% IF entries.s_insterr %]
+                        [% entries.s_insterr %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                     [% IF entries.s_instrun %]
+                        [% entries.s_instrun %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                     [% IF entries.s_instwait %]
+                        [% entries.s_instwait %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                  
+                  </td>
+                  <td style="width: 120px;">
+                     [% IF entries.s_patchlevel %]
+                        [% entries.s_patchlevel %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                  </td>
+                  
+                  [% IF entries.s_online %]
+                     <td style="width: 110px;">
+                        <a href="ssh://root@[% entries.mgmt_ip %]" target="_blank">[% entries.mgmt_ip %]</a>
+                     </td>   
+                  [% ELSE %]
+                     <td style="width: 110px;">[% entries.mgmt_ip %]</td>
+                  [% END %] 
+                  
+                  <td style="width: 140px;">[% entries.db_mac %]</td>    
+                  
+                  [% IF entries.x_poolcount %]
+                     <td style="width: 340px;">[% entries.db_controltyp %]: [% entries.db_control %] ([% entries.x_poolcount %])</td>
+                  [% ELSE %]
+                     <td style="width: 340px;">[% entries.db_controltyp %]: [% entries.db_control %]</td>
+                  [% END %]
+               </tr>
+            [% ELSE %]
+               <em>No server configurations found</em>
+            [% END %]
+         </tbody>
+      </table>
+</div>
+</br>

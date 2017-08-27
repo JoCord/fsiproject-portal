@@ -1,0 +1,34 @@
+[% INCLUDE 'layouts/global.tt' %]   
+
+<div id="page">
+  [% IF session.logged_in %]
+    [% INCLUDE 'help/help_useredit.tt' %]
+    <form action="useredit" method=post>
+    <button class="sr-only" name="ChangePassword"  value="yes" ></button><!--- only to get default action UserChange --->
+        <div class="btn-group">
+           <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+           <a href="#myUserHelp" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal" ><img src="/images/16_i.png"  alt="" /> Help </a>
+        </div>   
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+           <tr class="fsitableheader">
+              <td style="width: 100%;"><div>fsi portal user: [% session.user %]</div></td>
+           </tr>
+         </table>
+         <br>
+         Role: [% session.role %]<br><br>
+
+        [% IF session.user.match('\\\\') OR session.user.match('@') %]
+         Domain user - please change your password with your known methods
+        [% ELSE %]
+          [% IF session.user.match('fsi') %]
+            Tech user fsi cannot change password
+          [% ELSE %]
+            Password: <input type="text" name="Password" autocomplete="on" placeholder="please edit here to change your password" size=50/> 
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="ChangePassword"  value="yes" ><img src="/images/16_Sign-Select-icon.png" alt=""        > Change Password </button><br>
+          [% END %]
+        [% END %]
+         <br><br>
+    </form>
+  [% END %]
+</div>

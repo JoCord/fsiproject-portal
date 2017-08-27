@@ -1,0 +1,39 @@
+<div id="myChangeAuth" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Change Pool Authentication Settings</h2>
+   </div>
+
+   <div class="modal-body">
+      <div class="alert alert-danger"><i class="fa fa-hand-paper-o" aria-hidden="true"></i>  
+      [% IF NOT xensrv.item('external-auth-type').size %]   
+         Do you realy want to to set pool authentication to Domain/AD?
+      [% ELSE %]
+         Do you realy want to to disable Domain/AD pool authentication and set to local?
+      [% END %]
+      </div>
+   </div>
+
+   <div class="modal-footer">
+      [% IF NOT xensrv.item('external-auth-type').size %]   
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Auth2AD" value="[% pool %]" ><img class="icon ad" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABPElEQVRIie2UsYrCMBzGfQPRpFBQg6sP4O7oW9yBiSC46XI3aG/Q5FYfQHwB8SbXRHyBLt3sVarpJvQNeotVtPWoTUZ/kKF/vn7fF/iTQuGFLur00EJMeohJr04PLe0BiMo9YjI6H09/AAvCSwCVe+0B5tCeo6kfoqkfmkN7rtUc4E0DEuHE35AIB+BNQ1vAveF9oKr5CGJuJeaYW5CIUW7jGj2+V77cj/+aQiKcivX7ib6Pb0+ZIxos4o2pTfzVwxITf3XdrGCRPeC67xFiMlLVpf34k6VZVl0CQETTHNiuObBdQERTVZfAwGIGurwPurxvYDFT1SWAWJyKvW2p2NuWIBYnVd0N5Q5vG0SsLy2JWJc7vJ1XdwOi0kJMRtXxbhnPquPd8vzAWc/qkgEpK6cye3iDtLZ5Zi8y8Qdvmwth3+CNnwAAAABJRU5ErkJggg==" width="16" height="16"> Set Pool Auth to AD </button>
+      [% ELSE %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Auth2LOC" value="[% pool %]" ><img class="icon ad" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABPElEQVRIie2UsYrCMBzGfQPRpFBQg6sP4O7oW9yBiSC46XI3aG/Q5FYfQHwB8SbXRHyBLt3sVarpJvQNeotVtPWoTUZ/kKF/vn7fF/iTQuGFLur00EJMeohJr04PLe0BiMo9YjI6H09/AAvCSwCVe+0B5tCeo6kfoqkfmkN7rtUc4E0DEuHE35AIB+BNQ1vAveF9oKr5CGJuJeaYW5CIUW7jGj2+V77cj/+aQiKcivX7ib6Pb0+ZIxos4o2pTfzVwxITf3XdrGCRPeC67xFiMlLVpf34k6VZVl0CQETTHNiuObBdQERTVZfAwGIGurwPurxvYDFT1SWAWJyKvW2p2NuWIBYnVd0N5Q5vG0SsLy2JWJc7vJ1XdwOi0kJMRtXxbhnPquPd8vzAWc/qkgEpK6cye3iDtLZ5Zi8y8Qdvmwth3+CNnwAAAABJRU5ErkJggg==" width="16" height="16"> Set Pool Auth to LOCAL </button>
+      [% END %]
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+[% IF BLOCKRELOAD=="NO" %]
+<script>
+    $('#myChangeAuth').on('show.bs.modal', function (e) {
+        clearInterval(GetInfoID); 
+    })
+    $('#myChangeAuth').on('hide.bs.modal', function (e) {
+        var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+    })
+</script>
+[% END %]

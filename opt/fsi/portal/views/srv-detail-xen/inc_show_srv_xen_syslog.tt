@@ -1,0 +1,14 @@
+   [% TRY %]
+      <h2>xenserver syslog destination config: [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/syslogdest"  %]</h2>
+   [% CATCH %]
+ No xenserver syslog destination information found</pre>
+   [% END %]
+   <br>
+   <h2>syslog.conf Config: </h2>
+<div style="width:1238px;height:558px;overflow:auto;">
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/syslog"  %]</pre>
+   [% CATCH %]
+ No syslog config information found</pre>
+   [% END %]
+</div>

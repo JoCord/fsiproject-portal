@@ -1,0 +1,17 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% IF not session.logged_in %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Login"   value="yes" ><img src="/images/16_Sign-LogIn-icon.png" alt=""   /> Login</button>
+      [% ELSE %]
+        <div class="btn-group">
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Reload" value="[% tail %]" ><img src="/images/16_Refresh-icon.png"                alt="" /> Reload</button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+         [% IF tail == "tail" %]
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="tailmode" value="notail" ><img src="/images/16_Actions-document-close-icon.png" alt="" /> Complete</button>
+         [% ELSE %]
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="tailmode" value="tail" ><img src="/images/16_Actions-document-open-recent-icon.png" alt="" /> Tail</button>
+         [% END %]
+        </div>
+      [% END %]
+   </div>
+</div>

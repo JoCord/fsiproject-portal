@@ -1,0 +1,122 @@
+
+<ul class="nav nav-tabs" id="mySrvTabs">
+   <li class="active"><a href="#srv_start" data-toggle="tab">Overview</a></li>  
+   <li><a href="#srv_net" data-toggle="tab">Network</a></li>
+   <li><a href="#srv_nic" data-toggle="tab">NICs</a></li>  
+   <li><a href="#srv_store" data-toggle="tab">Storage</a></li> 
+   <li><a href="#srv_ntp" data-toggle="tab">NTP</a></li>
+   <li><a href="#srv_syslog" data-toggle="tab">Syslog</a></li>
+   <li><a href="#srv_services" data-toggle="tab">Services</a></li>
+   <li><a href="#srv_user" data-toggle="tab">User/Roles</a></li>
+   <li><a href="#srv_vm" data-toggle="tab">VM List</a></li>  
+   <li><a href="#srv_update" data-toggle="tab">Update</a></li>
+   [% IF session.role.match('ESXiAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+      <li><a href="#srv_viconf" data-toggle="tab">VIConf</a></li>  
+   [% END %]
+   <li><a href="#srv_log" data-toggle="tab">Log</a></li>
+   <li><a href="#srv_ks" data-toggle="tab">ks.cfg</a></li>
+   [% IF session.role.match('ESXiAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+     <li><a href="#srv_actions" data-toggle="tab">Actions</a></li>
+   [% END %]
+</ul>
+
+<div id="mySrvTabs" class="tab-content">
+   <div style="height: 620px;" class="tab-pane active" id="srv_start">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_start.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_net">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_net.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_nic">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_nic.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_store">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_store.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ntp">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_ntp.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_syslog">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_syslog.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_vm">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_vms.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_services">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_services.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_user">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_user.tt' %]
+   </div>
+   [% IF session.role.match('ESXiAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+      <div style="height: 620px;" class="tab-pane" id="srv_viconf">
+        [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_viconf.tt' %]
+      </div>
+   [% END %]
+   <div style="height: 620px;" class="tab-pane" id="srv_update">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_upd.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_log">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_log.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ks">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_kscfg.tt' %]
+   </div>
+   [% IF session.role.match('ESXiAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+     <div style="height: 620px;" class="tab-pane" id="srv_actions">
+      [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi_action.tt' %]
+     </div>
+   [% END %]
+
+<script>
+    $(document).ready(function () {
+       $("#fsi_esxiupd")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter", "scroller", "stickyHeaders"],
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 575,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+                scroller_addFixedOverlay: true,
+             }
+       });
+
+       $("#fsi_esxivms")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter", "scroller", "stickyHeaders"],
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 575,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+                scroller_addFixedOverlay: true,
+             }
+       });
+
+       $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+           $('.tab-pane.active').find('table').trigger('applyWidgets');
+           // $(window).resize();
+       });              
+
+    });
+</script>
+    
+
+</div>

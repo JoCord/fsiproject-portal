@@ -1,0 +1,37 @@
+<div id="CleanPatches" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+ <div class="modal-dialog">
+  <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Delete XenServer Patch Directories </h2>
+   </div>
+
+   <div class="modal-body">
+       <div class="alert alert-warning">
+         You can only delete old patch dirs, if
+         <ul>
+         &nbsp;<li> no first installation process is running </li>
+         &nbsp;<li> all active server are on the same patch level </li>
+         </ul>
+         </br>
+         Do you really want to delete all patch dirs on all server in pool [% pool %] ?
+       </div>
+   </div>
+      
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="CleanPatches" value="[% pool %]" ><img src="/images/16_Broom-icon.png" alt="" /> CleanPatch</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+[% IF BLOCKRELOAD=="NO" %]
+<script>
+    $('#CleanPatches').on('show.bs.modal', function (e) {
+        clearInterval(GetInfoID); 
+    })
+    $('#CleanPatches').on('hide.bs.modal', function (e) {
+        var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+    })
+</script>
+[% END %]

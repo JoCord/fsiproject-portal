@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<installation mode="fresh" srtype="ext">
+   <bootloader>extlinux</bootloader>
+   <primary-disk gueststorage="yes">sda</primary-disk>
+   <keymap>de-latin1</keymap>
+   <hostname>##HOSTNAME##</hostname>
+   <root-password type="hash">##PWH##</root-password>
+   <source type="nfs">##FSISRV##:/opt/fsi/inst/xen610/source/</source>
+   <post-install-script type="nfs">##FSISRV##:/opt/fsi/inst/xen610/ks/create-customize.sh</post-install-script>
+   <admin-interface name="eth0" proto="static">
+     <ip>##IP##</ip>
+     <subnet-mask>##NETMASK##</subnet-mask>
+     <gateway>##GATEWAY##</gateway>
+   </admin-interface>
+   <timezone>Europe/Berlin</timezone>

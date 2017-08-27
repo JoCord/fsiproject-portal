@@ -1,0 +1,235 @@
+<form action="mgmt_srs" method=post>
+  [% IF session.logged_in %]
+    [% USE Number.Format %]
+
+    [% INCLUDE 'layouts/global.tt' %]   
+
+    <div class=headerline>
+        [% INCLUDE 'headerline/normal.tt' %]
+    </div>   
+     
+     <div style="width:1238px;">
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+              <tr class="fsitableheader">
+                <td style="width: 800px;"><div>Manage fibre channel luns / storage repositories in pool : [% pool %] </div></td>
+             </tr>
+         </table>
+     </div>
+     <div style="height: 620px;" class="tab-pane active" id="srv_start">
+      <table>
+         <tr><td>&nbsp;</td></tr>
+         <tr>
+            <td>
+               [% SET xenver="unknown" %]
+               [% FOREACH id IN entries.keys.nsort.reverse %]
+                  [% IF entries.$id.db_control == pool %]
+                    [% IF xenver == "unknown" %]
+                        [% set xenver=entries.$id.db_typ %]
+                        [% LAST %]
+                    [% END %]
+                  [% END %]
+               [% END %]
+            
+
+               Existing LUN SRs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+               [% TRY %]
+                  [% SET LUNLISTRELOAD="YES" %]
+                     [% scantitle=INCLUDE "$global.pathinst/$xenver/ks/pool/$pool/lunlistreload.last" %]
+                     <button class="btn btn-link" style="padding: 0px 0px;" name="LUNLISTRELOAD" value="[% pool %]" data-toggle="tooltip" title="Scanned on [% scantitle %]">
+                        <i class="fa fa-refresh fa-fw"></i>
+                     </button>
+               [% CATCH %]
+                  [% SET LUNLISTRELOAD="NO" %]
+                     <i class="fa fa-refresh fa-spin fa-fw" data-toggle="tooltip" title="rescanning ..."></i>
+               [% END %]
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <button class="btn [% global.button_typ %] [% global.button_size %]" name="DELLUNSRS"  value="[% pool %]" ><img src="/images/16_System-Recycle-Bin-2-icon.png" alt=""  > Delete marked LUN SRs </button>
+            </td>
+            
+            <td style="width:10px";>&nbsp;</td>
+            
+            <td>New LUN SRs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+               [% TRY %]
+                  [% SET LUNNEWLIST="YES" %]
+                  [% scantitle=INCLUDE  "$global.pathinst/$xenver/ks/pool/$pool/lunnewlist.last" %]
+                     <button class="btn btn-link" style="padding: 0px 0px;" name="LUNNEWLIST" value="[% pool %]" data-toggle="tooltip" title="Scanned on [% scantitle %]">
+                        <i class="fa fa-refresh fa-fw"></i>
+                     </button>
+               [% CATCH %]
+                  [% SET LUNNEWLIST="NO" %]
+                     <i class="fa fa-refresh fa-spin fa-fw" data-toggle="tooltip" title="rescanning ..."></i>
+               [% END %]
+               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="CREATELUNSRS"  value="[% pool %]" ><img src="/images/16_System-Recycle-Bin-2-icon.png" alt=""  > Create marked LUN SRs</button>
+            </td>
+         </tr>
+         <tr><td>&nbsp;</td></tr>
+         <tr>
+            <td valign="top" style="width:49%;">  
+               <table id="fsi_mgmtsrs" class="tablesorter table table-condensed table-hover table-striped" >
+                   <thead>
+                     <tr class="fsitableheader">
+                        <th class="group-false" style="width: 5px;"><input type="checkbox" name="MarkedSR_all" value="0" onclick="CheckTable(this,'srslist')" /></th>
+                        <th class="group-false">sr name</th>
+                        <th class="group-false">phy.size</th>
+                        <th class="group-false">phy.util</th>
+                        <th class="group-false">description</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                   [% found = 0 %]
+                   
+                    [% IF srs.size %]
+                     [% FOREACH uuid IN srs.keys.sort %]
+                       [% newtr = "" %]
+                       [% IF srs.$uuid.item('type') == "lvmohba" %]
+                         [% newtr = "success" %]
+                       [% END %]
+                       [% IF srs.$uuid.item('type') == "NetApp" %]
+                         [% newtr = "danger" %]
+                       [% END %]
+                       [% IF srs.$uuid.item('type') == "EqualLogic" %]
+                         [% newtr = "warning" %]
+                       [% END %]
+                       [% IF srs.$uuid.item('type') == "lvmoiscsi" %]
+                         [% newtr = "info" %]
+                       [% END %]
+                       [% IF newtr != "" %]
+                        [% found = 1 %]
+                        <tr>
+                           <td style="vertical-align: top; width: 5px;"> 
+                              <input type="checkbox" id="srslist_[% uuid %]" name="MarkedSR" value="[% uuid %]" />
+                           </td>                     
+                           <td>[% srs.$uuid.item('name-label') %]</td>
+                           [% IF srs.$uuid.item('physical-size') > 0 %]
+                              <td align="right">[% srs.$uuid.item('physical-size')  | format_bytes %]</td>
+                           [% ELSE %]
+                              <td align="right">[% srs.$uuid.item('physical-size') %]</td>
+                           [% END %]
+                           [% IF srs.$uuid.item('physical-utilisation') > 0 %]
+                              <td align="right">[% srs.$uuid.item('physical-utilisation')  | format_bytes %]</td>
+                           [% ELSE %]
+                              <td align="right">[% srs.$uuid.item('physical-utilisation') %]</td>
+                           [% END %]
+                           <td>[% srs.$uuid.item('name-description') %]</td>
+                        </tr>
+                       [% END %]
+                     [% END %]
+                    [% END %] 
+                    
+                    [% IF found == 0 %]
+                     <tr>
+                        <td colspan="7">
+                      no existing fibre channel LUN SRs found - maybe you have to rescan
+                        </td>
+                     </tr>
+                    [% END %] 
+                  </tbody>
+               </table>
+            </td>   
+            
+            <td></td>
+   
+      
+            <td valign="top" style="width:49%;">  
+               <table id="fsi_mgmtsrsnew" class="tablesorter table table-condensed table-hover table-striped" >
+                   <thead>
+                     <tr class="fsitableheader">
+                        <th class="group-false" style="width: 5px;"><input type="checkbox" name="MarkedLUN_all" value="0" onclick="CheckTable(this,'srsnew')" /></th>
+                        <th class="group-false">sr uuid</th>
+                        <th class="group-false">size</th>
+                        <th class="group-false">vendor</th>
+                        <th class="group-false">interface</th>
+                        <th class="group-false">serial</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                    [% IF srs_new.size %]
+                     [% FOREACH uuid IN srs_new.BlockDevice.keys.sort %]
+                        <tr>
+                           <td style="vertical-align: top; width: 5px;"> 
+                             <input type="checkbox" id="srsnew_[% uuid %]" name="MarkedLUN" value="[% uuid %]" />
+                           </td>                     
+                           <td>[% uuid %]</td>
+                           [% IF srs_new.BlockDevice.$uuid.item('size') > 0 %]
+                              <td align="right">[% srs_new.BlockDevice.$uuid.item('size')  | format_bytes %]</td>
+                           [% ELSE %]
+                              <td align="right">[% srs_new.BlockDevice.$uuid.item('size') %]</td>
+                           [% END %]
+                           <td>[% srs_new.BlockDevice.$uuid.item('vendor') %]</td>
+                           <td>[% srs_new.BlockDevice.$uuid.item('adapter') %]/[% srs_new.BlockDevice.$uuid.item('channel') %]/[% srs_new.BlockDevice.$uuid.item('id') %]/[% srs_new.BlockDevice.$uuid.item('lun') %]</td>
+                           <td>[% srs_new.BlockDevice.$uuid.item('serial') %]</td>
+                        </tr>
+                     [% END %]
+                    [% ELSE %] 
+                     <tr>
+                        <td colspan="7">
+                      no new fibre channel LUN SRs found - maybe you have to rescan
+                        </td>
+                     </tr>
+                    [% END %] 
+                  </tbody>
+               </table>
+            </td>
+         </tr>
+      </table>
+     </div>
+
+
+<script>
+    $(document).ready(function () {
+       $("#fsi_mgmtsrs")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter", "scroller", "stickyHeaders"],
+             headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        }
+                   },
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 582,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+             }
+       });
+
+       $("#fsi_mgmtsrsnew")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter", "scroller", "stickyHeaders"],
+             headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        }
+                   },
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 582,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+             }
+       });
+    });
+</script>
+
+  [% END %]
+

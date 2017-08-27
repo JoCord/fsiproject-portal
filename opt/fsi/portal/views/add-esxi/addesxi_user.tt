@@ -1,0 +1,150 @@
+<table border="0" style="text-align: left">
+   <tr>
+      [% IF rzconfig.rz.${vienv}.esxi.user.size %]
+         <td style="vertical-align: top">
+           <div class="scrolltable">
+             <table class="table table-striped table-condensed">
+                <caption style="text-align: left">&nbsp;&nbsp;Local user config:</caption>
+                <thead>
+                   <tr class="fsitableheader">
+                      <td style="width: 5px;"><input type="checkbox" id="esxiuser" name="AddLocalUser" onclick="CheckTable(this,'[% pool %]')" value="0" /></td>
+                      <td style="width: 230px;">User</td>
+                      <td style="width: 110px;">Password</td>
+                      <td style="width: 210px;">Description</td>
+                      <td style="width: 110px;">Group</td>
+                      <td style="width: 140px;">Role</td>
+                      <td style="width: 60px;">Login</td>
+                   </tr>
+                </thead>
+                <tbody style="height:553px;" >   
+                     [% FOREACH usrname IN rzconfig.rz.${vienv}.esxi.user.keys.sort %]
+                       <tr>
+                         [% IF rzconfig.rz.${vienv}.esxi.user.$usrname.default %]
+                           <td style="vertical-align: top; width: 5px;"> 
+                               <input type="checkbox" id="esxiuser" name="AddLocalUser" value="username_[% usrname %]" checked />
+                           </td>                     
+            
+                        [% ELSE %]
+                           <td style="vertical-align: top; width: 5px;"> 
+                               <input type="checkbox" name="AddLocalUser" value="username_[% usrname %]" />
+                           </td>                     
+                        [% END %]
+                           <td style="width: 230px;"><input type="hidden" name="username_[% usrname %]" value="[% usrname %]" />[% usrname %]</td>
+                           <td><input style="width: 100px;" type="text" name="username_[% usrname %]" autocomplete="on" 
+                              [% IF rzconfig.rz.${vienv}.esxi.user.$usrname.pw %]placeholder="********"[% ELSE %]placeholder="enter pw here"
+                              [% END %]
+                           /></td>
+                           
+                           <td><input style="width: 200px;" type="text" name="username_[% usrname %]" autocomplete="on" 
+                              [% IF rzconfig.rz.${vienv}.esxi.user.$usrname.descr %]placeholder="[% rzconfig.rz.${vienv}.esxi.user.$usrname.descr %]"
+                              [% END %]
+                           /></td>
+
+                           <td><input style="width: 100px;" type="text" name="username_[% usrname %]" autocomplete="on" 
+                              [% IF rzconfig.rz.${vienv}.esxi.user.$usrname.group %]placeholder="[% rzconfig.rz.${vienv}.esxi.user.$usrname.group %]"
+                              [% END %]
+                           /></td>
+                           <td> 
+                              <select class="[% global.button_group %] selectpicker" style="display:none;" name="username_[% usrname %]" data-width="130px">
+                                  <option value="none">none</option>
+                                  <option value="NoAccess">NoAccess</option>
+                                  <option value="ReadOnly">ReadOnly</option>
+                                  <option value="Admin">Admin</option>
+                                  [% FOREACH rolename IN rzconfig.rz.${vienv}.esxi.role.keys.sort %]
+                                    [% IF rzconfig.rz.${vienv}.esxi.user.${usrname}.role == rolename %]
+                                       <option value="[% rzconfig.rz.${vienv}.esxi.user.$usrname.role %]" selected >*[% rolename %]</option>
+                                    [% ELSE %]
+                                       <option value="[% rzconfig.rz.${vienv}.esxi.user.$usrname.role %]" >[% rolename %]</option>
+                                    [% END %]
+                                  [% END %]
+                              </select>
+                           </td>
+                           <td> 
+                              <select class="[% global.button_group %] selectpicker" style="display: none;" name="username_[% usrname %]" data-width="50px">
+                                 [% IF rzconfig.rz.${vienv}.esxi.user.$usrname.login == "yes" %]
+                                    <option value="yes" selected>yes</option>
+                                    <option value="no">no</option>
+                                 [% ELSE %]
+                                    <option value="yes">yes</option>
+                                    <option value="no" selected>no</option>
+                                 [% END %]
+                              </select>
+                           </td>
+                        </tr>
+                     [% END %]
+                     <tr>
+                        <td style="vertical-align: top; width: 5px;"> 
+                            <input type="checkbox" name="AddLocalUser" value="username_AddNewUser" />
+                        </td>    
+                        <td><input style="width: 200px;" type="text" name="username_AddNewUser" autocomplete="on"/></td>
+                        <td><input style="width: 100px;" type="text" name="username_AddNewUser" autocomplete="on"/></td>
+                        <td><input style="width: 200px;" type="text" name="username_AddNewUser" autocomplete="on"/></td>
+                        <td><input style="width: 100px;" type="text" name="username_AddNewUser" autocomplete="on"/></td>
+                        <td> 
+                           <select class="[% global.button_group %] selectpicker" style="display: none;" name="username_AddNewUser" data-width="130px">
+                                  <option value="none">none</option>
+                                  <option value="NoAccess">NoAccess</option>
+                                  <option value="Anonymous">Anonymous</option>
+                                  <option value="View">View</option>
+                                  <option value="ReadOnly">ReadOnly</option>
+                                  <option value="Admin">Admin</option>
+                                  [% FOREACH role IN rzconfig.rz.${vienv}.esxi.role.keys.sort %]
+                                     <option value="[% role %]">[% role %]</option>
+                                  [% END %]
+                           </select>
+                        </td>
+                        <td> 
+                           <select class="[% global.button_group %] selectpicker" style="display: none;" name="username_AddNewUser" data-width="50px">
+                                 <option value="yes">yes</option>
+                                 <option value="no" selected>no</option>
+                           </select>
+                        </td>
+                     </tr>
+                </tbody>
+             </table>
+           </div>
+         </td>
+      [% ELSE %]
+         <td style="vertical-align: top">No user define in rzenv.xml</td>
+    [% END %]
+    <td>&nbsp;&nbsp;&nbsp;</td>
+    [% IF rzconfig.rz.${vienv}.esxi.role.size %]
+      <td style="vertical-align: top">
+         <div class="scrolltable">
+            <table class="table table-striped table-condensed">
+                <caption style="text-align: left">&nbsp;&nbsp;Local role config:</caption>
+                <thead>
+                   <tr class="fsitableheader">
+                      <td style="width: 5px;"><input type="checkbox" id="esxirole" name="AddLocalRole" onclick="CheckTable(this,'[% pool %]')" value="0" /></td>
+                      <td style="width: 225px;">Role</td>
+                   </tr>
+                </thead>
+                <tbody style="height:553px;" >   
+                     [% FOREACH role IN rzconfig.rz.${vienv}.esxi.role.keys.sort %]
+                       <tr>
+                         [% IF rzconfig.rz.${vienv}.esxi.role.$role.default %]
+                           <td style="vertical-align: top; width: 5px;"> 
+                               <input type="checkbox" id="esxirole" name="AddLocalRole" value="[% role %]" checked />
+                           </td>                     
+                        [% ELSE %]
+                           <td style="vertical-align: top; width: 5px;"> 
+                               <input type="checkbox" name="AddLocalRole" value="[% role %]" />
+                           </td>                     
+                        [% END %]
+                           <td style="width: 220px;">
+                              <div style="width: 215px;" data-toggle="tooltip" title="[% FOREACH rolpriv IN rzconfig.rz.${vienv}.esxi.role.$role.priv.keys.sort %][% rolpriv %]
+[% END %]" placement=top>
+                                 [% role %]
+                              </div>
+                           </td> 
+                        </tr>           
+                     [% END %]
+                </tbody>
+             </table>
+          </div>
+       </td>
+    [% ELSE %]
+       <td style="vertical-align: top">No roles define in rzenv.xml</td>
+    [% END %]
+   </tr>
+</table>

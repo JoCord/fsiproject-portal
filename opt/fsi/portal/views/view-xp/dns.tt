@@ -1,0 +1,46 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <table>
+      <tr>
+         <td>
+            [% SET masterpath="/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/info/" _ mastersrv _ "/" %]
+            <h2>NTP Config: </h2>
+            [% SET ntpfile=masterpath _ "ntp" %]
+            [% SET dnsfile=masterpath _ "dns" %]
+            [% SET resolvfile=masterpath _ "resolv" %]
+            <pre>[% TRY %][% INCLUDE  $ntpfile %]</pre>[% CATCH %]No ntp config information found</pre>[% END %]
+            <br>
+            <h2>XenServer DNS config: [% TRY %][% INCLUDE $dnsfile %][% CATCH %]no dns config found[% END %]</h2>
+            <br>
+            <h2>DNS resolv.conf :</h2>   
+            <div>
+            [% TRY %]<pre>[% INCLUDE $resolvfile %]</pre>[% CATCH %]No resolv.conf config information found</pre>[% END %]
+            </div>
+         </td>
+         <td style="width:50px">&nbsp;</td>
+         <td valign="top" style="width:550px">
+            </br>
+            <div class="alert alert-warning" style="width:350px">
+               <table style="width:300px">
+                  <tr>
+                     <td><i class="fa fa-info-circle fa-4x" aria-hidden="true"></i></td>
+                     <td style="width:10px">&nbsp;</td>
+                     <td>Usualy every XenServer has the same DNS and NTP configuration. This are the settings of the Master Server [[% mastersrv %]] in this pool.</td>
+                  </tr>
+               </table>
+            </div>
+            </br>
+            </br>
+            <div>
+               <a href="#myChangeNTP" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_ntp.png" alt="" /> Change NTP </a>
+                Change NTP configuration on all XenServer in this pool
+            </div>
+            </br>
+            <div>
+               <a href="#myChangeDNS" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_dns-setting-icon.png" alt="" /> Change DNS </a>
+                Change DNS configuration on all XenServer in this pool
+            </div>
+         </td>
+         <td style="width:200px">&nbsp;</td>
+       </tr>
+    </table>
+</div>

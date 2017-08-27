@@ -1,0 +1,78 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<form action="[% login_url %]" method=post>
+
+   <div id="content">
+     [% INCLUDE headerline/login.tt %]
+   </div>
+
+   <table width="1236px">
+        [% INCLUDE 'include/inc_envhead.tt' %]
+        <tbody>
+          <tr class="fsitableheader">
+              <td style="width: 60px; text-align: center;">
+                <div>Login</div>
+              </td>
+            </tr>
+            <tr>
+                  <td height="600" align="center">
+                     <h1><a href="/login" style="color: #E0E6F8" class="fsilogostyle"><span style="">fsi</span></a></h1>
+               </td>
+            </tr>
+         </tbody>
+      </table>
+   </div>
+
+   <div id="fsilogin" class="modal fade bs-modal-sm" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-sm">
+         <div class="modal-content">
+      
+            <div class="modal-header">
+               <h2 id="myModalLabel">fsi portal login</h2>
+            </div>
+
+            <div class="modal-body">
+               Username:
+               <div class="input-group input-group-sm"> 
+                  <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                  <input type="text" class="form-control" id="inputIcon" placeholder="Username" name="username" />
+               </div>
+               
+               <br>
+               
+               Password:
+               <div class="input-group input-group-sm"> 
+                   <span class="input-group-addon"><i class="glyphicon glyphicon-eye-open"></i></span>
+                   <input type="password" class="form-control" id="inputIcon" placeholder="Password" name="password" />
+               </div>
+               [% IF err %]
+                 <p class=error><strong>Error:</strong> [% err %]</p>
+               [% ELSE %]
+                 <p class=error><strong>&nbsp</strong></p>
+               [% END %]
+            </div>
+         
+            <div class="modal-footer">
+              <button class="btn [% global.button_typ %] [% global.button_size %]" name="login" value="Login"><img src="/images/16_Sign-LogIn-icon.png" alt=""> Login </button>
+              <a href="/logout" role="button" class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_abort-icon.png" alt=""> Abort </a>
+            </div>
+
+          </div>
+      </div> 
+   </div>
+
+   <script type="text/javascript">
+       $(window).load(function(){
+          $('#fsilogin').modal('show');
+       });
+       $('.modal').on('shown.bs.modal', function () {
+            $(this).find('input:text:visible:first').focus();
+       })
+   </script>
+
+</form>
+         
+
+
+
+

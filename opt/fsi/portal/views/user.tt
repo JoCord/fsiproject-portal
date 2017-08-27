@@ -1,0 +1,69 @@
+[% INCLUDE 'layouts/global.tt' %]   
+
+<div id="page">
+[% IF session.logged_in %]
+  [% IF session.role.match('Admin') OR  session.role == "Master" %]
+    [% INCLUDE 'help/help_user.tt' %]
+    <form action="user" method=post>
+       <button class="sr-only" name="UserChange"  value="yes" ></button><!--- only to get default action UserChange --->
+       <div class=headerline>
+          [% INCLUDE 'headerline/normal.tt' %]
+       </div>
+
+       <div style="width:1238px;">
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+              <tr class="fsitableheader">
+              <td style="width: 100%;"><div>fsi portal access:</div></td>
+           </tr>
+         </table>
+          
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#user_local" data-toggle="tab">Local User</a></li>  
+            [% IF rzconfig.rz.${vienv}.windom.size %]
+             <li><a href="#user_domain" data-toggle="tab">Domain User</a></li>  
+             <li><a href="#group_domain" data-toggle="tab">Domain Groups</a></li>
+            [% END %]
+          </ul>
+
+          <div id="myTabs" class="tab-content">
+            <div style="height: 620px;" class="tab-pane active srvadd" id="user_local">
+               [% INCLUDE 'access/user_local.tt' %]
+            </div>
+            [% IF rzconfig.rz.${vienv}.windom.size %]
+             <div style="height: 620px;" class="tab-pane srvadd" id="user_domain">
+                [% INCLUDE 'access/user_domain.tt' %]
+             </div>
+             <div style="height: 620px;" class="tab-pane srvadd" id="group_domain">
+                [% INCLUDE 'access/group_domain.tt' %]
+             </div>
+            [% END %]
+          </div>
+       </div>
+    </form>
+  [% ELSE %]
+    <form action="user" method=post>
+      <div class="btn-group">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+      </div>   
+      <div style="width:1238px;">
+        <table>
+        [% INCLUDE 'include/inc_envhead.tt' %]
+            <tr  class="fsitableheader">
+               <td style="width: 100%;"><div>&nbsp; - access denied - </div></td>
+            </tr>
+               <td>
+                  &nbsp;
+               </td>
+            <tr/>
+            <tr>
+               <td>
+                  &nbsp;<img src="/images/24_Sign-Stop-icon.png" alt="" />  You do not have enough access right to see this. Please go back!
+               </td>
+            </tr>
+        </table>
+      </div>
+    </form>
+  [% END %]
+[% END %]
+</div>

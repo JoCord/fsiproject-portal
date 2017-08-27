@@ -1,0 +1,187 @@
+#!/bin/sh
+#
+#   cssh2allpools - copy all ssh files to pool dir from all pools
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.3 - 9.9.2016"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo " create pool files for authorizied_keys and known_hosts and copy them to"
+   echo " to all server configuration dirs. Also it can copy these files to all"
+   echo " server in pool."
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -g                 go and do work"
+   echo "   -c                 copy to server too"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -g"
+   echo "    $progname -g -c"
+   echo
+}
+
+go=0
+copy2srv=0
+quietmode=""
+
+while getopts ":l:ghHcq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "create ssh files and copy in server config dirs and optional copy to server"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "g")
+         go=1
+         debmsg " go"
+        ;;
+      "c")
+         copy2srv=1
+         debmsg " copy 2 server"
+        ;;      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ $go -eq 0 ]; then
+   help
+   exit 1
+fi
+   
+debmsg "Start $progname - $ver"
+
+cpcok=0
+pools=()
+
+if [ $retc -eq 0 ]; then
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         warnmsg " [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         tracemsg " [$mac] used as config dir"
+         pool="none"
+         
+         if [ -f "$dirmac/xen6.conf" ]; then
+            . "$dirmac/xen6.conf"
+         elif [ -f "$dirmac/xen7.conf" ]; then
+            . "$dirmac/xen7.conf"
+         fi
+         
+         if [ "$pool" != "none" ]; then
+            if [[ ${pools[*]} =~ $pool ]]; then
+               tracemsg " pool $pool already in array"
+            else
+               infmsg " Found new pool: $pool"
+               pools+=($pool)
+               tracemsg "  Create pool files"
+               "$progdir/cssh2pool" $quietmode -p "$pool" -l "$logfile"
+               tracemsg "  Copy pool files to config dir"
+               "$progdir/cssh2cfg" $quietmode  -l "$logfile" -p "$pool"
+               
+               if [ $copy2srv -eq 1 ]; then
+                  "$progdir/cssh2server" $quietmode  -l "$logfile" -p "$pool"
+               fi
+            fi
+         fi
+
+      fi
+   done
+fi
+
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

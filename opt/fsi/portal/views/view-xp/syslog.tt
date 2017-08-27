@@ -1,0 +1,40 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <table>
+      <tr>
+         <td>
+            [% SET masterpath="/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/info/" _ mastersrv _ "/" %]
+
+            [% SET xensysfile=masterpath _ "syslogdest" %]
+            [% SET lxsysfile=masterpath _ "syslog" %]
+
+            <h2>XenServer Syslog Destination config: [% TRY %][% INCLUDE $xensysfile %][% CATCH %]no syslog destination config found[% END %]</h2>
+            <br>
+            <h2>Syslog syslog.conf :</h2>   
+            <div style="width:700px;height:550px;overflow:auto;">
+            [% TRY %]<pre>[% INCLUDE $lxsysfile %]</pre>[% CATCH %]No syslog.conf config information found</pre>[% END %]
+            </div>
+         </td>
+         <td style="width:50px">&nbsp;</td>
+         <td valign="top" style="width:550px">
+            </br>
+            <div class="alert alert-warning" style="width:350px">
+               <table style="width:300px">
+                  <tr>
+                     <td><i class="fa fa-info-circle fa-4x" aria-hidden="true"></i></td>
+                     <td style="width:10px">&nbsp;</td>
+                     <td>Usualy every XenServer has the same Syslog configuration. This are the settings of the Master Server [[% mastersrv %]] in this pool.</td>
+                  </tr>
+               </table>
+            </div>
+            </br>
+            </br>
+            <div>
+               <a href="#myChangeSyslog" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_text-x-log.png" alt="" /> Change Syslog </a>
+                Change Syslog configuration on all XenServer
+            </div>
+            
+         </td>
+         <td style="width:200px">&nbsp;</td>
+       </tr>
+    </table>
+</div>

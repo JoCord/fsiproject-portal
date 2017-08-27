@@ -1,0 +1,59 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<div id="page">
+   <form action="addxen" method=post>
+     [% INCLUDE 'headerline/back.tt' %]
+      
+      <div style="width:1238px;">
+          <table>
+            [% INCLUDE 'include/inc_envhead.tt' %]
+             <tr class="fsitableheader">
+                <td style="width: 100%;"><div>Add new XenServer</div></td>
+             </tr>      
+          </table> 
+          
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#config_srv" data-toggle="tab">Server Base</a></li>  
+            <li><a href="#config_remote" data-toggle="tab">Remote Control</a></li>
+            <li><a href="#config_vlan" data-toggle="tab">Server Network/IP</a></li>  
+            <li><a href="#config_vlanguest" data-toggle="tab">Guest Network</a></li>  
+            <li><a href="#config_storage" data-toggle="tab">NFS Storage</a></li>  
+            <li><a href="#config_domain" data-toggle="tab">Server Domain</a></li>
+            <li><a href="#config_adv" data-toggle="tab">Advanced</a></li>  
+          </ul>
+
+          <div id="myTabs" class="tab-content">
+            <br>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_adv">
+               [% INCLUDE 'add-xen/addxen_adv.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_remote">
+               [% INCLUDE 'add-xen/addxen_remote.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_domain">
+               [% INCLUDE 'add-xen/addxen_domain.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vlanguest">
+               [% INCLUDE 'add-xen/addxen_vlanguest.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vlan">
+               [% INCLUDE 'add-xen/addxen_vlan.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_storage">
+               [% INCLUDE 'add-xen/addxen_storage.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane active srvadd" id="config_srv">
+               [% INCLUDE 'add-xen/addxen_srv.tt' %]
+            </div>
+          </div>
+      </div>
+
+      <div>
+         <span style="font-weight: bold;"><br />Create this server config now:</span>
+         <div class="btn-group">
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="yes"><img src="/images/16_Sign-Select-icon.png" alt="" />OK</button> 
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+         </div>
+      </div>
+   </form>
+</div>

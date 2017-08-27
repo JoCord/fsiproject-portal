@@ -1,0 +1,106 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="text-align: right">Xen Version: </td>
+      <td style="text-align: left">
+         [% SET xendefaultver="" %]
+
+         <select id="xenversion"  class="btn-group-sm selectpicker show-tick" data-size='false' style="display: none;" name="xenver" data-width="auto">
+          [% FOREACH ver IN rzconfig.rz.${vienv}.xensrv.ver.keys.sort %]
+             [% IF rzconfig.rz.${vienv}.xensrv.ver.$ver.default %]
+                [% SET xendefaultver=ver %]
+                <option value="[% ver %]" selected>[% ver %]</option>
+             [% ELSE %]
+                <option value="[% ver %]" >[% ver %]</option>
+             [% END %]
+          [% END %]
+         </select>
+      
+       </td>
+       <td style="text-align: right">XenServer Install Template: </td>
+       <td>
+           [% SET xenbasetempl="xen$xendefaultver" %]
+           <select id="xentemplchoose" class="btn-group-sm selectpicker show-tick" style="display: none;" name="xentemplate" data-width="auto">
+            [% FOREACH xentempl IN rzconfig.rz.${vienv}.templ.${xenbasetempl}.keys.sort %]
+                [% IF rzconfig.rz.${vienv}.templdefault.${xenbasetempl}.$xentempl.default == "true" %]  
+                  <option value="[% xentempl %]" selected>[% xentempl %]</option>'+
+                [% ELSE %]  
+                  <option value="[% xentempl %]" >[% xentempl %]</option>
+                [% END %]
+            [% END %]
+           </select>
+       </td>
+   </tr>
+   <tr>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /></td>
+   </tr>
+   <tr>
+      <td style="text-align: right">Servername: </td>  
+      <td><input type="text" name="Server" data-required required="required" autocomplete="on" placeholder="shortname - no suffix"/></td>
+      <td style="text-align: right">Pool Name: </td>
+      <td> <input type="text" name="pool"   required="required" maxlength="30" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+       <td style="text-align: right">MAC: </td>
+       <td><input type="text" name="MACAdr" required="required" maxlength="17" autocomplete="on" /> </td>
+       <td style="text-align: right">Mgmt Server IPv4: </td>
+       <td> <input type="text" name="SrvIP"   required="required" maxlength="15" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+       <td style="text-align: right;">Mgmt Netmask: </td>
+       <td style="text-align: left">
+        <select class="btn-group-sm selectpicker" data-size='false' style="display: none;" name="srvnetmask" data-width="150px" data-max-options="3">
+          [% FOREACH netmask IN rzconfig.rz.${vienv}.xensrv.nm.keys.sort %]
+             [% IF rzconfig.rz.${vienv}.xensrv.nm.$netmask.item('default') == "true" %]
+                <option value="[% netmask %]" selected>[% netmask %]</option>
+             [% ELSE %]
+                <option value="[% netmask %]" >[% netmask %]</option>
+             [% END %]
+          [% END %]
+        </select>
+          <br>
+          <input type="text" name="srvnm" placeholder="or manual enter here" maxlength="15" autocomplete="on" size="17"/> 
+       </td>
+       <td style="text-align: right">Mgmt Gateway IPv4: </td>
+       <td> <input type="text" name="GateIP"   required="required" maxlength="15" autocomplete="on" /> </td>
+   </tr>
+   <tr>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /></td>
+   </tr>
+   <tr>
+       <td><br /></td>
+       <td><br /></td>
+       <td style="text-align: right">Mgmt Access Passwort: </td>
+       <td><input type="text" name="mgmtpw" placeholder="*******" maxlength="17" autocomplete="on" /> </td>
+   </tr>
+</table>
+
+<script type="text/javascript">
+   $(document).ready(function() {
+    $("#xenversion").change(function() {
+        var xenverval = $(this).val();
+        xenverval= 'xen' + xenverval;
+         [% FOREACH xentyp IN rzconfig.rz.${vienv}.templ.keys.sort %]
+           if (xenverval == "[% xentyp %]") {
+           $("#xentemplchoose").html(''+
+               [% SET xenbasetempl=xentyp %]
+               [% FOREACH xentempl IN rzconfig.rz.${vienv}.templ.${xenbasetempl}.keys.sort %]
+                [% IF rzconfig.rz.${vienv}.templdefault.${xenbasetempl}.$xentempl.default == "true" %]  
+                     '<option value="[% xentempl %]" selected>[% xentempl %]</option>'+
+                [% ELSE %]  
+                     '<option value="[% xentempl %]" >[% xentempl %]</option>'+
+                [% END %]
+               [% END %]'');
+           }
+         [% END %]
+        $('#xentemplchoose').selectpicker('refresh');
+    });
+   });
+</script>
+
+

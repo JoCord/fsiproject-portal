@@ -1,0 +1,38 @@
+<div id="Help" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+        <h2 id="myModalLabel">Help: Admin Menu</h2>
+      </div>
+   
+      <div class="modal-body">
+          
+          Tabs:
+          <table class="table" style="width: 100%" border="0">
+               <tbody>
+                 <tr>
+                   <td>Database</td>
+                   <td>All jobs to control and manage fsi database</td>
+                 </tr>
+                 <tr>
+                   <td>fsi</td>
+                   <td>Configure and manage fsi</td>
+                 </tr>
+                 <tr>
+                   <td>VMC</td>
+                   <td>Configure and manage virtual machine cloning = VMC</td>
+                 </tr>
+               </tbody>
+             </table>
+             <br>
+             <br>
+          
+      </div>
+   
+      <div class="modal-footer">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+   </div>
+ </div>
+</div>

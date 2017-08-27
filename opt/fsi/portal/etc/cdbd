@@ -1,0 +1,2 @@
+MAILTO=""
+0-59/5 * * * * root /opt/fsi/portal/bin/cdb.pl -q --chkall -l /opt/fsi/portal/logs/vipd

@@ -1,0 +1,95 @@
+<script>
+     var time = new Date().getTime();
+     $(document.body).bind("mousemove keypress", function(e) {
+         time = new Date().getTime();
+     });
+
+     function refresh() {
+         if(new Date().getTime() - time >= 60000) 
+             window.location.reload(true);
+         else 
+             setTimeout(refresh, 10000);
+     }
+
+     setTimeout(refresh, 10000);
+</script>
+
+<form action="overviewlx" method=post>
+[% IF session.logged_in %]
+   [% INCLUDE 'layouts/global.tt' %]   
+   
+   [% INCLUDE 'include/inc_showlog.tt' %] 
+   [% INCLUDE 'help/help_lxview.tt' %] 
+  <div class=headerline>
+     [% INCLUDE 'headerline/overview_lx.tt' %] 
+  </div>
+
+ <div class="overview" style="width:1238px;">
+    <table id="fsi_lxovtable" class="tablesorter table table-condensed table-hover table-striped">
+      [% INCLUDE 'include/inc_envhead.tt' %]
+      <thead>
+          <tr class="fsitableheader">
+             <th style="width: 280px;"><div>&nbsp;Linux Model ([% lxcount %])</div></th>
+             <th style="width: 85px; text-align: center"><div> Srv ([% srvcount %])</div></th>
+             <th style="width: 400px; text-align: left"><div> Linux Versions</div></th>
+             <th style="width: 483px;"><div> </div></th>
+          </tr>
+      </thead>
+      
+      <tbody id="fsi_lxoverview" style="; height: 663px">    
+           [% IF lx.size %]
+             [% FOREACH modelname IN lx.keys.sort.reverse %]   
+                 <tr>
+                  <td style="width: 280px;">
+                     <a href="/showmodel/[% modelname %]">&nbsp;[% modelname %]</a>
+                  </td>
+                  <td style="width: 85px; text-align: center">
+                  [% lx.$modelname.count %]
+                  </td>
+                  <td style="width: 400px; text-align: left">
+                  [% lx.$modelname.lxversions %]
+                  </td>
+                  <td style="width: 483px;">
+                  </td>
+                 </tr>
+             [% END %]
+          [% ELSE %]
+            <tr>
+               <td>
+                  <em>No linux models found</em>
+               </td>
+            </tr>
+          [% END %]
+      </tbody>
+    </table>
+ </div>
+</form>
+
+<script type="text/javascript" id="js">
+    $(document).ready(function () {
+       $("#fsi_lxovtable")
+        .on('tablesorter-ready', function() {
+            var posOverview = localStorage["fsi_lxoverview_scroll"];
+            if (posOverview) {
+               $("#fsi_lxvoverview")[0].scrollTop = posOverview;
+            }
+         })
+        .tablesorter({
+          theme: "bootstrap",
+          widthFixed: true,
+          showProcessing   : true, 
+          headerTemplate: '{content} {icon}',
+          widgets: ["storage", "saveSort", "uitheme", "filter"],
+          headers: { 3: { sorter: false, filter: false}},
+          widgetOptions: {
+             filter_reset : 'button.reset',
+             filter_hideFilters: false,
+             filter_ignoreCase: true,
+             filter_saveFilters: true,
+             filter_cssFilter: "form-control",
+          }
+        })
+    });
+</script>
+
+[% END %]

@@ -1,0 +1,214 @@
+<table class="table borderless">
+  <tbody>
+     <tr>
+        <td style="vertical-align: top; width:808px;">
+         [% IF session.role == "Master" %]
+             <h2>Restore Points:&nbsp;Scroll: <span id="fsi_printscroll">0</span></h2>
+         [% ELSE %]
+         <h2>Restore Points:</h2>
+         [% END %]
+            <div class="class_restore">
+            [% IF backup.size %]
+               <table id="fsi_restore" class="tablesorter table table-condensed table-hover table-striped">
+                  <thead>
+                     <tr class="fsitableheader">
+                        <th class="group-false" style="width: 18px"></th>
+                        <th class="group-date-monthyear" style="width: 100px">Date</th>
+                        <th class="group-false"  style="width: 70px">Time</th>
+                        <th class="group-false" style="width: 620px">Archives</th>
+                     </tr>
+                  </thead>
+                  <tbody id="fsi_restoretbody">
+                     [% FOREACH fcbbakdate IN backup.fcbdate.keys.sort %]
+                     <tr>
+                        <td style="width: 18px">
+                        <input name="RestorePoint" id="[% fcbbakdate %]" type="radio" value="[% fcbbakdate %]">
+                        </td>
+                        <td style="width: 100px">
+                           [% SET year=fcbbakdate.substr(4,4) %]
+                           [% SET month=fcbbakdate.substr(8,2) %]
+                           [% SET day=fcbbakdate.substr(10,2) %]
+                           &nbsp;&nbsp;[% month %]/[% day %]/[% year %]
+                        </td>
+                        <td style="width: 70px">
+                           [% SET hour=fcbbakdate.substr(12,2) %]
+                           [% SET min=fcbbakdate.substr(14,2) %]
+                           [% SET rest=fcbbakdate.substr(16) %]
+                           &nbsp;[% hour %]:[% min %]:[% rest %]
+                        </td>
+                        <td style="width: 620px">
+                         [% FOREACH fcbbakfile IN backup.fcbdate.${fcbbakdate}.keys.sort %] [% fcbbakfile %]  [% END %]
+                        </td>
+                     </tr>
+                     [% END %]
+                  </tbody>
+               </table>
+           [% ELSE %]
+            <br>
+             No backup restore poins found !
+           [% END %]
+           </div>
+        </td>
+        <td style="vertical-align: top; width:10px;">
+         &nbsp;
+        </td>
+        <td style="vertical-align: top; width:360px;">
+         <h2>Actions:</h2>
+         <table  class="table borderless" style="text-align: left;  width: 360px;" id="check_backup">
+             <tbody>
+              <tr>
+               <td><button class="btn [% global.button_typ %] [% global.button_size %]" name="backup" value="yes"><img src="/images/16_Folder-White-Configure-icon.png" alt="" /> Backup Config</input> </td>
+               <td>Backup marked configs</td>
+              </tr>
+             [% IF backup.size %]
+              <tr>
+               <td><button class="btn [% global.button_typ %] [% global.button_size %]" id="restore_bak" name="restore" value="no"><img src="/images/16_Misc-Settings-icon.png" alt="" /> Restore Config</input> </td>
+               <td>Restore marked configs</td>
+              </tr>
+              <tr>
+               <td><button class="btn [% global.button_typ %] [% global.button_size %]" name="clean" value="yes"><img src="/images/16_Actions-edit-clear-icon.png" alt="" /> Clean Config</input> </td>
+               <td>Clean marked configs (except portal)</td>
+              </tr>
+             [% ELSE %]
+              <tr>
+               <td><button class="btn [% global.button_typ %] [% global.button_size %] disabled" disabled><img src="/images/16_Misc-Settings-icon.png" alt="" /> Restore Config</input> </td>
+               <td>Restore marked configs</td>
+              </tr>
+              <tr>
+               <td><button class="btn [% global.button_typ %] [% global.button_size %] disabled" disabled><img src="/images/16_Actions-edit-clear-icon.png" alt="" /> Clean Config</input> </td>
+               <td>Clean marked configs (except portal)</td>
+              </tr>
+              [% END %]
+              <tr>
+             [% IF backup.size %]
+               <td><button class="btn [% global.button_typ %] [% global.button_size %]" id="del_bak" name="delete" value="no"><img src="/images/16_Recycle-Bin-Full-icon.png" alt="" /> Del Backup</input> </td>
+               <td>Delete restore point and backup files</td>
+             [% ELSE %]
+               <td><button class="btn [% global.button_typ %] [% global.button_size %] disabled" disabled><img src="/images/16_Recycle-Bin-Full-icon.png" alt="" /> Del Backup</input> </td>
+               <td>Delete restore point and backup files</td>
+             [% END %]
+               </tr>
+              <tr>  
+                 <td></td>
+                 <td></td>
+              </tr>
+              <tr>  
+                <td>Configurations:</td>
+                 <td><input type="checkbox" id="chk_fsiportal" name="cfg_portal" value="yes" /> Portal settings </td>
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsitemp" name="cfg_template" value="yes" /> Install templates </td>
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsisrvportal" name="cfg_srv" value="yes" /> Server configurations</td>
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsiinstlogs" name="cfg_logs" value="yes" /> Install server log files</td>
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsixenpool" name="cfg_pool" value="yes" /> Xen pool configuration</td> 
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsirccfg" name="cfg_rc" value="yes" /> Remote Control rc.xml config</td> 
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td><input type="checkbox" id="chk_fsicert" name="cfg_certs" value="yes" /> Xen certificates</td> 
+              </tr>
+              <tr>  
+                 <td></td>
+                 <td></td>
+              </tr>
+              <tr>  
+                 <td></td>
+                <td><input type="checkbox" id="toggle_all" name="toggle_switch"/> toggle all</td> 
+              </tr>
+             </tbody>
+           </table>
+        </td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+     </tr>
+  </tbody>
+</table>
+
+<script>
+    $(document).ready(function () {
+       $("#fsi_restore")
+        .on('tablesorter-ready', function() {
+            var posOverview = localStorage["fsi_restore_scroll"];
+            if (posOverview) {
+               $("#fsi_restoretbody")[0].scrollTop = posOverview;
+            };
+            var fsi_save_chkbox = JSON.parse(localStorage.getItem('fsi_save_chkbox')) || {};
+            if (fsi_save_chkbox) {
+               $.each(fsi_save_chkbox, function(key, value) {
+                  $("#" + key).prop('checked', value);
+               });
+            };
+         })
+        .tablesorter({
+          theme: "bootstrap",
+          showProcessing   : true, 
+          headerTemplate: '{content} {icon}',
+          widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter"],
+          headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        },
+                     1: { sortInitialOrder: 'desc' },
+                     2: { sortInitialOrder: 'desc' }
+                   },
+          widgetOptions: {
+             filter_reset : 'button.reset',
+             filter_hideFilters: false,
+             filter_ignoreCase: true,
+             filter_saveFilters: true,
+             filter_cssFilter: "form-control",
+          },
+        })
+    });
+
+   $("#fsi_restoretbody").on("scroll", function() {
+      $("#fsi_printscroll").html($("#fsi_restoretbody")[0].scrollTop);
+      if (localStorage) {
+         var posOverview = localStorage["fsi_restore_scroll"];
+         if (posOverview) {
+            localStorage.removeItem("fsi_restore_scroll");
+         }
+         localStorage["fsi_restore_scroll"] = $("#fsi_restoretbody")[0].scrollTop;
+         return true;
+      }
+      else {
+         return false;
+      }
+   });
+   
+   $(function() {
+       $('input[type=radio]').change(function(e) {
+           var bakdate=this.id;
+           // change restore and delete value
+           $("#restore_bak").val(bakdate);
+           $("#del_bak").val(bakdate);
+           // first uncheck all
+           $("[id^=chk_fsi]").prop('checked',false);
+           switch (bakdate) {
+              [% FOREACH fcbbakdate IN backup.fcbdate.keys.sort %]case "[% fcbbakdate %]":
+                    // window.alert('Backup Date:'+bakdate);
+                    [% FOREACH fcbbakfile IN backup.fcbdate.${fcbbakdate}.keys.sort %]var chk_id = "chk_[% fcbbakfile %]".split('.')[0];
+                    $("#"+chk_id).prop("checked",true);
+                    [% END %]break;              
+              [% END %]}
+         });
+   });   
+   
+   $('#toggle_all').click (function () {
+     var checkedStatus = this.checked;
+     $("[id^=chk_fsi]").prop('checked',checkedStatus);
+   });
+</script>

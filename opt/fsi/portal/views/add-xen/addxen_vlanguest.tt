@@ -1,0 +1,43 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="width: 10px;"></td>
+      <td>Please choose one or more network to attach this xen server:</td>
+   </tr>
+   <tr>
+      <td style="width: 10px;"></td>
+      <td>
+         <select multiple class="form-control" style="height: 585px; width: 1210px;" name="VLAN">
+            [% FOREACH id IN rzconfig.rz.${vienv}.xensrv.net.keys.sort %]
+               [% textfarbe="#000000" %]
+               [% IF rzconfig.rz.${vienv}.xensrv.net.$id.descr.match('XenApp') %]
+                  [% textfarbe="#0B3861" %]
+               [% END %]
+               [% IF rzconfig.rz.${vienv}.xensrv.net.$id.descr.match('XenDesktop') %]
+                  [% textfarbe="#61210B" %]
+               [% END %]
+               [% fontart="normal" %]
+               [% fontg="normal" %]
+               [% IF rzconfig.rz.${vienv}.xensrv.net.$id.default == "true" %]
+                  [% fontg="bold" %]
+               [% END %]
+                  
+               [% IF rzconfig.rz.${vienv}.xensrv.net.$id.select == "true" %]
+                  [% IF rzconfig.rz.${vienv}.xensrv.net.$id.tag == "" %]
+                     <option style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]" selected>[% rzconfig.rz.${vienv}.xensrv.net.$id.web %]</option>
+                  [% ELSE %]
+                     <option data-toggle='tooltip' data-trigger='focus' data-placement='top' title='[% rzconfig.rz.${vienv}.xensrv.net.$id.tag %]' style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]" selected>[% rzconfig.rz.${vienv}.xensrv.net.$id.web %]</option>
+                  [% END %]
+               [% ELSE %]
+                  [% IF rzconfig.rz.${vienv}.xensrv.net.$id.tag == "" %]
+                     <option style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]">[% rzconfig.rz.${vienv}.xensrv.net.$id.web %]</option>
+                  [% ELSE %]
+                     <option data-toggle='tooltip' data-trigger='focus' data-placement='top' title='[% rzconfig.rz.${vienv}.xensrv.net.$id.tag %]' style="font-family:courier; color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]" value="[% id %]">[% rzconfig.rz.${vienv}.xensrv.net.$id.web %]</option>
+                  [% END %]
+               [% END %]
+            
+            [% END %]
+            <option style="font-family:courier; " value="NONE">Do not install a guest network</option>
+         </select>
+      </td>
+   </tr>
+</table>

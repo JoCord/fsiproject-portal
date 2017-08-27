@@ -1,0 +1,94 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<div id="page">
+[% IF session.role.match('Admin') OR  session.role == "Master" %]
+
+ <form action="admin" method=post enctype="multipart/form-data">
+    [% INCLUDE 'help/help_admin.tt' %]
+    [% INCLUDE 'include/inc_delrubbish.tt' %] 
+
+    <div class=headerline>
+       [% INCLUDE 'headerline/admin.tt' %]
+    </div>
+    
+     <div style="width:1238px;">
+          <table>
+            [% INCLUDE 'include/inc_envhead.tt' %]
+             <tr class="fsitableheader">
+                <td style="width: 100%;"><div>Admin Menu</div></td>
+             </tr>      
+          </table> 
+
+          <script type="text/javascript">
+             $(document).ready(function(){
+                $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+                   localStorage.setItem('activeTab', $(e.target).attr('href'));
+                });
+                var activeTab = localStorage.getItem('activeTab');
+                if(activeTab){
+                   $('#myTabs a[href="' + activeTab + '"]').tab('show');
+                }
+             });
+          </script>
+ 
+          
+          <ul class="nav nav-tabs" id="myTabs">
+            <li class="active"><a href="#admin_db" data-toggle="tab">Database</a></li>  
+            <li><a href="#admin_portal" data-toggle="tab">Portal</a></li>  
+            <li><a href="#admin_user" data-toggle="tab">User</a></li>  
+            <li><a href="#admin_srv" data-toggle="tab">Server</a></li>  
+            <li><a href="#admin_log" data-toggle="tab">Logs & Control</a></li>
+            <li><a href="#admin_vmc" data-toggle="tab">VMC</a></li>
+            <li><a href="#admin_backup" data-toggle="tab">Backup</a></li>  
+          </ul>
+
+          <div id="myTabs" class="tab-content">
+            <div style="height: 620px;" class="tab-pane active " id="admin_db">
+               [% INCLUDE 'admin/admin_db.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_portal">
+               [% INCLUDE 'admin/admin_portal.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_srv">
+               [% INCLUDE 'admin/admin_server.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_user">
+               [% INCLUDE 'admin/admin_user.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_log">
+               [% INCLUDE 'admin/admin_log.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_vmc">
+               [% INCLUDE 'admin/admin_vmc.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane " id="admin_backup">
+               [% INCLUDE 'admin/admin_backup.tt' %]
+            </div>
+          </div>
+     </div>
+ </form>
+
+[% ELSE %]
+   <form action="admin" method=post>
+     <div class="btn-group">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+     </div>   
+     <div style="width:1238px;">
+       <table>
+        [% INCLUDE 'include/inc_envhead.tt' %]
+            <tr class="fsitableheader">
+               <td style="width: 100%;"><div>&nbsp; - access denied - </div></td>
+            </tr>
+               <td>
+                  &nbsp;
+               </td>
+            <tr/>
+            <tr>
+               <td>
+                  &nbsp;<img src="/images/24_Sign-Stop-icon.png" alt="" />  You do not have enough access right to see this. Please go back!
+               </td>
+            </tr>
+       </table>
+   </form>
+[% END %]
+</div>

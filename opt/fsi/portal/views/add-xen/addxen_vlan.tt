@@ -1,0 +1,24 @@
+<table class="table table-condensed table-hover table-striped">
+   <caption style="text-align: left">Please add IP to networks attacht to this xen server:<br><br></caption>
+   <thead>
+       <tr class="fsitableheader">
+            <td style="width: 100px">Assign with IP</td>
+            <td style="width: 100px">Typ of network</td>
+            <td style="width: 100px">VLAN</td>
+            <td style="width: 300px">Network</td>
+            <td style="width: 200px">Bond</td>            
+       </tr>
+   </thead>
+   
+   <tbody>   
+      [% FOREACH id IN rzconfig.rz.${vienv}.xensrv.ipnet.keys %]
+         <tr>
+           <td><input type="text" name="[% id %]" autocomplete="on" /></td>
+           <td><input type="text" name="[% id %]_typ" autocomplete="on" placeholder="storage" /></td>
+           <td style="width: 100px">[% rzconfig.rz.${vienv}.xensrv.ipnet.$id.vlan %]</td>
+           <td style="width: 300px">[% id %]</td>
+           <td style="width: 400px">[% rzconfig.rz.${vienv}.xensrv.ipnet.$id.assign %]</td>
+         </tr>
+      [% END %]
+   </tbody>
+</table>

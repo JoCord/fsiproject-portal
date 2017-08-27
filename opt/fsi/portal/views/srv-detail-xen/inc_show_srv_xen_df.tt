@@ -1,0 +1,14 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <h2>Local disk free: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/dfext"  %]</pre>
+   [% CATCH %]
+      No disc information found</pre>
+   [% END %]
+   <h2>NFS storage free: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/dfnfs"  %]</pre>
+   [% CATCH %]
+      No disc information found</pre>
+   [% END %]
+</div>

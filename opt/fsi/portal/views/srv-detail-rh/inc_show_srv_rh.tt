@@ -1,0 +1,50 @@
+
+<ul class="nav nav-tabs" id="mySrvTabs">
+   <li class="active"><a href="#srv_start" data-toggle="tab">Overview</a></li>  
+   <li><a href="#srv_net" data-toggle="tab">Network Config</a></li>  
+   <li><a href="#srv_nic" data-toggle="tab">NICs</a></li>  
+   <li><a href="#srv_store" data-toggle="tab">Storage Config</a></li> 
+   <li><a href="#srv_ntp" data-toggle="tab">NTP</a></li>
+   <li><a href="#srv_syslog" data-toggle="tab">Syslog</a></li>
+   <li><a href="#srv_log" data-toggle="tab">Log</a></li>
+   <li><a href="#srv_boot" data-toggle="tab">Reboots</a></li>
+   <li><a href="#srv_ks" data-toggle="tab">ks.cfg</a></li>
+   [% IF session.role.match('LXAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+     <li><a href="#srv_actions" data-toggle="tab">Actions</a></li>
+   [% END %]
+</ul>
+
+<div id="mySrvTabs" class="tab-content">
+   <div style="height: 620px;" class="tab-pane active" id="srv_start">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_start.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_net">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_net.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_nic">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_nic.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_store">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_store.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ntp">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_ntp.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_syslog">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_syslog.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_log">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_log.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_ks">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_kscfg.tt' %]
+   </div>
+   <div style="height: 620px;" class="tab-pane" id="srv_boot">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_reboot.tt' %]
+   </div>
+   [% IF session.role.match('LXAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+     <div style="height: 620px;" class="tab-pane" id="srv_actions">
+      [% INCLUDE 'srv-detail-rh/inc_show_srv_rh_action.tt' %]
+     </div>
+   [% END %]
+</div>

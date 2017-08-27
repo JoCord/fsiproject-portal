@@ -1,0 +1,4 @@
+DEFAULT xen6
+LABEL xen6
+ KERNEL img/xen6xx/mboot.c32
+ APPEND img/xen6xx/xen.gz dom0_max_vcpus=2 dom0_mem=752M com1=115200,8n1 console=com1,vga --- img/xen6xx/vmlinuz xencons=hvc console=hv0 console=tty0 answerfile=http://##FSISRV##/pxe/sys/##MAC##/xen6.xml install --- img/xen6xx/install.img

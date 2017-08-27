@@ -1,0 +1,4 @@
+DEFAULT esxi41u2
+LABEL esxi41u2
+  KERNEL img/esxi41u2/mboot.c32
+  append img/esxi41u2/vmkboot.gz ks=http://##VITEMP##/pxe/sys/##MAC##/ks-esxi41u2.cfg ksdevice=vmnic0 --- img/esxi41u2/vmkernel.gz --- img/esxi41u2/sys.vgz --- img/esxi41u2/cim.vgz --- img/esxi41u2/ienviron.vgz --- img/esxi41u2/install.vgz

@@ -1,0 +1,39 @@
+<form action="showlxmodel" method=post>
+[% IF session.logged_in %]
+  [% INCLUDE 'layouts/global.tt' %]   
+   <div class=headerline>
+    [% INCLUDE 'headerline/normal.tt' %]
+   </div>
+
+      <div style="width:1238px;">
+
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+              <tr class="fsitableheader">
+              <td style="width: 100px;"><div>Detailed info for linux model : [% lxmodel %]</div></td>
+           </tr>
+         </table>
+         
+         <ul class="nav nav-tabs" id="mySrvTabs">
+            <li class="active"><a href="#srv_start" data-toggle="tab">Overview</a></li>  
+            [% IF session.role.match('LXAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+               <li><a href="#srv_actions" data-toggle="tab">Actions</a></li>
+            [% END %]
+            
+         </ul>
+         
+         <div id="mySrvTabs" class="tab-content">
+            <div style="height: 620px;" class="tab-pane active" id="srv_start">
+               [% INCLUDE 'view-lxmodel/start.tt' %]
+            </div>
+            [% IF session.role.match('LXAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+               <div style="height: 620px;" class="tab-pane" id="srv_actions">
+                  [% INCLUDE 'view-lxmodel/action.tt' %]
+               </div>
+            [%END %]
+         </div>
+
+      </div>
+[% END %]
+
+</form>

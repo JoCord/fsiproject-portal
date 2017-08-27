@@ -1,0 +1,141 @@
+<script>
+     var time = new Date().getTime();
+     $(document.body).bind("mousemove keypress", function(e) {
+         time = new Date().getTime();
+     });
+
+     function refresh() {
+         if(new Date().getTime() - time >= 60000) 
+             window.location.reload(true);
+         else 
+             setTimeout(refresh, 10000);
+     }
+
+     setTimeout(refresh, 10000);
+</script>
+
+<form action="overviewxenpools" method=post>
+[% IF session.logged_in %]
+   [% INCLUDE 'layouts/global.tt' %]   
+   
+   [% INCLUDE 'include/inc_showlog.tt' %] 
+   [% INCLUDE 'help/help_xenpoolview.tt' %] 
+   <div class=headerline>
+      [% INCLUDE 'headerline/overview_xenpools.tt' %]
+   </div>
+ 
+ <div class="overview" style="width:1238px;">
+    <table id="fsi_xpovtable" class="tablesorter table table-condensed table-hover table-striped">
+      [% INCLUDE 'include/inc_envhead.tt' %]
+      <thead>
+          <tr class="fsitableheader">
+             <th style="width: 300px;"><div> Pool ([% xpcount %])</div></th>
+             <th style="width: 350px;"><div> Master </div></th>
+             <th style="width: 115px; text-align: center"><div> Srv ([% srvcount %])</div></th>
+             <th style="width: 100px; text-align: center"><div> Version</div></th>
+             <th style="width: 100px; text-align: center"><div> PatchLvl</div></th>
+             <th style="width: 283px;"><div>  </div></th>
+          </tr>
+      </thead>
+      
+      <tbody id="fsi_xpoverview" style="; height: 663px">    
+           [% IF xp.size %]
+             [% FOREACH poolname IN xp.keys.sort.reverse %]
+                [% textfarbe="#0B3861" %]
+                [% fontart="normal" %]
+                [% fontg="normal" %]
+                [% lineclass="" %]
+             
+                [% IF xp.$poolname.block == 'B' %]   
+                   [% lineclass="info" %]
+                [% ELSIF xp.$poolname.block == 'b' %]   
+                   [% lineclass="info" %]
+                [% END %]
+                
+                [% IF xp.$poolname.instrun == 'r' %]   
+                   [% lineclass="success" %]
+                [% ELSIF xp.$poolname.instrun == 'R' %] 
+                   [% lineclass="success" %]
+                [% END %]
+                
+             
+                 <tr class="[% lineclass %]" style="color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %];" >
+                  <td style="width: 300px;"">
+                     <a href="/showxp/[% poolname %]">&nbsp;[% poolname %]</a>
+                  </td>
+                  <td style="width: 350px;">
+                     <a href="/showsrv/[% xp.$poolname.masterid %]">[% xp.$poolname.master %]</a>
+                  </td>
+                  <td style="width: 115px; text-align: center">
+                  [% xp.$poolname.count %]
+                  </td>
+                  
+                  [% textfarbe="#0B3861" %]
+                  [% fontart="normal" %]
+                  [% fontg="normal" %]
+                  [% lineclass="" %]
+                  [% IF xp.$poolname.xenverdiffer %]   
+                     [% lineclass="danger" %]
+                     [% fontg="bold" %]
+                  [% END %]
+                
+                  <td class="[% lineclass %]" style="color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]; width: 100px; text-align: center">
+                  [% xp.$poolname.xenver %]
+                  </td>
+
+                  [% textfarbe="#0B3861" %]
+                  [% fontart="normal" %]
+                  [% fontg="normal" %]
+                  [% lineclass="" %]
+                  [% IF xp.$poolname.patchlvldiffer %]   
+                     [% lineclass="danger" %]
+                     [% fontg="bold" %]
+                  [% END %]
+                  <td class="[% lineclass %]" style="color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]; width: 100px; text-align: center"">
+                  [% xp.$poolname.patchlvl %]
+                  </td>
+                  <td style="width: 283px;">
+                  </td>
+                 </tr>
+
+             [% END %]
+          [% ELSE %]
+            <tr>
+               <td>
+                  <em>No XenServer pools found</em>
+               </td>
+            </tr>
+          [% END %]
+      </tbody>
+    </table>
+ </div>
+</form>
+
+<script type="text/javascript" id="js">
+    $(document).ready(function () {
+       $("#fsi_xpovtable")
+        .on('tablesorter-ready', function() {
+            var posOverview = localStorage["fsi_xpoverview_scroll"];
+            if (posOverview) {
+               $("#fsi_xpoverview")[0].scrollTop = posOverview;
+            }
+         })
+        .tablesorter({
+          theme: "bootstrap",
+          widthFixed: true,
+          showProcessing   : true, 
+          headerTemplate: '{content} {icon}',
+          widgets: ["storage", "saveSort", "uitheme", "filter"],
+          headers: { 5: { sorter: false, filter: false}},
+          widgetOptions: {
+             filter_reset : 'button.reset',
+             filter_hideFilters: false,
+             filter_ignoreCase: true,
+             filter_saveFilters: true,
+             filter_cssFilter: "form-control",
+          }
+        })
+    });
+</script>
+
+[% END %]

@@ -1,0 +1,16 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>IP Route: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/iproute"  %]</pre>
+   [% CATCH %]
+ No ip config found</pre>
+   [% END %]
+
+   <h2>IP Config: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/ipconfig"  %]</pre>
+   [% CATCH %]
+ No ip config found</pre>
+   [% END %]
+</div>

@@ -1,0 +1,57 @@
+<div class="list" style="width:1238px;">
+   <table>
+      [% INCLUDE include/inc_envhead.tt %]
+      <tbody>
+           <tr class="fsitableheader">
+              <td style="width: 220px;"><div>Server</div></td>
+              <td style="width: 80px;"><div>Typ</div></td>
+              <td style="width: 100px;"><div>Status</div></td>
+              <td style="width: 120px;"><div>Patch Level</div></td>
+              <td style="width: 110px;"><div>Mgmt. IP</div></td>
+              <td style="width: 140px;"><div>MAC</div></td>
+              <td style="width: 350px;"><div>Control</div></td>
+           </tr>
+      </tbody>
+   </table>
+</div>
+<div class="list" style="width:1240px; height:688px; overflow:auto;">
+   <table class="table table-striped table-condensed table-hover" style="width:1230px;">
+      <tbody>    
+         [% IF entries.size %]
+            [% FOREACH id IN entries.keys.nsort.reverse %]
+               <tr>
+                  <td style="width: 225px;"><a href="/showsrv/[% entries.$id.id %]">[% entries.$id.db_srv %]</a></td>
+                  <td style="width: 85px;">[% entries.$id.db_typ %]</td>
+                  <td style="font-family:courier; width: 100px; text-align: left;">
+                     [% IF entries.$id.s_online %][% entries.$id.s_online %][% ELSE %]-[% END %][% IF entries.$id.s_xenmaster %][% entries.$id.s_xenmaster %][% ELSE %]-[% END %][% IF entries.$id.s_xenha %][% entries.$id.s_xenha %][% ELSE %]-[% END %][% IF entries.$id.s_inststart %][% entries.$id.s_inststart %][% ELSE %]-[% END %][% IF entries.$id.s_insterr %][% entries.$id.s_insterr %][% ELSE %]-[% END %][% IF entries.$id.s_instrun %][%entries.$id.s_instrun %][% ELSE %]-[% END %][% IF entries.$id.s_block %][% entries.$id.s_block %][% ELSE %]-[% END %][% IF entries.$id.s_instwait %][% entries.$id.s_instwait %][% ELSE %]-[% END %]
+                  </td>
+                  <td style="width: 120px;">
+                     [% IF entries.$id.s_patchlevel %]
+                        [% entries.$id.s_patchlevel %]
+                     [% ELSE %]
+                        -
+                     [% END %]   
+                  </td>
+                  [% IF entries.$id.s_online %]
+                     <td style="width: 110px;">
+                        <a href="ssh://root@[% entries.$id.mgmt_ip %]" target="_blank">[% entries.$id.mgmt_ip %]</a>
+                     </td>   
+                  [% ELSE %]
+                     <td style="width: 110px;">[% entries.$id.mgmt_ip %]</td>
+                  [% END %] 
+                  
+                  <td style="width: 145px;">[% entries.$id.db_mac %]</td>    
+                  
+                  [% IF entries.$id.x_poolcount %]
+                     <td style="width: 350px;">[% entries.$id.db_controltyp %]: [% entries.$id.db_control %] ([% entries.$id.x_poolcount %])</td>
+                  [% ELSE %]
+                     <td style="width: 350px;">[% entries.$id.db_controltyp %]: [% entries.$id.db_control %] </td>
+                  [% END %]
+               </tr>
+            [% END %]
+         [% ELSE %]
+            <em>No server marked to do something - please select server on the overview site</em>
+         [% END %]
+      </tbody>
+   </table>
+</div>

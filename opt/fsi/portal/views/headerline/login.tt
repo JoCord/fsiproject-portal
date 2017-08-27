@@ -1,0 +1,7 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      <div class="[% global.button_group %]">
+          <a href="/login" role="button" class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_Sign-LogIn-icon.png" alt=""> Login</a>
+      </div>
+   </div>
+</div>

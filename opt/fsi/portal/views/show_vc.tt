@@ -1,0 +1,62 @@
+<form action="showvc" method=post>
+[% IF session.logged_in %]
+  [% INCLUDE 'headerline/normal.tt' %]
+  [% INCLUDE 'layouts/global.tt' %]   
+      <div style="width:1238px;">
+
+         <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+           <tr class="fsitableheader">
+              <td style="width: 100px;"><div>Detailed info for virtual center : [% vc %]</div></td>
+           </tr>
+         </table>
+         
+         <script type="text/javascript">
+            $(document).ready(function(){
+               $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+                  localStorage.setItem('activeTab', $(e.target).attr('href'));
+               });
+               var activeTab = localStorage.getItem('activeTab');
+               if(activeTab){
+                  $('#myVCTabs a[href="' + activeTab + '"]').tab('show');
+               }
+            });
+         </script>
+
+         
+         <ul class="nav nav-tabs" id="myVCTabs">
+            <li class="active"><a href="#srv_start" data-toggle="tab">Overview</a></li>  
+            <li><a href="#srv_net" data-toggle="tab">Network Config</a></li>  
+            <li><a href="#srv_store" data-toggle="tab">Storage Config</a></li> 
+            <li><a href="#srv_vm" data-toggle="tab">VM List</a></li>  
+            <li><a href="#srv_update" data-toggle="tab">Update</a></li>
+            [% IF session.role.match('ESXiAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+               <li><a href="#srv_actions" data-toggle="tab">Actions</a></li>
+            [% END %]
+            
+         </ul>
+         
+         <div id="myVCTabs" class="tab-content">
+            <div style="height: 620px;" class="tab-pane active" id="srv_start">
+               [% INCLUDE 'view-vc/start.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="srv_net">
+               Net
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="srv_store">
+               Storages
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="srv_vm">
+               VM
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="srv_update">
+               [% INCLUDE 'view-vc/upd.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane" id="srv_actions">
+               [% INCLUDE 'view-vc/action.tt' %]
+            </div>
+         </div>
+
+      </div>
+[% END %]
+</form>

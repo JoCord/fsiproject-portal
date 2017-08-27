@@ -1,0 +1,24 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% INCLUDE headerline/mainmenu.tt %]
+   
+       <div class="btn-group [% global.button_group %]">
+          <button type="button" class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown">
+              <img src="/images/16_Actions-view-list-details-icon.png" alt=""> VC Overview <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+             <li><a href="/overview">Server Overview</a></li>
+             <li><a href="/overviewxenpools">XenServer Pool Overview</a></li>
+             <li><a href="/overviewlx">Linux Model Overview</a></li>
+          </ul>
+       </div>
+     [% IF session.role == 'Admin' OR  session.role == "Master" %]
+       <div class="btn-group [% global.button_group %]">
+         <a href="/admin/show" role="button" class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_tool-box-preferences-icon.png" alt=""> Admin</a>
+       </div>
+     [% END %]
+       <div class="btn-group [% global.button_group %]">
+        <button type="button" class="btn [% global.button_typ %] [% global.button_size %] reset" value="reset" ><img src="/images/16_filter-delete-icon.png"> Reset Filter</button>
+       </div>
+   </div>  
+</div>

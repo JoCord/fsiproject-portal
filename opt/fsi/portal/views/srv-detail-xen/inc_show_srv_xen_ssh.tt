@@ -1,0 +1,46 @@
+[% use MAC = String entries.db_mac %]
+[% macadr = MAC.replace(':','-') %]
+
+[% xenkhosts = "" %]
+[% TRY %]
+   [% USE File("/opt/fsi/pxe/sys/$macadr/ssh/known_hosts") %]
+      [% xenkhosts = "/opt/fsi/pxe/sys/$macadr/ssh/known_hosts" %]
+      [% xenakeys = "/opt/fsi/pxe/sys/$macadr/ssh/authorized_keys" %]
+[% CATCH File %]      
+[% END %]
+
+<div style="width:1238px;height:647px;overflow:auto;">
+   [% IF xenkhosts == "" %]
+      no XenServer ssh files files found 
+   [% ELSE %]
+      <h2>local => [% xenkhosts %]:</h2>   
+      [% TRY %]
+         <pre>[% INCLUDE $xenkhosts  %]</pre>
+      [% CATCH %]
+ No [% xenkhosts %] ssh file found</pre>
+      [% END %]
+      <h2>remote => known_hosts:</h2>   
+      [% TRY %]
+         <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/ssh_known_hosts"  %]</pre>
+      [% CATCH %]
+ No remote known_hosts found</pre>
+      [% END %]
+      
+      <br>
+      <br>
+      <h2>local => [% xenakeys %]:</h2>   
+      [% TRY %]
+         <pre>[% INCLUDE $xenakeys  %]</pre>
+      [% CATCH %]
+ No [% xenakeys %] ssh file found</pre>
+      [% END %]
+      <h2>remote => authorized_keys:</h2>   
+      [% TRY %]
+         <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/ssh_authorized_keys"  %]</pre>
+      [% CATCH %]
+ No remote authorized_keys found</pre>
+      [% END %]
+      <br>
+      <br>
+   [% END %]
+</div>

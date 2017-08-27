@@ -1,0 +1,2 @@
+MAILTO=""
+0-59/30 * * * * root /usr/sbin/logrotate /opt/fsi/portal/etc/logrotate

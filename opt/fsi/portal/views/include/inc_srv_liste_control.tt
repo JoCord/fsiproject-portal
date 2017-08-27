@@ -1,0 +1,12 @@
+ [% IF entries.$id.db_controltyp =='xp'  %]
+    <a href="/showxp/[% entries.$id.db_control %]">[% entries.$id.db_control %]</a>
+ [% ELSIF entries.$id.db_controltyp =='vc'  %]
+    <a href="/showvc/[% entries.$id.db_control %]">[% entries.$id.db_control %]</a>
+ [% ELSIF entries.$id.db_controltyp =='lx'  %]
+   <a href="/showmodel/[% entries.$id.db_control %]">[% entries.$id.db_control %]</a>
+ [% ELSE %]
+    [% entries.$id.db_control %]</td>
+ [% END %]
+ [% IF entries.$id.x_poolcount %]
+    ([% entries.$id.x_poolcount %])
+ [% END %]

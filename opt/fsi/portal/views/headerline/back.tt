@@ -1,0 +1,7 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      <div class="[% global.button_group %]">
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" formnovalidate><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+      </div>
+   </div>
+</div>

@@ -1,0 +1,295 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <h2> Configuration: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;">
+            Mgmt IP :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            <a href="ssh://[% entries.item('mgmt_ip') %]" target="_blank">[% entries.item('mgmt_ip') %]</a>
+         </td>
+         <td style="text-align: right;">
+            Xen Tree :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% entries.db_typ %]
+         </td>
+
+         [% FOREACH keyvalue IN srvhash.xenparams.item('software-version').split(';') %]
+            [% found = 0 %]
+            [% FOREACH key IN keyvalue.split(':') %]
+               [% IF found == 1 %]
+                  <td style="text-align: left;">
+                     [% key %]
+                  </td>
+                  [% found = 0 %]
+               [% END %]   
+
+               [% IF key.match('^product_version$') %]
+                  <td style="text-align: right;">
+                     Version :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% END %]   
+            [% END %]
+         [% END %]
+      </tr>
+      <tr>
+         [% FOREACH keyvalue IN srvhash.xenparams.item('software-version').split(';') %]
+            [% found = 0 %]
+            [% FOREACH key IN keyvalue.split(':') %]
+               [% IF found == 1 %]
+                  <td style="text-align: left;">
+                     [% key %]
+                  </td>
+                  [% found = 0 %]
+               [% END %]   
+
+               [% IF key.match('^ xapi$') %]
+                  <td style="text-align: right;">
+                     xapi :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% ELSIF key.match('^ xen$') %]
+                  <td style="text-align: right;">
+                     xen :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% ELSIF key.match('^ linux$') %]
+                  <td style="text-align: right;">
+                     linux :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% END %]   
+            [% END %]
+         [% END %]
+      </tr>
+
+      <tr>
+         <td style="text-align: right;">
+            Pool :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            <a href="/showxp/[% entries.item('db_control') %]">[% entries.item('db_control') %]</a>
+         </td>
+         <td style="text-align: right;">
+            Pool HA :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenpool.item('ha-enabled') %]
+         </td>
+         <td style="text-align: right;">
+            host failures to tolerate :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;" width="400px">
+            [% srvhash.xenpool.item('ha-host-failures-to-tolerate') %]
+         </td>
+      </tr>
+      <tr>
+         <td style="text-align: right;">
+            Auth :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('external-auth-type') %]
+         </td>
+         <td style="text-align: right;">
+            AuthTo :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('external-auth-service-name') %]
+         </td>
+         <td style="text-align: right;">
+            Server Edition :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('edition') %]
+         </td>
+      </tr>
+      <tr>
+         <td>&nbsp;</td>
+      </tr>
+   </table>
+   <h2> Additional Software: </h2>
+   <table>
+      [% installed = 0 %]
+      [% FOREACH keyvalue IN srvhash.xenparams.item('software-version').split(';') %]
+            [% found = 0 %]
+            [% FOREACH key IN keyvalue.split(':') %]
+               [% IF found == 1 %]
+                  <td style="text-align: left;">
+                     [% key %]
+                  </td>
+                 </tr>
+                 [% found = 0 %]
+               [% END %]   
+               [% IF key.match('^hpsa-') %]
+                 <tr>
+                  <td style="text-align: right;">
+                     HP hpsa installed :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+                  [% installed = 1%]
+               [% ELSIF key.match('^emulex$') %]
+                 <tr>
+                  <td style="text-align: right;">
+                     Emulex installed :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+                  [% installed = 1%]
+               [% ELSIF key.match('^hp-agents-xs$') %]
+                 <tr>
+                  <td style="text-align: right;">
+                      <a href="https://[% srvhash.xenparams.item('address') %]:2381" target="popup" onclick="window.open('https://[% srvhash.xenparams.item(address) %]:2381','[% srvhash.xenparams.item(address) %]','width=600,height=400'")>HP snmp agents</a> installed :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+                  [% installed = 1%]
+               [% END %]   
+            [% END %]
+        
+      [% END %]
+      [% IF installed == 0 %]
+         <tr>
+            <td>no additional drivers found</td>
+         </tr>
+      [% END %]
+      <tr>
+         <td>&nbsp;</td>
+      </tr>
+   </table>
+   <h2> Hardware: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;">
+            Memory :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('memory-total') %]
+         </td>
+         <td style="text-align: right;">
+            Free Memory :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('memory-free') %]
+         </td>
+         <td style="text-align: right;">
+            Overhead Memory :&nbsp;&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% srvhash.xenparams.item('memory-overhead') %]
+         </td>
+
+         [% TRY %]
+            [% dp = 0 %]
+            [% PROCESS  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/dfprozent"  %]
+
+            <td style="text-align: right;">Disc usage :&nbsp;&nbsp;</td>  
+               [% fontart="normal" %]
+               [% fontg="bold" %]
+               [% IF dp > 97 %]
+                  [% textfarbe="#FF3333" %]
+               [% ELSIF dp > 94 %]
+                  [% textfarbe="#FF00CC" %]
+               [% ELSIF dp > 79 %]
+                  [% textfarbe="#FFCC33" %]
+               [% ELSIF dp > 69 %]
+                  [% textfarbe="#999900" %]
+               [% ELSIF dp > 59 %]
+                  [% textfarbe="#99CC66" %]
+               [% ELSE %]
+                  [% textfarbe="#33FF00" %]
+               [% END %]
+               <td style="color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]">[% dp %]%</td>
+         [% CATCH %]
+            <td style="text-align: right;">Disc usage :&nbsp;&nbsp;</td>  
+            <td>&nbsp;no disk info found</td>
+         [% END %]
+      </tr>
+      <tr>
+         [% trcount = 0 %]         
+         [% FOREACH keyvalue IN srvhash.xenparams.item('cpu_info').split(';') %]
+            [% found = 0 %]
+            [% FOREACH key IN keyvalue.split(':') %]
+               [% IF found == 1 %]
+                  <td style="text-align: left;">
+                     [% key %]
+                  </td>
+                  [% found = 0 %]
+                  [% IF trcount == 4 %]
+                     [% trcount = 0 %]
+                     </tr>
+                     <tr>
+                  [% ELSE %]
+                     [% trcount = trcount + 1 %]
+                  [% END %]
+               [% END %]   
+
+               [% IF key.match('socket_count') %]
+                  <td style="text-align: right;">
+                     Sockets :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% ELSIF key.match('cpu_count') %]
+                  <td style="text-align: right;">
+                     CPUs :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% ELSIF key.match('modelname') %]
+                  <td style="text-align: right;">
+                     Model :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% ELSIF key.match('speed') %]
+                  <td style="text-align: right;">
+                     Speed :&nbsp;&nbsp;
+                  </td>
+                  [% found = 1 %]
+               [% END %]   
+            [% END %]
+         [% END %]
+      </tr>
+      <tr>
+            <td>&nbsp;</td>
+      </tr>
+   </table>
+   
+   <h2> System: </h2>
+   <table>
+      <tr>
+         <td style="text-align: right;">
+            Install start:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% use MAC = String entries.db_mac %]
+            [% macadr = MAC.replace(':','-') %]
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/pxe/sys/$macadr/inst.start"  %]
+            [% CATCH %]
+ unknown
+            [% END %]
+         </td>
+         <td style="text-align: right;">
+            Install end:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/pxe/sys/$macadr/inst.end"  %]
+            [% CATCH %]
+ unknown
+            [% END %]
+         </td>
+         <td style="text-align: right;">
+            uptime:&nbsp;
+         </td>
+         <td style="text-align: left;">
+            [% TRY %]
+               [% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/uptime"  %]
+            [% CATCH %]
+ not found
+            [% END %]
+         </td>
+      </tr>
+   </table>
+
+   
+   
+</div>

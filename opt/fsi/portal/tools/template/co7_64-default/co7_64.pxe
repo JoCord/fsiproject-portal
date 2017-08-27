@@ -1,0 +1,4 @@
+DEFAULT co7_64
+LABEL co7_64
+ KERNEL img/co7_64/vmlinuz
+ APPEND inst.ks=http://##VITEMP##/pxe/sys/##MAC##/co7_64.cfg initrd=img/co7_64/initrd.img inst.text ramdisk_size=100000 net.ifnames=0 biosdevame=0 ksdevice=eth0 ip=dhcp inst.loglevel=debug

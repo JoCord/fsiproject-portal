@@ -1,0 +1,35 @@
+<div style="width:1236px;">
+
+<br />
+[% IF srvhash.patchlvl.size %]
+   [% USE Number.Format %]
+   [% USE Format %]
+
+   <div class="list">
+     <table id="fsi_esxiupd" class="tablesorter table table-condensed table-hover table-striped" >
+       <thead>
+           <tr class="fsitableheader">
+              <td class="group-false">name</td>
+              <td class="group-false">version</td>
+              <td class="group-word">vendor</td>
+              <td class="group-word">acceptance level</td>
+              <td class="group-false">install date</td>
+           </tr>
+       </thead>
+       <tbody>
+          [% FOREACH updname IN srvhash.patchlvl.keys %]  
+            <tr>
+               <td>[% updname %]</td>
+               <td>[% srvhash.patchlvl.$updname.item('version') %]</td>
+               <td>[% srvhash.patchlvl.$updname.item('vendor') %]</td>
+               <td>[% srvhash.patchlvl.$updname.item('cert') %]</td>
+               <td>[% srvhash.patchlvl.$updname.item('instdate') %]</td>
+            </tr>
+          [% END %]
+       </tbody>
+     </table>
+    </div>
+[% ELSE %]
+   <br/>&nbsp;&nbsp; no server update list found
+[% END %]   
+</div>

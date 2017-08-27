@@ -1,0 +1,51 @@
+<div id="myModal" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Help: Add Server</h2>
+   </div>
+
+   <div class="modal-body">
+     XenServer legend:
+     <br>
+     <table border="0" style="width: 100%">
+       <tbody>
+         <tr>
+           <td style="width: 150px"><button type="button" class="btn [% global.button_typ %] [% global.button_size %]" name="XenServer"><img src="/images/16_math-add-icon.png" alt="" />XenServer</button></td>
+           <td>Add a new XenServer in eWp - this is a reduce input screen which work with server config templates</td>
+         </tr>
+         <tr>
+           <br />
+         </tr>
+         <tr>
+           <td>Flexible Version</td>
+           <td>If you need more input parameters or no server config template exist - use this</td>
+         </tr>
+       </tbody>
+     </table>
+     <br>
+     <br>
+  
+     ESXi legend:
+     <br>
+           <br>
+
+     <table border="0" style="width: 100%;">
+       <tbody>
+         <tr>
+           <td style="width: 150px"><button type="button" class="btn [% global.button_typ %] [% global.button_size %]" name="esxi" value="yes"><img src="/images/16_math-add-icon.png" alt="" />ESXi</input></td>
+           <td>Use this to add a new ESXi server in eWp</td>
+         </tr>
+       </tbody>
+     </table>
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+   </div>
+   
+  </div>
+ </div> 
+</div>

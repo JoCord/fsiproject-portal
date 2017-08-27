@@ -1,0 +1,230 @@
+<script>
+   var time = new Date().getTime();
+   $(document.body).bind("mousemove keypress", function (e) {
+      time = new Date().getTime();
+   });
+
+   function refresh() {
+      if (new Date().getTime() - time >= 60000)
+         window.location.reload(true);
+      else
+         setTimeout(refresh, 10000);
+   }
+   setTimeout(refresh, 10000);
+</script>
+
+
+<form action="overview" method=post>
+[% IF session.logged_in %]
+   [% INCLUDE 'layouts/global.tt' %]   
+   
+   [% INCLUDE 'help/help_overview.tt' %]
+   [% INCLUDE 'include/inc_showlog.tt' %] 
+
+   [% INCLUDE 'include/inc_delmsgall.tt' %] 
+   [% INCLUDE 'include/inc_cleanssh_xen.tt' %] 
+   [% INCLUDE 'include/inc_cleanssh_esxi.tt' %] 
+   
+   [% INCLUDE 'headerline/overview.tt' %] 
+   
+ <div class="overview" style="width:1238px;">
+    <table id="fsi_srvovtable" class="tablesorter table table-condensed table-hover table-striped ">
+
+      [% INCLUDE 'include/inc_envhead.tt' %]
+      <thead>
+          <tr class="fsitableheader">
+             <th class="group-false" style="width: 21px;"><input type="checkbox" name="Marked" value="0" onclick="CheckTable(this,'chkbox_')" /></th>
+             <th class="group-false" style="width: 80px;"><div> Job</div></th>
+             <th class="group-false" style="width: 250px;"><div>Server</div></th>
+             <th class="group-word" style="width: 85px;"><div>Typ</div></th>
+             <th class="group-false" style="width: 100px;"><div>Status</div></th>
+             <th class="group-word" style="width: 120px;"><div>Patch Level</div></th>
+             <th class="group-false" style="width: 110px;"><div>Mgmt. IP</div></th>
+             <th class="group-false" style="width: 140px;"><div>MAC</div></th>
+             <th class="group-text" style="width: 329px;"><div>Control</div></th>
+          </tr>
+      </thead>
+      
+      <tbody id="fsi_srvoverview" style="height: 663px;">    
+           [% IF entries.size %]
+             [% FOREACH id IN entries.keys.nsort.reverse %]
+                [% textfarbe="#0B3861" %]
+                [% fontart="normal" %]
+                [% fontg="normal" %]
+                [% lineclass="" %]
+
+                [% IF entries.$id.s_online == '' %]   
+                   [% fontart="italic" %]
+                [% END %]
+                
+                [% IF entries.$id.s_online == 'M' %]   
+                   [% lineclass="active" %]
+                [% END %]  
+                
+                [% IF entries.$id.s_block == 'B' %]   
+                   [% lineclass="info" %]
+                [% ELSIF entries.$id.s_block == 'b' %]   
+                   [% lineclass="info" %]
+                [% END %]
+                
+                [% IF entries.$id.s_instrun == 'r' %]   
+                   [% lineclass="success" %]
+                [% ELSIF entries.$id.s_instrun == 'R' %] 
+                   [% lineclass="success" %]
+                [% END %]
+                
+                
+                [% IF entries.$id.s_instrun == 'W' %]   
+                   [% lineclass="success" %]
+                [% END %]
+                
+                [% IF entries.$id.s_inststart == 'S' %]   
+                   [% lineclass="warning" %]
+                    [% IF entries.$id.j_inst %]
+                     [% fontg="bold" %]
+                    [% END %] 
+                [% END %]
+
+                [% IF entries.$id.s_insterr == 'E' %]
+                   [% lineclass="danger" %]
+                [% END %]                
+                 <tr class="[% lineclass %]" style="color:[% textfarbe %]; font-style:[% fontart %]; font-weight:[% fontg %]">
+                   <td style="text-align: center; vertical-align: top; width: 21px;"> 
+                     <div id="srv_checkbox">
+                      <input id="chkbox_[% entries.$id.id %]" type="checkbox" name="Marked" value="[% entries.$id.id %]" />
+                     </div>
+                   </td>  
+                   [% INCLUDE 'include/inc_srvactions.tt' %]                    
+                   [% IF entries.$id.s_online %]
+                      <td style="width: 250px;"><div data-toggle="tooltip" title="[% entries.$id.rc_desc %]" placement=top><img src="/images/ctrl/[% entries.$id.rc_icon %]" style="width:20px;height:19px;"><a href="/showsrv/[% entries.$id.id %]">[% entries.$id.db_srv %]</a></div></td>
+                   [% ELSE %]
+                      <td style="width: 250px;"><div data-toggle="tooltip" title="[% entries.$id.rc_desc %]" placement=top><img src="/images/ctrl/[% entries.$id.rc_icon %]" style="width:20px;height:19px;"><a href="/showsrv/[% entries.$id.id %]">[% entries.$id.db_srv %]</a></div></td>
+                      <!-- <td style="width: 250px;">[% entries.$id.db_srv %]</td> -->
+                   [% END %]                    
+
+                   <td style="width: 85px;">[% entries.$id.db_typ %]</td>
+                   <td style="font-family:courier; width: 100px; text-align: left;">
+                      [% IF entries.$id.s_insterr %]
+                         <div data-toggle="tooltip" title="[% entries.$id.db_srv %]: [% entries.$id.s_msg %]" placement=top>
+                      [% END %]   
+                      [% IF entries.$id.s_online %][% entries.$id.s_online %][% ELSE %]-[% END %][% IF entries.$id.s_xenmaster %][% entries.$id.s_xenmaster %][% ELSE %]-[% END %][% IF entries.$id.s_xenha %][% entries.$id.s_xenha %][% ELSE %]-[% END %][% IF entries.$id.s_inststart %][% entries.$id.s_inststart %][% ELSE %]-[% END %][% IF entries.$id.s_insterr %][% entries.$id.s_insterr %][% ELSE %]-[% END %][% IF entries.$id.s_instrun %][% entries.$id.s_instrun %][% ELSE %]-[% END %][% IF entries.$id.s_block %][% entries.$id.s_block %][% ELSE %]-[% END %][% IF entries.$id.s_instwait %][% entries.$id.s_instwait %][% ELSE %]-[% END %]
+                      [% IF entries.$id.s_insterr %]
+                         </div>
+                      [% END %]   
+                   </td>
+                   <td style="width: 120px;">
+                      [% IF entries.$id.s_patchlevel %]
+                         <div data-toggle="tooltip" title="[% entries.$id.db_srv %] : [% entries.$id.s_patchlevels %]" placement=top>
+                            [% entries.$id.s_patchlevel %]
+                         </div>
+                      [% ELSE %]
+                         -
+                      [% END %]   
+                   </td>
+                   [% IF entries.$id.s_online %]
+                      <td style="width: 110px;">
+                         <a href="ssh://root@[% entries.$id.mgmt_ip %]" target="_blank">[% entries.$id.mgmt_ip %]</a>
+                      </td>   
+                   [% ELSE %]
+                      <td style="width: 110px;">[% entries.$id.mgmt_ip %]</td>
+                   [% END %] 
+                   <td style="width: 140px;">[% entries.$id.db_mac %]</td>    
+                   <td style="width: 329px;">[% entries.$id.db_controltyp %]: 
+                     [% INCLUDE 'include/inc_srv_liste_control.tt' %]
+                   </td>
+                </tr>
+             [% END %]
+          [% ELSE %]
+            <tr>
+               <td>
+                  <em>No server configurations found</em>
+               </td>
+            </tr>
+          [% END %]
+      </tbody>
+    </table>
+ </div>
+ [% INCLUDE 'include/action_markserver.tt' %] 
+</form>
+
+<script type="text/javascript" id="js">
+    $(document).ready(function () {
+       $("#fsi_srvovtable")
+        .on('tablesorter-ready', function() {
+            var posOverview = localStorage["fsi_srvoverview_scroll"];
+            if (posOverview) {
+               $("#fsi_srvoverview")[0].scrollTop = posOverview;
+            };
+            var fsi_save_chkbox = JSON.parse(localStorage.getItem('fsi_save_chkbox')) || {};
+            if (fsi_save_chkbox) {
+               $.each(fsi_save_chkbox, function(key, value) {
+                  $("#" + key).prop('checked', value);
+               });
+            };
+         })
+        .tablesorter({
+          theme: "bootstrap",
+          widthFixed: true,
+          showProcessing   : true, 
+          headerTemplate: '{content} {icon}',
+          widgets: ["group", "columns", "storage", "saveSort", "uitheme", "filter"],
+          headers: { 0: { 
+                            sorter: false, 
+                            filter: false
+                        }
+                   },
+          widgetOptions: {
+             filter_reset : 'button.reset',
+             filter_hideFilters: false,
+             filter_ignoreCase: true,
+             filter_saveFilters: true,
+             filter_cssFilter: "form-control",
+          },
+          group_complete    : "groupingComplete"
+        })
+    });
+
+   $('a.fsiLog').on('click', function(e) {
+      var src = $(this).attr('data-src');
+      // window.alert('ShowLog Open');
+      var height = $(this).attr('data-height') || 600;
+      // var width = $(this).attr('data-width') || 1900;
+      $("#myShowLog object").attr({
+         'data': src,
+         'height': height
+      });
+   });
+   $('#myShowLog').on('hidden.bs.modal', function() {
+      // window.alert('ShowLog Closed');
+      $("#myShowLog object").attr({
+         'data': '#'
+      });
+   });
+
+   var fsi_save_chkbox = JSON.parse(localStorage.getItem('fsi_save_chkbox')) || {};
+   var $checkboxes = $("#fsi_srvoverview input:checkbox");
+   $checkboxes.on("change", function () {
+      $checkboxes.each(function () {
+         fsi_save_chkbox[this.id] = this.checked;
+      });
+      localStorage.setItem("fsi_save_chkbox", JSON.stringify(fsi_save_chkbox));
+   });
+
+   $("#fsi_srvoverview").on("scroll", function() {
+      $("#fsi_scroll").html($("#fsi_srvoverview")[0].scrollTop);
+      if (localStorage) {
+//         window.alert("Position" + posOverview);
+         var posOverview = localStorage["fsi_srvoverview_scroll"];
+         if (posOverview) {
+            localStorage.removeItem("fsi_srvoverview_scroll");
+         }
+         localStorage["fsi_srvoverview_scroll"] = $("#fsi_srvoverview")[0].scrollTop;
+         return true;
+      }
+      else {
+         return false;
+      }
+   });
+</script>
+
+[% END %]

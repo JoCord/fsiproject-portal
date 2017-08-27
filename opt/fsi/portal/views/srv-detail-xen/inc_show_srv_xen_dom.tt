@@ -1,0 +1,68 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   [% FOREACH domain IN srvhash.xenconf.item('domain').keys %]
+      <h2>&nbsp;Domain configuration from pool.conf: </h2>
+      <table class="list table table-condensed table-hover table-striped">
+         <tbody>
+               <tr>
+                  <td style="width:400px;">Domain name: </td>
+                  <td>[% domain %]</td>
+               </tr>
+               <tr>
+                  <td>Domain dns name: </td>
+                  <td>[% srvhash.xenconf.domain.$domain.item('dnsdom') %]</td>
+               </tr>
+               <tr>
+                  <td>Domain OU: </td>
+                  <td>[% srvhash.xenconf.domain.$domain.item('ou') %]</td>
+               </tr>
+               <tr>
+                  <td>Connection typ: </td>
+                  <td>[% srvhash.xenconf.domain.$domain.item('contyp') %]</td>
+               </tr>
+               <tr>
+                  <td>Join domain user: </td>
+                  <td>[% srvhash.xenconf.domain.$domain.item('user') %]</td>
+               </tr>
+               
+               [% IF srvhash.xenconf.domain.$domain.group.size %]
+                  <tr>
+                     <td colspan="2">
+                  <h2>Domain group assignment for [% domain %] from pool.conf:</h2>
+                  <table class="list table table-condensed table-hover table-striped">
+                     <tbody>
+                       [% FOREACH group IN srvhash.xenconf.domain.$domain.item('group').keys %]
+                        <tr>
+                           <td style="width:400px;">[% group %]</td>
+                           <td>[% srvhash.xenconf.domain.$domain.group.$group.item('role')%]</td>
+                        </tr>
+                       [% END %]
+                     </tbody>
+                  </table>
+                     </td>
+                  </tr>
+               [% END %]
+         </tbody>
+      </table>
+   [% END %]
+   
+   [% IF srvhash.xenparams.item('external-auth-type').size %]  
+      <h2>&nbsp;Retrieved domain settings:</h2>
+      <table class="list table table-condensed table-hover table-striped">
+         <tbody>
+            <tr>
+               <td style="width:400px;">External-auth-typ</td>
+               <td>[% srvhash.xenparams.item('external-auth-type')%]</td>
+            </tr>
+            <tr>
+               <td>External-auth-service-name</td>
+               <td>[% srvhash.xenparams.item('external-auth-service-name')%]</td>
+            </tr>
+            <tr>
+               <td>External-auth-configuration</td>
+               <td>[% srvhash.xenparams.item('external-auth-configuration')%]</td>
+            </tr>
+         </tbody>
+      </table>
+   [% END %]         
+   
+</div>

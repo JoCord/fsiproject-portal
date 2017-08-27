@@ -1,0 +1,21 @@
+<div id="myCleanSSH_esxi" class="modal fade bs-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Clean ESXi SSH keys </h2>
+   </div>
+
+   <div class="modal-body">
+       <div class="alert alert-warning">
+         Do you really want to clean and rewrite ssh keys for all ESXi Server ?
+       </div>
+   </div>
+   
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="CleanSSHKeysESXi" value="yes" ><img src="/images/16_pan-icon.png" alt=""       > Clean SSH keys</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>

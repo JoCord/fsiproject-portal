@@ -1,0 +1,16 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>NICs: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/nics"  %]</pre>
+   [% CATCH %]
+ No network card information found</pre>
+   [% END %]
+
+   <h2>NIC versions: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/nicsdetail"  %]</pre>
+   [% CATCH %]
+ No version info found for network cards</pre>
+   [% END %]
+</div>

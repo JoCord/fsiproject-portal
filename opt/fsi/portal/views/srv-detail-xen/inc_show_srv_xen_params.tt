@@ -1,0 +1,128 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <table class="table table-condensed table-hover table-striped" >
+      <caption class="fsisectionheader">
+         &nbsp;&nbsp;Host Params:
+      </caption>
+      <tbody>    
+      [% FOREACH key IN srvhash.xenparams.keys %]
+         <tr>
+            <td style="width: 200px;">
+               [% key %]
+            </td>
+            <td>
+               [% srvhash.xenparams.$key %]
+            </td>
+         </tr>
+      [% END %]
+      </tbody>    
+   </table>
+
+   <table class="table table-condensed table-hover table-striped" >
+      <caption class="fsisectionheader">
+         &nbsp;&nbsp;Local SRs:
+      </caption>
+      <tbody>    
+      [% FOREACH key IN srvhash.xensrs.keys %]
+         <tr>
+            <td style="width: 200px;">
+               [% key %]
+            </td>
+            <td>
+
+            [% FOREACH parm IN srvhash.xensrs.$key.keys %]
+                  <td style="width: 200px;">
+                     key: [% parm %]
+                  </td>
+                  <td>
+                     value: [% srvhash.xensrs.$key.$parm %]
+                  </td>
+            [% END %]
+
+            </td>
+         </tr>
+      [% END %]
+      </tbody>    
+   </table>
+
+   <table class="table table-condensed table-hover table-striped" >
+      <caption class="fsisectionheader">
+         &nbsp;&nbsp;Pool SRs:
+      </caption>
+      <tbody>    
+      [% FOREACH key IN srvhash.xenpoolsrs.keys %]
+         <tr>
+            <td style="width: 200px;">
+               [% key %]
+            </td>
+            <td>
+
+            [% FOREACH parm IN srvhash.xenpoolsrs.$key.keys %]
+                  <td style="width: 200px;">
+                     key: [% parm %]
+                  </td>
+                  <td>
+                     value: [% srvhash.xenpoolsrs.$key.$parm %]
+                  </td>
+            [% END %]
+
+            </td>
+         </tr>
+      [% END %]
+      </tbody>    
+   </table>
+
+   <table class="table table-condensed table-hover table-striped" >
+      <caption class="fsisectionheader">
+         &nbsp;&nbsp;PIFs:
+      </caption>
+      <tbody>    
+      [% FOREACH key IN srvhash.xenpifs.keys %]
+         <tr>
+            <td style="width: 200px;">
+               [% key %]
+            </td>
+            <td>
+
+            [% FOREACH parm IN srvhash.xenpifs.$key.keys %]
+                  <td style="width: 200px;">
+                     key: [% parm %]
+                  </td>
+                  <td>
+                     value: [% srvhash.xenpifs.$key.$parm %]
+                  </td>
+            [% END %]
+
+            </td>
+         </tr>
+      [% END %]
+      </tbody>    
+   </table>
+
+   <table class="table table-condensed table-hover table-striped" >
+      <caption class="fsisectionheader">
+         &nbsp;&nbsp;VMs:
+      </caption>
+      <tbody>    
+      [% FOREACH key IN srvhash.xenvms.keys %]
+         <tr>
+            <td style="width: 200px;">
+               [% key %]
+            </td>
+            <td>
+
+            [% FOREACH parm IN srvhash.xenvms.$key.keys %]
+                  <td style="width: 200px;">
+                     key: [% parm %]
+                  </td>
+                  <td>
+                     value: [% srvhash.xenvms.$key.$parm %]
+                  </td>
+            [% END %]
+
+            </td>
+         </tr>
+      [% END %]
+      </tbody>    
+   </table>
+
+</div>

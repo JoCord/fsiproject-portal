@@ -1,0 +1,4 @@
+DEFAULT esxi51u2_hp
+LABEL esxi51u2_hp
+  kernel img/esxi51u2_hp/mboot.c32
+  append -c sys/##MAC##/ks-esxi51u2_hp-boot.cfg

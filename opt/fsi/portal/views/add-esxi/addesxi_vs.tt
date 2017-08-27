@@ -1,0 +1,34 @@
+<table border="0" style="text-align: left">
+   <tr>
+[% IF rzconfig.rz.${vienv}.esxi.vsw.size %]
+      <td>Please choose one or more virtual switch to create on esxi server:</td>
+   </tr>
+   
+   <tr>
+      <td>
+         <div class="fsiactionheader">
+            <div style="margin-left: 6px;">
+              &nbsp;vSwitch name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              nr&nbsp;
+              loadbalance&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              mtu&nbsp;&nbsp;&nbsp;&nbsp;
+              nic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              description
+            </div>
+         </div>
+         <select multiple class="form-control" style="height: 565px; width: 1230px;" name="vsw">
+            [% FOREACH vswitch IN rzconfig.rz.${vienv}.esxi.vsw.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.esxi.vsw.$vswitch.default %]
+                  <option style="font-family:courier" value="[% vswitch %]" selected>[% rzconfig.rz.${vienv}.esxi.vsw.$vswitch.web %]</option>
+               [% ELSE %]
+                  <option style="font-family:courier" value="[% vswitch %]">[% rzconfig.rz.${vienv}.esxi.vsw.$vswitch.web %]</option>
+               [% END %]
+            [% END %]
+         </select>
+      </td>
+   </tr>
+[% ELSE %]
+      <td>No virtual switch configure in fsi - please contact Support Team !!!</td>
+   </tr>
+[% END %]
+</table>

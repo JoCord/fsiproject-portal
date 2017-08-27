@@ -1,0 +1,50 @@
+<table class="table borderless">
+  <tbody>
+   <tr>
+      <td nowrap><a href="#DelRubbish" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Recycle-Bin-Full-icon.png" alt="" /> Clean Rubbish</a></td>
+      <td style="width: 100%;">Clean deleted server configuration finally</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+   <tr>
+    <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% global.portaldir %]/etc/rzenv.xml" ><img src="/images/16_edit-file-icon.png" alt="" /> edit rzenv.xml</button> </td>
+    <td style="width: 100%;">Edit fsi portal rzenv.xml configuration file</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+   <tr>
+    <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiRestart" value="yes" ><img src="/images/16_App-Quick-restart-icon.png" alt="" /> fsi restart</button> </td>
+    <td style="width: 100%;">Restart fsi portal, attention - this web site will break and after a few seconds you must reload your browser window</td>
+   </tr>
+   <tr>
+    <td nowrap><button class="btn [% global.button_typ %] [% global.button_size %]" name="fsiNew" value="yes" ><img src="/images/16_App-Quick-restart-icon.png" alt="" /> fsi new</button> </td>
+    <td style="width: 100%;">Recreate fsi config and clean all logs and sessions, attention - after a few seconds you must reload your browser window and login again</td>
+   </tr>
+   <tr>
+      <td><br /></td>
+      <td><br /></td>
+   </tr>
+   <tr>
+      <td nowrap><button id="rescantime" class="btn [% global.button_typ %] [% global.button_size %]" name="fsirescantime" value="1" ><img src="/images/16_Extras-Restart-icon.png" alt="" /> set and restart</button> </td>
+      <td>
+         <input id="daemon_rescan" data-slider-id='rescan_slider' type="text" data-slider-min="2" data-slider-max="36000" data-slider-step="1" data-slider-value="[% daemonsleep %]"/>
+         <span id="ex6CurrentSliderValLabel"> fsi daemon rescan sleep: <span id="daemon_current">[% daemonsleep %]</span> seconds</span>
+      </td>
+   </tr>
+   
+   
+   
+  </tbody>
+</table>
+
+<script>
+   $("#daemon_rescan").slider();
+   $("#daemon_rescan").on("slide", function(slideEvt) {
+      $("#daemon_current").text(slideEvt.value);
+      $("#rescantime").val(slideEvt.value);
+   });
+</script>

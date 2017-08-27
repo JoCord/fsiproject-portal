@@ -1,0 +1,89 @@
+[% IF session.logged_in %]
+ [% USE Number.Format %]
+ [% INCLUDE 'layouts/global.tt' %]   
+ <form action="mgmt_srs-create" method=post>
+     [% INCLUDE 'headerline/back.tt' %]
+     
+     <div style="width:1238px; height:723px;">
+      <table id="fsi_mgmtdelsrs" class="tablesorter table table-condensed table-hover table-striped" >
+           [% INCLUDE 'include/inc_envhead.tt' %]
+               <thead>
+                    <tr class="fsitableheader">
+                       <th>name</th>
+                       <th>uuid</th>
+                       <th>physical-size</th>
+                       <th>physical-util</th>
+                       <th>description</th>
+                    </tr>
+               </thead>
+           [% IF srs.size %]
+               <tbody>    
+                  [% FOREACH uuid in srs.keys %]
+                        <tr>
+                           <td>[% srs.$uuid.item('name-label') %]</td>
+                           <td>[% uuid %]</td>
+                           [% IF srs.$uuid.item('physical-size') > 0 %]
+                              <td>[% srs.$uuid.item('physical-size')  | format_bytes %]</td>
+                           [% ELSE %]
+                              <td>[% srs.$uuid.item('physical-size') %]</td>
+                           [% END %]
+                           [% IF srs.$uuid.item('physical-utilisation') > 0 %]
+                              <td>[% srs.$uuid.item('physical-utilisation')  | format_bytes %]</td>
+                           [% ELSE %]
+                              <td>[% srs.$uuid.item('physical-utilisation') %]</td>
+                           [% END %]
+                           <td>[% srs.$uuid.item('name-description') %]</td>
+                        </tr>
+                  [% END %]
+               </tbody>
+          </table>
+        </div>
+            <div>
+               <span style="font-weight: bold;"><br />Delete this fibre channel lun storage repositories in pool [% pool %]: </span>
+               <div class="btn-group">
+                  <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="[% pool %]"><img src="/images/16_Sign-Select-icon.png" alt="" />OK</button> 
+                  <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+               </div>
+            </div>
+
+          [% ELSE %]
+            </thead>
+               <tbody>    
+                   <tr>
+                      <td><em>No srs found to delete in pool [% pool %]</em></td>
+                   </tr>
+               </tbody>
+         </table>
+      </div>
+         <div>
+            <br />
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+         </div>
+      [% END %]
+ </form>
+<script>
+    $(document).ready(function () {
+       $("#fsi_mgmtdelsrs")
+           .tablesorter({
+             theme: "bootstrap",
+             showProcessing   : true, 
+             headerTemplate: '{content} {icon}',
+             widthFixed: true,
+             widgets: ["group", "columns", "storage", "saveSort", "uitheme", "scroller", "stickyHeaders"],
+             widgetOptions: {
+                filter_reset : 'button.reset',
+                filter_hideFilters: false,
+                filter_ignoreCase: true,
+                filter_saveFilters: true,
+                filter_cssFilter: "form-control",
+                scroller_height: 685,
+                scroller_barWidth: 0,
+                scroller_upAfterSort: false,
+                scroller_jumpToHeader: false,
+             }
+       });
+
+    });
+</script> 
+[% END %]
+

@@ -1,0 +1,52 @@
+<table border="0" style="text-align: left">
+   <tr>
+      <td style="text-align: right">Virtual Center: </td>
+      <td >
+       <select class="btn-group-sm selectpicker show-tick" style="display: none;" name="virtualcenter" data-width="300px"  >
+         [% FOREACH srv IN rzconfig.rz.${vienv}.esxi.vc.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.vc.$srv.default == "true" %]
+               <option value="[% srv %]" selected>[% srv %]
+               [% IF rzconfig.rz.${vienv}.esxi.vc.$srv.dc %] ==> [% rzconfig.rz.${vienv}.esxi.vc.$srv.dc %][% END %] 
+               </option>   
+            [% ELSE %]
+               <option value="[% srv %]" >[% srv %] 
+               [% IF rzconfig.rz.${vienv}.esxi.vc.$srv.dc %] ==> [% rzconfig.rz.${vienv}.esxi.vc.$srv.dc %][% END %] 
+               </option>   
+            [% END %]
+         [% END %]
+       </select>
+      </td>
+       <td style="text-align: right">Virtual Center:</td>
+       <td>                      
+          <input type="text" name="vcserver" placeholder="manual change virtual center to join" maxlength="255" autocomplete="on" style="width:300px;" />
+       </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > &nbsp;</td>
+      <td  style="text-align: right">DataCenter:</td>
+      <td ><input type="text" name="datacenter" placeholder="manual change datacenter to join on vc" maxlength="255"  autocomplete="on" style="width:300px;" />
+       </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > &nbsp;</td>
+      <td style="text-align: right">VC User to join: </td>
+      <td><input type="text" name="vcusr" placeholder="manual change user to join vc" maxlength="255" autocomplete="on" size="58" style="width:300px;" />
+      </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > &nbsp;</td>
+      <td style="text-align: right">VC User Domain: </td>
+      <td><input type="text" name="vcdom" placeholder="manual change vc join user domain" maxlength="255" autocomplete="on" size="58" style="width:300px;" />
+      </td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > &nbsp;</td>
+      <td style="text-align: right">VC User password: </td>
+      <td><input type="text" name="vcpw" placeholder="manual change vc user password" maxlength="255" autocomplete="on" size="58" style="width:300px;" />
+      </td>
+   </tr>
+</table>

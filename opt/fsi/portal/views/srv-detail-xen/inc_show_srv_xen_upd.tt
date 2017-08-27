@@ -1,0 +1,8 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   [% TRY %]
+      <h2>XenServer updates: </h2>
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/pool/$entries.db_control/upd_$entries.db_srv"  %]</pre>
+   [% CATCH %]
+      No update file for server [% entries.db_srv %] found in pool dir - something wrong getting update file
+   [% END %]
+</div>

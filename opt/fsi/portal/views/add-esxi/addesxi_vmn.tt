@@ -1,0 +1,36 @@
+<table border="0" style="text-align: left">
+   <tr>
+   [% IF rzconfig.rz.${vienv}.esxi.vmn %]
+      <td>Please choose one or more network port for virtual machines:</td>
+   </tr>
+
+   <tr>
+      <td>
+         <div class="fsiactionheader">
+            <div style="margin-left: 6px;">
+              &nbsp;Port name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              sw&nbsp;
+              flags&nbsp;&nbsp;
+              vlan&nbsp;
+              mtu&nbsp;&nbsp;&nbsp;&nbsp;
+              loadbalance&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              nic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              description
+            </div>
+         </div>
+         <select multiple class="form-control" style="height: 565px; width: 1230px;" multiple="multiple" row="6" name="vmn">
+            [% FOREACH port IN rzconfig.rz.${vienv}.esxi.vmn.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.esxi.vmn.$port.default %]
+                  <option style="font-family:courier" value="[% port %]" selected>[% rzconfig.rz.${vienv}.esxi.vmn.$port.web %]</option>
+               [% ELSE %]
+                  <option style="font-family:courier" value="[% port %]">[% rzconfig.rz.${vienv}.esxi.vmn.$port.web %]</option>
+               [% END %]
+            [% END %]
+         </select>
+      </td>
+   </tr>
+[% ELSE %]
+      <td>No vm network ports configure in fsi - please contact Support Team !!!</td>
+   </tr>
+[% END %]
+</table>

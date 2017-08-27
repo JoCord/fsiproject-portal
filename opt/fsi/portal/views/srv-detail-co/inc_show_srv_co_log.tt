@@ -1,0 +1,7 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/${entries.item('db_srv')}/instlog"  %]</pre>
+   [% CATCH %]
+ not found
+   [% END %]
+</div>

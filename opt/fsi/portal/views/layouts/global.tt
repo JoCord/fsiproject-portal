@@ -1,0 +1,13 @@
+[% SET global.action_button_group='btn-group btn-group-xs' %]
+[% SET global.action_button_size='btn-xs' %]
+
+[% SET global.button_group='btn-group btn-group-xs' %]
+[% SET global.button_typ='btn-default' %]
+[% SET global.button_size='btn-xs' %]
+
+[% SET global.instdir='/opt/fsi/inst' %]
+[% SET global.portaldir='/opt/fsi/portal' %]
+
+[% SET global.pathinst='/opt/fsi/inst' %]
+
+[% SET global.inforeload=5000 %]

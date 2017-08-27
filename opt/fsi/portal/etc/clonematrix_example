@@ -1,0 +1,135 @@
+# VM Clone Matrix
+#
+<VM test4>
+        vc vcwin.lab.local                                                     # Virtual center
+        th esx1.lab.local                                                      # Target host
+        ts nfs_qnap1                                                           # Target storage
+        tf Bak: Server                                                         # Target folder (optional, default=current)
+        tr Test-Resource2                                                      # Target Resource Pool (optional)
+        tp1 VM Network - Backup                                                # Target Network for nic1 (optional, default=no change) for nic2 = tp2
+        ge 3                                                                   # Generation to keep (optional, default 1)
+        usr labdom\admin                                                       # Technical user for vc
+        pwd ##verschluesseltPW##                                               # Password for tec user
+        mw 10                                                                  # wait before send email 0 = do not wait, x seconds
+        sd 0                                                                   # shutdown 0 = no, >0 true and retries (optional, default 0)
+        external vmcopy.pl                                                     # run external script after clone (and power on) before del generations
+        extparam --clone VM_CLONE                                              # script needs parameters
+        <CP nfs2sftp_copy>
+            s_type nfs                                                         # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source nfs: server
+            s_exp /nfstest                                                     # source nfs: export
+            t_type sftp                                                        # target type: nfs, sftp, dir
+            t_srv vitempprod.lab.local                                         # target sftp: server
+            t_dir /sftptest                                                    # target sftp: remote dir
+            t_sftpusr sftptest                                                 # target sftp: remote login user
+            t_sftppwd ##verschluesseltPW##                                     # target sftp: password for tec user
+        </CP>
+        <CP nfs2scp_copy>
+            s_type nfs                                                         # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source nfs: server
+            s_exp /nfstest                                                     # source nfs: export
+            t_type scp                                                         # target type: nfs, sftp, dir, scp
+            t_srv srv5.lab.local                                               # target scp: server
+            t_dir /mnt/qnap                                                    # target scp: dir (from / )
+            t_scpusr root                                                      # source scp: remote login user
+            t_scppwd ##verschluesseltPW##                                      # source scp: password for tec user
+        </CP>
+        <CP nfs2nfs_copy>
+            s_type nfs                                                         # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source nfs: server
+            s_exp /nfstest                                                     # source nfs: export
+            t_type nfs                                                         # target type: nfs, sftp, dir, scp
+            t_srv qnap1.lab.local                                              # target nfs: server
+            t_exp /nfsclone                                                    # target export: export from nas
+            t_scpusr root                                                      # source scp: remote login user
+            t_scppwd ##verschluesseltPW##                                      # source scp: password for tec user
+        </CP>
+        <email Jochen>                                                         # email for this vm (optional)
+           to js@betabox.de                                                    # to email
+           sr srv11.lab.local                                                  # smtp relay server
+           fr vmc@lab.local                                                    # from email
+           xu js@lab.com                                                       # esmtp user
+           xp ##verschluesseltPW##                                             # esmtp pw
+           bo "Alles OK\n js"                                                  # alternativ ok email body
+           be "Oh shit - reparieren\n js"                                      # alternativ error email body
+           scon      "VM is online"                                            # alternativ subject
+           tls       no                                                        # tls option yes, no, auto
+           scofnb    "VM offline - no parameter to boot vm - vm still off"
+           scofbe    "VM offline - want to start but error"
+           scofon    "VM offline - start was ok"
+           scs       "VM is supsended"
+           ssu       "VM has unknown status"
+           bcon      "VM is online"                                            # alternativ body
+           bcofnb    "VM offline - no parameter to boot vm - vm still off"
+           bcofbe    "VM offline - want to start but error"
+           bcofon    "VM offline - start was ok"
+           bcs       "VM is supsended"
+           bsu       "VM has unknown status"
+        </email>
+</VM>
+
+<VM srv5>
+        vc srv4.lab.local                                                      # Virtual center
+        th 10.10.10.1                                                          # Target host
+        ts nfs_qnap1_vmbak                                                     # Target storage
+        tf Bak: Server                                                         # Target folder (optional, default=current)
+        # tp1 VM Network - Backup                                              # Target Network for nic1 (optional, default=no change) for nic2 = tp2
+        ge 3                                                                   # Generation to keep (optional, default 1)
+        usr root                                                               # Technical user for vc
+        pwd ##verschluesseltPW##                                               # Password for tec user
+        sd 0                                                                   # shutdown 0 = no, >0 true and retries (optional, default 0)
+        <email Jochen>                                                         # email for this vm (optional)
+           to js@betabox.de                                                    # to email
+           sr srv11.lab.local                                                  # smtp relay server
+           fr vmc@lab.local                                                    # from email
+           xu js@lab.com                                                       # esmtp user
+           xp ##verschluesseltPW##                                             # esmtp pw
+        </email>
+        <CP nfs_copy>
+            s_type nfs                                                         # source type: nfs, sftp, dir
+            s_srv 10.10.10.244                                                 # source nfs: server
+            s_exp /VM                                                          # source nfs: export
+            # s_loc /mnt/source                                                # source nfs: temp local mountpoint (optional - default: /mnt/dir<timestamp>)
+            t_type nfs                                                         # target type: nfs, sftp, dir
+            t_srv 10.10.10.245                                                 # target nfs: server
+            t_exp /nfstest                                                     # target nfs: export
+            t_loc /mnt/back                                                    # target nfs: temp local mountpoint (optional - default: /mnt/dir<timestamp>)
+        </CP>
+        <CP nfs2scp_copy>
+            s_type nfs                                                         # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source nfs: server
+            s_exp /VMbak                                                       # source nfs: export
+            t_type scp                                                         # target type: nfs, sftp, dir, scp
+            t_srv 10.10.10.245                                                 # target scp: server
+            t_dir /mnt/qnap/test                                               # target scp: dir (from / )
+            t_scpusr root                                                      # source scp: remote login user
+            t_scppwd ##verschluesseltPW##                                      # source scp: password for tec user
+        </CP>
+        <CP sftp_copy>
+            t_type sftp                                                        # target type: nfs, sftp, dir
+            t_srv 10.10.10.245                                                 # target sftp: server
+            t_dir /nfstest                                                     # target sftp: remote dir
+            t_sftpusr test                                                     # target sftp: remote login user
+            t_sftppwd ##verschluesseltPW##                                     # target sftp: password for tec user
+            s_type sftp                                                        # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source sftp: server
+            s_dir /nfstest                                                     # source sftp: remote dir
+            s_sftpusr test                                                     # source sftp: remote login user
+            s_sftppwd ##verschluesseltPW##                                     # source sftp: password for tec user
+        </CP>
+        <CP dir_copy>
+            t_type dir                                                         # target type: nfs, sftp, dir
+            t_dir /opt/nfstest                                                 # target dir: local dir (maybe already mounted nfs share)
+            s_type dir                                                         # source type: nfs, sftp, dir
+            s_dir /opt/nfstest                                                 # source dir: local dir (maybe already mounted nfs share)
+        </CP>
+        <CP dir-sftp_copy>
+            t_type dir                                                         # target type: nfs, sftp, dir
+            t_dir /opt/nfstest                                                 # target dir: local dir (maybe already mounted nfs share)
+            s_type sftp                                                        # source type: nfs, sftp, dir
+            s_srv 10.10.10.245                                                 # source sftp: server
+            s_dir /nfstest                                                     # source sftp: remote dir
+            s_sftpusr test                                                     # source sftp: remote login user
+            s_sftppwd ##verschluesseltPW##                                     # source sftp: password for tec user
+        </CP>
+</VM>

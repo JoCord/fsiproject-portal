@@ -1,0 +1,29 @@
+<div id="myChkMaster" class="modal fade bs-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Check Master</h2>
+   </div>
+
+   <div class="modal-body">
+      Do you want to check master from pool [% pool %] ?
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="ChkMaster" value="[% pool %]" ><img src="/images/16_Symbols-Find-icon.png" alt="" /> CheckMaster</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+[% IF BLOCKRELOAD=="NO" %]
+<script>
+    $('#myChkMaster').on('show.bs.modal', function (e) {
+        clearInterval(GetInfoID); 
+    })
+    $('#myChkMaster').on('hide.bs.modal', function (e) {
+        var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+    })
+</script>
+[% END %]

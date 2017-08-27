@@ -1,0 +1,262 @@
+#!/bin/sh
+#
+#   cssh2server - copy ssh files in xen pool
+#
+#   This program is free software; you can redistribute it and/or modify it under the
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program;
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.12 - 9.9.2016"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+   DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"
+   tput sgr0
+   echo
+   echo " copy known_hosts and authorized_keys from every own config dir"
+   echo " to the server in a pool with ssh."
+   echo " It is important, that all passwords work!"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -p <pool name>     poolname"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no pool "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -p EDV_620_XA_01"
+   echo
+}
+
+
+namepool=""
+quietmode=""
+
+while getopts ":p:l:hHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "copy ssh files from config dir to all xenserver"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+      ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+      ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+      ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+      ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+      ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+      ;;
+      "p")
+         namepool=$OPTARG
+         debmsg " pool: $namepool"
+      ;;
+      "?")
+         errmsg "Unknown option $OPTARG"
+      ;;
+      ":")
+         errmsg "No argument value for option $OPTARG"
+      ;;
+      *)
+         # Should not occur
+         errmsg "Unknown error while processing options"
+      ;;
+   esac
+done
+
+if [ -z $namepool ]; then
+   help
+   exit 2
+fi
+
+
+
+debmsg "Start $progname - $ver"
+tracemsg "  RZ: $rz"
+cpcok=0
+cpcfail=0
+cpcoff=0
+
+if [ $retc -eq 0 ]; then
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         warnmsg " [$dirmac] is not a valid MAC / Config directory - ignore"
+      else
+         tracemsg " [$mac] use as config dir"
+         pool="none"
+
+         if [ -f "$dirmac/xen6.conf" ]; then
+            tracemsg "  found xenserver - read conf vars"
+            . "$dirmac/xen6.conf"
+         elif [ -f "$dirmac/xen7.conf" ]; then
+            tracemsg "  found xenserver - read conf vars"
+            . "$dirmac/xen7.conf"
+         fi
+         tracemsg "  namepool [$namepool] / found pool [$pool]"
+
+         if [ "$namepool" == "$pool" ]; then
+            infmsg " Found Server in pool: $pool"
+            get_srv_data $mac
+            retc=$?
+            if [ $retc -ne 0 ]; then
+               errmsg "cannot get server config - abort"
+               retc=99
+            else
+               srvonline $srv_fqdn
+               srvon=$?
+               if [ $srvon -ne 0 ]; then
+                  warnmsg "$ls server $srv_fqdn not online - ignore"
+                  cpcoff=$((cpcoff+1))
+               else
+                  debmsg " server online"
+                  if [ -f $dirmac/ssh/known_hosts ]; then
+                     infmsg " copy known_hosts to $srv_shortname"
+                     cmd='sshpass -p '$srv_userpw' scp '$g_ssh_options' '$dirmac'/ssh/known_hosts '$srv_user'@'$srv_ip':/root/.ssh/'
+                     tracemsg "  cmd: $cmd"
+                     OUTPUT=$(2>&1 $cmd )
+                     retc=$?
+                     if [ $retc -eq 0 ]; then
+                        debmsg " ok"
+                        cpcok=$((cpcok+1))
+                     else
+                        if [[ "$OUTPUT" =~ $regex_remotechanged ]] ; then
+                           warnmsg " SSH Keys changed - delete old SSH Key"
+                           OUTPUT=$(2>&1 sed '/$srv_ip/d' /root/.ssh/known_hosts)
+                           retc=$?
+                           if [ $retc -eq 0 ]; then
+                              infmsg " try again copy known_hosts to $srv_shortname"
+                              OUTPUT=$(2>&1 $cmd)
+                              retc=$?
+                              if [ $retc -eq 0 ]; then
+                                 debmsg " ok"
+                                 cpcok=$((cpcok+1))
+                              else
+                                 warnmsg " cannot copy known_hosts rc=$retc"
+                                 warnmsg "$OUTPUT"
+                                 cpcfail=$((cpcfail+1))
+                              fi
+                           else
+                              errmsg "cannot change /root known_hosts rc=$retc"
+                              errmsg "$OUTPUT"
+                              cpcfail=$((cpcfail+1))
+                           fi
+                        else
+                           warnmsg " cannot copy known_hosts rc=$retc"
+                           warnmsg "$OUTPUT"
+                           cpcfail=$((cpcfail+1))
+                        fi
+                        
+                     fi
+                  else
+                     errmsg "cannot find known_hosts for pool"
+                     retc=99
+                  fi
+                  
+                  if [ $retc -eq 0 ]; then
+                     if [ -f $dirmac/ssh/authorized_keys ]; then
+                        infmsg " copy authorized_keys to $srv_shortname"
+                        cmd='sshpass -p '$srv_userpw' scp -q -o StrictHostKeyChecking=no '$dirmac'/ssh/authorized_keys '$srv_user'@'$srv_ip':/root/.ssh/'
+                        tracemsg "  cmd: $cmd"
+                        OUTPUT=$(2>&1 $cmd)
+                        retc=$?
+                        if [ $retc -eq 0 ]; then
+                           debmsg " ok"
+                           cpcok=$((cpcok+1))
+                        else
+                           warnmsg " cannot copy authorized_keys rc=$retc"
+                           warnmsg "$OUTPUT"
+                           cpcfail=$((cpcfail+1))
+                        fi
+                     else
+                        errmsg "cannot find known_hosts for pool"
+                        retc=99
+                     fi
+                  fi
+               fi
+            fi
+         fi
+
+      fi
+   done
+fi
+
+if [ $retc -eq 0 ]; then
+   if [ $cpcok -eq 0 ]; then
+      warnmsg "cannot find a server to copy ssh files"
+   else
+      infmsg " Succuesful copy: $cpcok"
+      infmsg " Failed copy: $cpcfail"
+      infmsg " XenSrv offline: $cpcoff"
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

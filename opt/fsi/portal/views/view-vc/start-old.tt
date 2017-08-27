@@ -1,0 +1,40 @@
+<div class="vcstart">    
+ <table width="100%">
+   <tbody>
+      <tr>
+         <td valign="top" width="900px">
+          [% IF entries.size %]
+          <div >
+            <table class="table table-striped table-condensed table-hover table-striped">
+            <caption><h2>ESXi host list:</h2></caption>
+            <tbody style="height:528px;"  >    
+               [% FOREACH id IN entries.keys.nsort.reverse %]
+                  [% IF entries.$id.db_control == vc %]
+                  
+                     [% INCLUDE 'include/inc_srv_liste_marker.tt' %]
+                     
+                  [% END %]   
+               [% END %]
+            </tbody>                                             
+            </table>             
+           </div> 
+          [% ELSE %]
+            <em><br>&nbsp;&nbsp;No server on this vc</em>
+          [% END %]
+         </td>
+         <td valign="top">
+            <div class="vcinfoview">
+             <table class="table "> 
+              <thead> 
+               <tr>
+                  <td><h2>Info:</h2></td>
+               </tr> 
+              </thead>
+             </table>                
+            </div>
+         </td>
+      </tr>
+   </tbody>
+ </table>               
+</div>
+

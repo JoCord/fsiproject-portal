@@ -1,0 +1,42 @@
+<div class="list" style="width:1238px;height:645px;overflow:auto;" >
+</br>
+ <table>
+   [% IF xenver == "unknown" %]
+   <tr><td>
+   </br>Sorry - no master xen server detected or update list not found!
+   </td></tr>
+   [% ELSE %]
+   <tr valign="top" >
+      <td>
+   Pool Update List:
+   </br>
+      [% TRY %]
+         <pre>[% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.upd"  %]</pre>
+         [% IF session.role.match('Admin') OR  session.role == "Master" %]
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="EditPoolUpd" value="[% global.pathinst %]/[% xenver %]/ks/pool/[% pool %]/pool.upd" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit </button>  Edit pool update.lst
+         [% END %]
+      [% CATCH %]
+         No pool master config file found in pooldir</pre>
+      [% END %]
+
+      [% TRY %]
+      </td>
+      <td>
+         &nbsp;
+      </td>
+      <td>
+   fsi server - XenServer [% xenver %] Update List:
+
+         <pre>[% INCLUDE  "/opt/fsi/inst/$xenver/ks/upd/update.lst"  %]</pre>
+         [% IF session.role.match('Admin') OR  session.role == "Master" %]
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="EditPoolUpd" value="[% global.pathinst %]/[% xenver %]/ks/upd/update.lst" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit </button>  Edit fsi inst XenServer [% xenver %] update.lst
+         [% END %]
+      [% CATCH %]
+         No update.lst file found on fsi server</pre>
+      [% END %]
+
+
+   [% END %]
+   </td>
+ </table>
+</div>

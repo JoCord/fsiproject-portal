@@ -1,0 +1,29 @@
+<div class=headerline>
+   <div class="btn-toolbar" role="toolbar" >
+      [% INCLUDE headerline/mainmenu.tt %]
+
+      <div class="btn-group">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+      </div>   
+      <div class="btn-group [% global.button_group %]">
+         <button id="ShowOverviewPage"  type="button" class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown">
+             <img src="/images/16_Actions-view-list-details-icon.png" alt=""> Overview <span class="caret"></span>
+         </button>
+         <ul class="dropdown-menu">
+            <li><a href="/overview">Server Overview</a></li>
+            <li><a href="/overviewxenpools">XenServer Pool Overview</a></li>
+            <li><a href="/overviewvc">VirtualCenter Overview</a></li>
+            <li><a href="/overviewlx">Linux Model Overview</a></li>
+         </ul>
+      </div>
+     [% IF session.role == 'Admin' OR  session.role == "Master" %]
+       <div class="btn-group [% global.button_group %]">
+         <a href="/admin/show" role="button" class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_tool-box-preferences-icon.png" alt=""> Admin</a>
+       </div>
+     [% END %]
+     [% IF session.role == "Master" %]
+       &nbsp;Scroll: <span id="fsi_xpnetscroll">0</span>
+     [% END %]
+     
+   </div>  
+</div>

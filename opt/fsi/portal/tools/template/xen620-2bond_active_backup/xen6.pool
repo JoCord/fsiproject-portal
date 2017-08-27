@@ -1,0 +1,52 @@
+#
+#  XenServer Pool Extended Configuration - one bond, active backup
+#
+
+<net Management>
+        typ mgmt                       
+        <bond BondMgmt>
+                <nic eth0>
+                </nic>
+                <nic eth1>
+                </nic>
+                mode active-backup     
+        </bond>
+        descr Main Connection activ passiv
+        dnssearch ##DNSSEARCH##
+</net>
+
+<net VirtualMachines>
+        <bond BondVMs>
+                <nic eth2>
+                </nic>
+                <nic eth3>
+                </nic>
+                mode active-backup     
+        </bond>
+        descr Virtual Machine Connection
+        dnssearch ##DNSSEARCH##
+</net>
+
+
+# Tagconfiguration
+<tag XenHostTag>
+    typ host
+    do add
+    key XenServer Pool RZ:##RZ## fsi server:##FSISRV##
+</tag>
+
+# SR Rename
+<srren LocalSR>
+   sr Local storage
+   to Local SR $HOSTNAME
+</srren>
+
+# SR Delete
+<srdel RemovableSR>
+   sr Removable storage
+</srdel>
+
+<srdel RemovableCD>
+   sr DVD drives
+</srdel>
+

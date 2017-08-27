@@ -1,0 +1,50 @@
+<form action="editfile" method=post>
+   <div class=headerline>
+        <div class="btn-group">
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Reload" value="yes" ><img src="/images/16_Refresh-icon.png"                alt="" /> Reload</button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back</button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="tail" value="yes" ><img src="/images/16_Actions-document-close-icon.png" alt="" /> Save</button>
+        </div>
+   </div>
+
+   <div>
+      <table>
+           [% INCLUDE 'include/inc_envhead.tt' %]
+           <tbody>
+              <tr class="fsitableheader">
+              </tr>
+           </tbody>
+         </table>
+         <table>
+           <tbody>
+              <tr class="fsitableheader">
+                 <td style="width: 100%" align="center";"><div>Edit file: [% file %]</div></td>
+              </tr>
+           </tbody>
+         </table>
+
+
+<style type="text/css" media="screen">
+    #editor { 
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+</style>
+
+<pre id="editor">
+[% file %]
+}</pre>
+
+<script src="/ace/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/clouds");
+    editor.getSession().setMode("ace/mode/text");
+</script>
+
+
+      </div>
+</form>
+

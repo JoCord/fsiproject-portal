@@ -1,0 +1,336 @@
+#!/bin/sh
+#
+#   xenh - check, enable and disable ha status in pool or from server
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="2.0.6 - 05.05.2016"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  check, enable or disable ha status of pool"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -s <server>        master or member" 
+   echo "   -p <pool name>     pool - detec master"
+   echo 
+   tput setaf 3
+   echo "  Job:"
+   echo "   -c                 check ha status"
+   echo "   -e                 enable ha in pool"
+   echo "   -d                 disable ha in pool"
+   echo
+   tput sgr0
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    0 = ha on or ok "
+   echo "    1 = ha off"
+   echo "    2 = help"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -c -s test22.lab.local"
+   echo "    $progname -e -s test22.lab.local"
+   echo "    $progname -d -p EDV_XEN620_TEST"
+   echo
+   exit 2
+}
+
+function ha_check() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local master=$1
+
+   get_srv_data $master
+   rc=$?
+
+   if [ $rc -eq 0 ]; then
+      tracemsg "$ls cmd=sshpass -p ***** ssh $g_ssh_options $srv_user@$srv_fqdn xe pool-param-get uuid=\$(xe pool-list --minimal) param-name=ha-enabled)"
+      local hastat="$(sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$srv_fqdn xe pool-param-get uuid=\$\(xe pool-list --minimal\) param-name=ha-enabled)"
+      tracemsg "$ls  ha status [$hastat]"
+      if [ "$hastat" == "true" ]; then
+         infmsg "$ls ha in $srv_pool is on"
+      elif [ "$hastat" == "false" ]; then
+         infmsg "$ls ha in $srv_pool is off"
+         rc=1
+      else
+         errmsg "unknown status [$hastat]"
+         rc=99
+      fi   
+   else
+      errmsg "cannot get server data for $master - abort"
+      rc=66
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function ha_enable() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local master=$1
+
+   get_srv_data $master
+   rc=$?
+
+   ha_check $master
+   local hastat=$?
+   
+   if [ $hastat -eq 1 ]; then
+      get_srv_data $master
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         debmsg "$ls try to enable ha in pool $srv_pool"
+         2>&1 sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$srv_fqdn fsichha -a
+         rc=$?
+         if [ $rc -ne 0 ]; then
+            errmsg "error during enabling ha in pool"
+         fi
+      fi
+   else
+      infmsg "$ls ha already enabled - nothing to do"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function ha_disable() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local master=$1
+
+   ha_check $master
+   local hastat=$?
+   
+   if [ $hastat -eq 0 ]; then
+      get_srv_data $master
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         debmsg "$ls try to disable ha in pool $srv_pool"
+         tracemsg "$ls cmd=sshpass -p ***** ssh $g_ssh_options $srv_user@$srv_fqdn xe pool-ha-disable)"
+         2>&1 sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$srv_fqdn fsichha -d
+         ha_check $master
+         hastat=$?
+         if [ $hastat -eq 1 ]; then
+            infmsg "$ls ha disable in pool"
+         else
+            errmsg "something wrong - cannot disable ha in pool"
+         fi
+      fi
+   else
+      infmsg "$ls ha already disable - nothing to do"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function dojob() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local master=$1
+   local job=$2
+   
+   srvonline $master
+   local srvon=$?
+   if [ $srvon -eq 0 ]; then
+      case "$job" in
+         "check")
+            ha_check $master
+            rc=$?
+           ;;
+         "enable")
+            ha_enable $master
+            rc=$?
+           ;;
+         "disable")
+            ha_disable $master 
+            rc=$?
+           ;;
+         *)
+            errmsg "Unknown job - abort"
+            rc=2
+           ;;
+      esac            
+   else
+      warnmsg "$ls found master [$master] is offline - abort"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+# ---------------------------------- Main ----------------------------------
+
+server=""
+poolname=""
+quietmode=""
+job=""
+
+while getopts ":p:l:s:hHq012ced" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "check, enable or disable ha status of pool"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         #debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         #debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         #debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "p")
+         poolname=$OPTARG
+         debmsg " pool: $poolname"
+        ;;
+      "c")
+         job="check"
+         debmsg " check ha in pool"
+        ;;
+      "e")
+         job="enable"
+         debmsg " enable ha in pool"
+        ;;
+      "d")
+         job="disable"
+         debmsg " disable ha in pool"
+        ;;
+      "s")
+         server=$OPTARG
+         debmsg " server in pool: $server"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ -z $job ]; then
+   errmsg "no job define: check, enable, disable"
+   help
+fi
+if [ -z $poolname ] && [ -z $server ]; then
+   errmsg "no server or poolname given"
+   help
+fi   
+
+
+debmsg "Start $progname - $ver"
+
+if [ ! -z $job ]; then
+   debmsg "$ls  job: $job" 
+   if [ ! -z $poolname ]; then
+      debmsg "$ls  get pool: $poolname - detect pool master"
+      master=$($progdir/findmaster -q -l $logfile -p $poolname)
+      retc=$?
+   elif [ ! -z $server ]; then
+      debmsg "$ls  get server: $server - detect if pool master"
+      master=$($progdir/findmaster -q -l $logfile -m $server)
+      retc=$?
+   else
+      errmsg "script error"
+   fi
+      
+   if [ $retc -eq 0 ]; then
+      if [ -z $master ]; then
+         errmsg "cannot detect master in pool $poolname - maybe offline or corrupt"
+         retc=77
+      else
+         dojob $master $job
+         retc=$?
+      fi
+   else
+      errmsg "cannot detect master in pool $poolname - maybe offline or corrupt"
+   fi      
+else
+   errmsg "script error"
+fi
+
+debmsg "End $progname - $ver - $retc"
+exit $retc
+

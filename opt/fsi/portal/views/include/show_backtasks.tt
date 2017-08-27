@@ -1,0 +1,30 @@
+<div id="BackTasks" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+   <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+         <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+            <h2 id="myModalLabel">Background Tasks</h2>
+         </div>
+
+         <div class="modal-body">
+            <div id="status-ticker">
+              <ul id="nt-title">
+              <script>CreateStatList()</script>
+              </ul>
+              <script>
+                 var nt_title = $('#nt-title').newsTicker({
+                     row_height: 20,
+                     max_rows: 25,
+                     speed: 500,
+                     duration: 5000,
+                     pauseOnHover: 1
+                 });
+              </script>
+            </div>               
+         </div>
+         <div class="modal-footer">
+            <button class="btn [% global.button_typ %] btn-xs" data-dismiss="modal" aria-hidden="true">Close</button>
+         </div>
+      </div>
+   </div>
+</div>

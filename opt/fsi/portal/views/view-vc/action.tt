@@ -1,0 +1,69 @@
+<div id="myDelBlockVC" class="modal fade bs-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Reset Virtual Center Blockade </h2>
+   </div>
+
+   <div class="modal-body">
+       <div class="alert alert-warning">
+         Did you really finish all jobs on virtual center [% vc %] and unblock now ?
+       </div>
+   </div>
+   
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="ResetBlockVC" value="[% vc %]" ><img src="/images/16_Play-Mode-Repeat-All-Hot-icon.png" alt="" /> Reset vc blockade</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div id="myUpdateVIScriptsVC" class="modal fade bs-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Update ESXi fsi Scripts on VC</h2>
+   </div>
+
+   <div class="modal-body">
+       <div class="alert alert-warning">
+         Do you really want to update the fsi tool scripts on all server on [% vc %]?
+       </div>
+   </div>
+   
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="UpdateVIScriptsVC" value="[% vc %]" ><img src="/images/16_Apps-system-software-update-icon2.png" alt="" /> UpdateScripts</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+
+
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   &nbsp;&nbsp;<a href="#myUpdateVIScriptsVC" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Apps-system-software-update-icon2.png" alt="" /> UpdScripts</a>
+   &nbsp;&nbsp;Update and copy all fsi Management Scripts to all esxi server on VC
+   <br>
+   
+   
+   [% FOREACH id IN entries.keys.nsort.reverse %]
+      [% IF entries.$id.db_control == vc %]
+         [% IF entries.$id.s_block %]
+            <br>
+            &nbsp;&nbsp;<a href="#myDelBlockVC" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Play-Mode-Repeat-All-Hot-icon.png" alt="" /> ResetBlock</a>
+            &nbsp;&nbsp;Reset pool blockade
+            [% LAST %]
+         [% END %]
+      [% END %]
+   [% END %]
+   
+   
+   
+   
+
+</div>

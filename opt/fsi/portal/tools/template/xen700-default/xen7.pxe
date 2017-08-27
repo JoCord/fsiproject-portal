@@ -1,0 +1,5 @@
+DEFAULT xen7
+LABEL xen7
+ KERNEL img/xen700/mboot.c32
+ APPEND img/xen700/xen.gz dom0_max_vcpus=1-2 dom0_mem=1024M,max:1024M com1=115200,8n1 console=com1,vga --- img/xen700/vmlinuz xencons=hvc net.ifnames=0 biosdevname=0 iconsole=hv0 console=tty0  answerfile=http://##FSISRV##/pxe/sys/##MAC##/xen7.xml install --- img/xen700/install.img
+ 

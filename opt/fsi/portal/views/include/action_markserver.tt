@@ -1,0 +1,44 @@
+<div>
+    <span style="font-weight: bold;">Marked: </span>
+   [% IF session.role.match('Admin') OR  session.role == "Master" OR session.role.match('Install')%]
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Install" value="marked" ><img src="/images/16_Sign-Select-icon.png" alt=""           > Install</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort"   value="marked" ><img src="/images/16_abort-icon.png" alt=""                 > Abort</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Update"  value="marked" ><img src="/images/16_system-software-update-icon.png" alt=""> Update</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Delete"  value="marked" ><img src="/images/16_Sign-Error-icon.png" alt=""            > Remove Srv</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="DelLog"  value="marked" ><img src="/images/16_System-Recycle-Bin-2-icon.png" alt=""  > Delete Logs</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="PowerON"   value="marked" ><img src="/images/16_control-power-icon.png" alt=""        > Power ON</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="PowerOFF"  value="marked" ><img src="/images/16_Sign-Shutdown-icon.png" alt=""       > Power OFF</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Reboot"    value="marked" ><img src="/images/16_Actions-system-reboot-icon.png" alt="" > Reboot</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Shutdown"  value="marked" ><img src="/images/16_Style-Shutdown-icon.png" alt="" > Shutdown</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="SetMaintenanceMode"   value="marked" ><img src="/images/16_maintenance-icon.png" alt=""        > Set Maint.</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="ExitMaintenanceMode"  value="marked" ><img src="/images/16_Tools-icon.png" alt=""       > Exit Maint.</button>
+    </div>
+   [% ELSE %]
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Install" value="marked" disabled><img src="/images/16_Sign-Select-icon.png" alt=""           > Install</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort"   value="marked" disabled><img src="/images/16_abort-icon.png" alt=""                 > Abort</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Update"  value="marked" disabled><img src="/images/16_system-software-update-icon.png" alt=""> Update</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Delete"  value="marked" disabled><img src="/images/16_Sign-Error-icon.png" alt=""            > Remove Srv</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="DelLog"  value="marked" disabled><img src="/images/16_System-Recycle-Bin-2-icon.png" alt=""  > Delete Logs</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="PowerON"  value="marked" disabled><img src="/images/16_control-power-icon.png" alt=""        > Power ON</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="PowerOFF" value="marked" disabled><img src="/images/16_Sign-Shutdown-icon.png" alt=""       > Power OFF</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Reboot"   value="marked" disabled><img src="/images/16_Actions-system-reboot-icon.png" alt="" > Reboot</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="Shutdown" value="marked" disabled><img src="/images/16_Style-Shutdown-icon.png" alt="" > Shutdown</button>
+    </div>&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="[% global.button_group %]">
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="SetMaintenanceMode"  value="marked" disabled><img src="/images/16_maintenance-icon.png" alt=""        > Set Maint.</button>
+      <button class="btn [% global.button_typ %] [% global.button_size %]" name="ExitMaintenanceMode" value="marked" disabled><img src="/images/16_Tools-icon.png" alt=""       > Exit Maint.</button>
+    </div>
+   [% END %]
+</div>

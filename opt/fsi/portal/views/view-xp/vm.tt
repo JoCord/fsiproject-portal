@@ -1,0 +1,112 @@
+<br />
+[% IF vms.size %]
+   [% USE Number.Format %]
+   [% USE Format %]
+
+   marked VM : &nbsp;
+    <div class="btn-group [% global.button_group %]">
+      [% IF session.role.match('XenAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+       [% IF poolblock == "B" %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_control-power-icon.png" alt=""        > Start </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Sign-Shutdown-icon.png" alt=""       > Stop </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Actions-system-reboot-icon.png" alt="" > Reboot </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Style-Shutdown-icon.png" alt="" > Shutdown </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Reload-icon.png" alt="" > Reset </button>
+         &nbsp;&nbsp;Pool is blocked - please reset blockade first!
+       [% ELSE %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMStart"  value="VMmarked" ><img src="/images/16_control-power-icon.png" alt=""        > Start </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMStop"  value="VMmarked" ><img src="/images/16_Sign-Shutdown-icon.png" alt=""       > Stop </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMReboot"  value="VMmarked" ><img src="/images/16_Actions-system-reboot-icon.png" alt="" > Reboot </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMShutdown"  value="VMmarked" ><img src="/images/16_Style-Shutdown-icon.png" alt="" > Shutdown </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMReset"  value="VMmarked" ><img src="/images/16_Reload-icon.png" alt="" > Reset </button>
+       [% END %]
+      [% ELSE %]
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_control-power-icon.png" alt=""        > Start </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Sign-Shutdown-icon.png" alt=""       > Stop </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Actions-system-reboot-icon.png" alt="" > Reboot </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Style-Shutdown-icon.png" alt="" > Shutdown </button>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" disabled ><img src="/images/16_Reload-icon.png" alt="" > Reset </button>
+      [% END %]
+    </div>
+   <br/><br/>
+   <div class="list">
+     <table id="fsi_vms" class="tablesorter table table-condensed table-hover table-striped" >
+       <thead>
+           <tr class="fsitableheader">
+              <td class="group-false" style="width: 5px;"><input type="checkbox" name="VMMarked" value="0" onclick="CheckAll(this)" /></td>
+              <td class="group-word" style="width: 85px;">action</td>
+              <td class="group-false">vm name</td>
+              <td class="group-word">host</td>
+              <td class="group-false">uuid</td>
+              <td class="group-word">power</td>
+              <td class="group-false">hd</td>
+           </tr>
+       </thead>
+       <tbody>
+                [% FOREACH vuuid IN vms.keys %]  
+                     [% host_uuid=vms.$vuuid.item('resident-on') %]
+                     [% IF vms.$vuuid.item('resident-on') == "not in database" %]
+                        [% host_name = "not_assigned" %]
+                     [% ELSE %]
+                        [% host_name = hosts.$host_uuid.item('name-label') %]
+                     [% END %]
+
+                      <tr>
+                        <td style="vertical-align: top; width: 5px;"> 
+                           <input type="checkbox" id="[% hosts.$huuid.item('name-label') %]" name="VMMarked" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" />
+                        </td>                     
+                        <td> 
+                           <div class="btn-group [% global.button_group %]">
+                           
+                              [% IF vms.$vuuid.item('power-state') == "halted" %]
+                                 <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMStart" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Start </button>
+                              [% ELSIF vms.$vuuid.item('power-state') == "running" %] 
+                                 <button class="btn [% global.button_typ %] [% global.button_size %]" name="VMStop" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Stop </button>
+                              [% ELSE %]
+                                 <button class="btn [% global.button_typ %] [% global.button_size %]" name="Undef" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > None </button>
+                              [% END %]
+                             <button class="btn [% global.button_typ %] dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+                           
+                             <ul class="dropdown-menu">
+                              [% IF vms.$vuuid.item('power-state') == "halted" %]
+                                <li class="menubut"><button class="menubut" name="VMStart" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Start </button></li> 
+                              [% ELSE %]
+                                 <li class="disabled"><a tabindex="-1" href="#"> Start </a></li>
+                              [% END %]
+                              [% IF vms.$vuuid.item('power-state') == "running" %] 
+                                <li class="menubut"><button class="menubut" name="VMStop" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Stop </button></li> 
+                                <li class="menubut"><button class="menubut" name="VMReboot" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Reboot </button></li>
+                                <li class="menubut"><button class="menubut" name="VMShutdown" value="[% vms.$vuuid.item('name-label') %]:[% hosts.$huuid.item('name-label') %]:[% vuuid %]" > Shutdown </button></li>
+                              [% ELSE %]
+                                 <li class="disabled"><a tabindex="-1" href="#"> Stop </a></li>
+                                 <li class="disabled"><a tabindex="-1" href="#"> Reboot </a></li>
+                                 <li class="disabled"><a tabindex="-1" href="#"> Shutdown </a></li>
+                              [% END %]  
+                             </ul>
+
+                           </div>
+                        </td>
+                      
+                        <td>[% vms.$vuuid.item('name-label') %]</td>
+                        <td>[% host_name %]</td>
+                        <td>[% vuuid %]</td>
+                        <td>[% vms.$vuuid.item('power-state') %]</td>
+                        
+                        <td>
+                           [% FOREACH vbd_uuid IN vms.$vuuid.vbd.keys %]
+                              [% FOREACH vdi_uuid IN vms.$vuuid.vbd.$vbd_uuid.vdi.keys %]
+                                 [% vms.$vuuid.vbd.$vbd_uuid.vdi.$vdi_uuid.item('name-label') %]: vsize=[% vms.$vuuid.vbd.$vbd_uuid.vdi.$vdi_uuid.item('virtual-size') | format_bytes | format('<b>%s</b>') %]  phy.util=[% vms.$vuuid.vbd.$vbd_uuid.vdi.$vdi_uuid.item('physical-utilisation') | format_bytes  | format('<b>%s</b>') %]</br>
+                              [% END %]
+                           [% END %]
+                        </td>
+
+                      </tr>
+                [% END %]
+       </tbody>
+     </table>
+    </div>
+[% ELSE %]
+   <br/>&nbsp;&nbsp; no vms found
+[% END %]   
+
+

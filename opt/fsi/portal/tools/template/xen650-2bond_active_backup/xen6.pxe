@@ -1,0 +1,4 @@
+DEFAULT xen650
+LABEL xen650
+ KERNEL img/xen650/mboot.c32
+ APPEND img/xen650/xen.gz dom0_max_vcpus=1-2 dom0_mem=752M,max:752M com1=115200,8n1 console=com1,vga --- img/xen650/vmlinuz xencons=hvc console=hvc0 console=tty0 answerfile=http://##FSISRV##/pxe/sys/##MAC##/xen6.xml install --- img/xen650/install.img

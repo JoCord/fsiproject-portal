@@ -1,0 +1,3 @@
+[% SET button_group='btn-group [% global.button_group %]' %]
+[% SET button_typ='btn-default' %]
+[% SET button_size='[% global.button_size %]' %]

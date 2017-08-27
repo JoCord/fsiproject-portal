@@ -1,0 +1,74 @@
+         <br>
+         <div class="btn-group [% global.button_group %]">
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Save"     value="yes" ><img src="/images/16_Sign-Select-icon.png" alt="" > Save Changes </button>
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="GroupAdd" value="yes" ><img src="/images/16_add-icon.png" alt=""         > Add Domain Group </button>
+            <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort"    value="yes" ><img src="/images/16_Sign-Stop-icon.png" alt=""   > Abort </button>
+         </div>
+         <br><br>
+         <div class="scrolltable">
+          <table class="table table-condensed table-hover table-striped" style="text-align: left; table-layout:fixed">
+            <thead>
+               <tr class="fsitableheader">
+                     <td style="width:60px">active</td>
+                     <td style="width:100px">control</td>
+                     <td style="width:320px">domain group</td>
+                     <td style="width:300px">domain name</td>
+                     <td style="width:450px">role</td>
+                     <td></td>
+               </tr>
+            </thead>
+            <tbody style="height:555px;">   
+               [% IF users.domgroup.size %]
+                  [% FOREACH domaingroup IN users.domgroup.keys.sort %]
+                     <tr>
+                       <td style="width:60px; text-align:center;">
+                        <div data-toggle="tooltip" title="activate / deactivate group" placement=top>
+                        [% IF users.domgroup.$domaingroup.active.match('yes') %]
+                           <input type="checkbox" name="dg_active_[% domaingroup %]" value="yes" checked />
+                        [% ELSE %]
+                           <input type="checkbox" name="dg_active_[% domaingroup %]" value="yes" />
+                        [% END %]
+                        </div>
+                       <td style="width:100px">
+                           <div class="btn-group [% global.button_group %]">
+                              <button class="btn [% global.button_typ %] [% global.button_size %]" name="dg_GroupDel"  value="[% domaingroup %]" ><img src="/images/16_Sign-Error-icon.png" alt=""> Remove </button>
+                           </div>
+                       </td>
+                       <td style="width:320px">
+                           <input type="text" name="dg_group_[% domaingroup %]" autocomplete="on" value="[% domaingroup %]" size=30/>
+                       </td>
+                       <td style="width:300px">
+                          <select class="selectpicker btn-group-sm show-tick" style="display: none;" name="dg_domain_[% domaingroup %]" data-width="280">
+                             [% FOREACH windomain IN rzconfig.rz.${vienv}.windom.keys %]
+                                [% IF windomain == users.domgroup.$domaingroup.domain %]
+                                        <option value="[% windomain %]" selected >[% windomain %]</option>
+                                [% ELSE %]
+                                  <option value="[% windomain %]" >[% windomain %]</option>
+                                [% END %]
+                             [% END %]
+                          </select>
+                       </td>
+                       <td style="width:350px">
+                          <select class="selectpicker btn-group-sm show-tick" style="display: none;" name="dg_role_[% domaingroup %]" data-width="300" multiple>
+                             [% FOREACH confrole IN rzconfig.rz.${vienv}.userrole.keys %]
+                                [% set rolefound="no" %]
+                                [% FOREACH usrconfrole IN users.domgroup.$domaingroup.role.keys %]
+                                     [% IF usrconfrole == confrole %]
+                                        <option value="[% confrole %]" selected >[% confrole %]</option>
+                                        [% set rolefound="yes" %]
+                                     [% END %]
+                                [% END %]
+                                [% IF rolefound == "no" %]
+                                  <option value="[% confrole %]" >[% confrole %]</option>
+                                [% END %]
+                             [% END %]
+                          </select>
+                        </td>
+                    </tr>
+                  [% END %]
+               [% ELSE %]
+                  <tr><td>No domain groups found - please add new !</td></tr>
+               [% END %]
+             </tbody>
+          </table>
+        </div>

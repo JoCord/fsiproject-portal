@@ -1,0 +1,524 @@
+#!/bin/sh
+#
+#   backup fsi portal and server configuration
+#
+#   This program is free software; you can redistribute it and/or modify it under the
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program;
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.10 - 5.10.2016"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]; do
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+   DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+prgzip="/usr/bin/zip"
+
+function help() {
+   #clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"
+   tput sgr0
+   echo
+   echo "  backup fsi configuration"
+   echo
+   tput setaf 3
+   echo "  Backup Dir Parameter:"
+   tput sgr0
+   echo "   -d <base dir>     base dir to create backup dir"
+   echo "                     default $progdir/../../backup"
+   echo
+   tput setaf 3
+   echo "  Job Parameter:"
+   tput sgr0
+   echo "   -s                backup all server configs"
+   echo "   -t                backup server templates"
+   echo "   -c                backup server certificats"
+   echo "   -p                backup all portal configs"
+   echo "   -x                backup all xen pool configs"
+   echo "   -i                backup install logs"
+   echo "   -r                backup remote control configs"
+   echo "   -a                backup all"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                quiet mode"
+   echo "   -0/1/2            info/debug/trace mode"
+   echo "   -l <logfile>      other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no job given "
+   echo "    3 = no base backup dir exist - create"
+   echo "    4 = no portal sys dir exist"
+   echo "    5 = no $prgzip found"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s -d /opt/backup"
+   echo "    $progname -s -t -c -p"
+   echo "    $progname -a"
+   echo
+}
+
+
+server=0
+templates=0
+certs=0
+portal=0
+xen=0
+instlogs=0
+rccfgs=0
+basedir=""
+backdir=""
+
+if ! [ -f $prgzip ]; then
+   echo "no $prgzip exist - abort"
+   exit 5
+fi
+
+while getopts ":stcixprad:l:hHq012" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "backup fsi configuration"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+      ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+      ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+      ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+      ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+      ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+      ;;
+      "d")
+         basedir="$OPTARG"
+         debmsg " base dir: $basedir"
+      ;;
+      "s")
+         server=1
+      ;;
+      "r")
+         rccfgs=1
+      ;;
+      "t")
+         templates=1
+      ;;
+      "i")
+         instlogs=1
+      ;;
+      "x")
+         xen=1
+      ;;
+      "c")
+         certs=1
+      ;;
+      "p")
+         portal=1
+      ;;
+      "a")
+         server=1
+         portal=1
+         certs=1
+         templates=1
+         xen=1
+         instlogs=1
+         rccfgs=1
+      ;;
+      "?")
+         errmsg "Unknown option $OPTARG"
+      ;;
+      ":")
+         errmsg "No argument value for option $OPTARG"
+      ;;
+      *)
+         # Should not occur
+         errmsg "Unknown error while processing options"
+      ;;
+   esac
+done
+
+
+function create_backdir() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   debmsg "$ls check if base dir exist"
+   if [ -d $basedir ]; then
+      debmsg "$ls basedir exist"
+      
+      local datetimestamp=$(date +%Y%m%d%H%M%S)
+      backdir="$basedir/fcb-$datetimestamp"
+      
+      infmsg "$ls backup dir $backdir"
+      output=$(2>&1 mkdir -p $backdir)
+      retc=$?
+      if [ $retc -ne 0 ]; then
+         errmsg "error creating backup dir $backdir"
+         errmsg "output:$output"
+      fi
+   else
+      errmsg "no base dir exist - create first"
+      retc=3
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_server() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/../etc/sys"
+   dir_contains "$dir2bak"
+   contains=$?
+   if [ $contains -eq 0 ]; then
+      infmsg "$ls backup portal sys dir"
+      tracemsg "$ls  change in $dir2bak"
+      pushd $dir2bak 2>&1 1>/dev/null
+      output=$(2>&1 /usr/bin/zip -r $backdir/fsisrvportal *)
+      retc=$?
+      tracemsg "$ls  rc=$retc"
+      popd 2>&1 1>/dev/null
+   elif [ $contains -eq 1 ]; then
+      warnmsg "$ls portal sys dir is empty"
+   elif [ $contains -eq 2 ]; then
+      warnmsg "$ls portal sys dir does not exist $dir2bak"
+   else
+      errmsg "error detecting $dir2bak"
+      retc=99
+   fi
+   
+   if !(( $retc )); then
+      local dir2bak="$progdir/../../pxe/sys"
+      dir_contains "$dir2bak"
+      contains=$?
+      if [ $contains -eq 0 ]; then
+         infmsg "$ls backup pxe sys dir"
+         tracemsg "$ls  change in $dir2bak"
+         pushd $dir2bak 2>&1 1>/dev/null
+         tracemsg "$ls  change in $dir2bak"
+         output=$(2>&1 /usr/bin/zip -r $backdir/fsisrvpxe *)
+         retc=$?
+         tracemsg "$ls  rc=$retc"
+         popd 2>&1 1>/dev/null
+      elif [ $contains -eq 1 ]; then
+         warnmsg "$ls no files found in pxe sys dir $dir2bak"
+      elif [ $contains -eq 2 ]; then
+         warnmsg "$ls pxe sys dir does not exist $dir2bak"
+      else
+         errmsg "error detecting $dir2bak"
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_templates() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/template"
+   dir_contains "$dir2bak"
+   contains=$?
+   if [ $contains -eq 0 ]; then
+      infmsg "$ls backup template dir"
+      tracemsg "$ls  change in $dir2bak"
+      pushd $dir2bak 2>&1 1>/dev/null
+      tracemsg "$ls  pack to $backdir/fsitemp"
+      output=$(2>&1 /usr/bin/zip -r $backdir/fsitemp *)
+      retc=$?
+      tracemsg "$ls  rc=$retc"
+      popd 2>&1 1>/dev/null
+   elif [ $contains -eq 1 ]; then
+      warnmsg "$ls no files or dirs in $dir2bak to backup"
+   elif [ $contains -eq 2 ]; then
+      warnmsg "$ls portal template dir does not exist $dir2bak"
+   else
+      errmsg "error detecting $dir2bak"
+      retc=99
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_rccfgs() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/../bin/ctrl"
+   dir_contains "$dir2bak"
+   contains=$?
+   if [ $contains -eq 0 ]; then
+      infmsg "$ls backup rc configs"
+      tracemsg "$ls  change in $dir2bak"
+      pushd $dir2bak 2>&1 1>/dev/null
+      tracemsg "$ls  pack to $backdir/fsitemp"
+      output=$(2>&1 /usr/bin/zip -r $backdir/fsirccfg */rc.xml)
+      retc=$?
+      tracemsg "$ls  rc=$retc"
+      popd 2>&1 1>/dev/null
+   elif [ $contains -eq 1 ]; then
+      warnmsg "$ls no files or dirs in $dir2bak to backup"
+   elif [ $contains -eq 2 ]; then
+      warnmsg "$ls portal remote config dir does not exist $dir2bak"
+   else
+      errmsg "error detecting $dir2bak"
+      retc=99
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_xen() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/../../inst"
+   pushd $dir2bak 2>&1  1>/dev/null
+   
+   for i in $(ls -d */ks/pool); do 
+      dir_contains "$dir2bak/$i"
+      contains=$?
+      if [ $contains -eq 0 ]; then
+         infmsg "$ls backup $i"
+         output=$(2>&1 /usr/bin/zip -r $backdir/fsixenpool $i)
+         retc=$?
+         if [ $retc -ne 0 ]; then
+            errmsg "cannot backup $i - abort"
+            break
+         fi
+      else
+         infmsg "$ls $i is empty"
+      fi
+   done
+   popd 2>&1 1>/dev/null
+
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_logs() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/../../inst"
+   pushd $dir2bak 2>&1  1>/dev/null
+   
+   for i in $(ls -d */ks/log); do 
+      dir_contains "$dir2bak/$i" "fo"
+      contains=$?
+      if [ $contains -eq 0 ]; then
+         infmsg "$ls backup $i"
+         local cmd="/usr/bin/zip -r $backdir/fsiinstlogs $i/"
+         tracemsg "$ls  cmd: $cmd"
+         output=$(2>&1 $cmd)
+         retc=$?
+         if [ $retc -ne 0 ]; then
+            errmsg "cannot backup $i - abort"
+            break
+         fi
+      else
+         infmsg "$ls $i is empty"
+      fi
+   done
+   popd 2>&1 1>/dev/null
+
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_certs() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local dir2bak="$progdir/cert"
+   dir_contains "$dir2bak"
+   contains=$?
+   if [ $contains -eq 0 ]; then
+      infmsg "$ls backup cert dir"
+      tracemsg "$ls  change in $dir2bak"
+      pushd $dir2bak 2>&1  1>/dev/null
+      tracemsg "$ls  pack to $backdir/fsicert"
+      output=$(2>&1 /usr/bin/zip -r $backdir/fsicert *)
+      retc=$?
+      tracemsg "$ls  rc=$retc"
+      popd 2>&1 1>/dev/null
+   elif [ $contains -eq 1 ]; then
+      warnmsg "$ls no files to backup in $dir2bak"
+   elif [ $contains -eq 2 ]; then
+      warnmsg "$ls portal cert dir does not exist $dir2bak"
+   else
+      errmsg "error detecting $dir2bak"
+      retc=99
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+function backup_portal() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local backfiles="/opt/fsi/portal/etc/*.xml /opt/fsi/portal/etc/clonejobs /opt/fsi/portal/etc/clonematrix /opt/fsi/portal/etc/emailcfg /opt/fsi/portal/etc/addkey*"
+   infmsg "$ls backup different portal config files"
+   debmsg "$ls  files: $backfiles"
+   output=$(2>&1 /usr/bin/zip -j $backdir/fsiportal $backfiles  -x *example)
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      errmsg "cannot backup portal configs"
+      errmsg "output: $output"
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+
+if [ $server -eq 0 ] && [ $templates -eq 0 ] && [ $certs -eq 0 ] && [ $portal -eq 0 ] && [ $xen -eq 0 ] && [ $instlogs -eq 0 ] && [ $rccfgs -eq 0 ]; then
+   help
+   exit 2
+fi
+
+
+debmsg "Start $progname - $ver"
+
+if [ -z $basedir ]; then
+   basedir="$progdir/../../backup"
+   infmsg "$ls take default backup dir $basedir"
+else
+   infmsg "$ls backup dir $basedir"
+fi
+
+tracemsg "$ls  create backup dir in base dir"
+create_backdir
+retc=$?
+
+if [ $retc -eq 0 ]; then
+   if [ $server -eq 1 ]; then
+      infmsg "$ls backup server configs"
+      backup_server
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $templates -eq 1 ]; then
+      infmsg "$ls backup templates"
+      backup_templates
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $certs -eq 1 ]; then
+      infmsg "$ls backup certificates"
+      backup_certs
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $xen -eq 1 ]; then
+      infmsg "$ls backup xen"
+      backup_xen
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $instlogs -eq 1 ]; then
+      infmsg "$ls backup install logs"
+      backup_logs
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $portal -eq 1 ]; then
+      infmsg "$ls backup portal configs"
+      backup_portal
+      retc=$?
+   fi
+fi
+if [ $retc -eq 0 ]; then
+   if [ $rccfgs -eq 1 ]; then
+      infmsg "$ls backup remote control configs"
+      backup_rccfgs
+      retc=$?
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

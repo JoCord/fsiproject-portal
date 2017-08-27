@@ -1,0 +1,1447 @@
+#!/bin/sh
+#
+#   central server control script for update, reboot, shutdown
+#
+#   This program is free software; you can redistribute it and/or modify it under the
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program;
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="2.0.28 - 05.05.2017"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]; do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/../tools/etc/func.sh
+
+updlst=""
+user=""
+password=""
+server=""
+srv_typ=""
+srv_ver=""
+srv_user=""
+srv_userpw=""
+cli_user=""
+cli_userpw=""
+job="no"
+autoreboot="no"
+
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  control esxi, xen or centos server to"
+   echo "    - update"
+   echo "    - controled reboot"
+   echo "    - shutdown"
+   echo "    - check"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -s <server>    server name ==> attention: name as listed in vip"
+   echo
+   tput setaf 3
+   echo "  Job:"
+   tput sgr0
+   echo "   -u             update given server"
+   echo "   -o             power off / shutdown server"
+   echo "   -r             reboot server"
+   echo "   -m             go in maintenance mode ONLY, do not update, ESXi/Xen only"
+   echo "   -e             exit maintenance mode ONLY, do not update, ESXi/Xen only"
+   echo "   -c             check maintenance mode rc=0 no mm, rc=1 mm activ"
+   echo
+   tput setaf 3
+   echo "  Optional:"
+   tput sgr0
+   echo "   -q             quiet mode"
+   echo "   -0/1/2         info/debug/trace mode"
+   echo "   -l <logfile>   override logfile name"
+   echo "   -n <username>  override username"
+   echo "   -p <password>  override password"
+   echo "   -a             auto reboot if update needed"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "   0 = ok"
+   echo "   1 = reboot server"
+   echo "   2 = wrong server typ found"
+   echo "   3 = server offline - abort update"
+   echo "   4 = unknow job to do"
+   echo "   9 = help"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "   $progname -s xen14 -m "
+   echo "   $progname -s esx10.lab.local -u"
+   echo "   $progname -e -s esx10.lab.local"
+   echo
+   exit 9
+}
+
+if [ -z $1 ]; then
+   help
+fi
+                                   
+quietmode=""                                   
+
+while getopts ":hHn:meauorcp:s:l:q012" optname; do
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "control server for update, reboot, shutdown, check"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "u")
+         job="update"
+        ;;
+      "r")
+         job="reboot"
+        ;;
+      "c")
+         job="check"
+        ;;
+      "o")
+         job="poweroff"
+        ;;
+      "a")
+         autoreboot="yes"
+        ;;
+      "m")
+         job="maintain"
+        ;;
+      "e")
+         job="exit"
+        ;;
+      "n")
+         cli_user="$OPTARG"
+        ;;
+      "p")
+         cli_userpw="$OPTARG"
+        ;;
+      "s")
+         server="$OPTARG"
+        ;;
+      "?")
+        echo "Unknown option $OPTARG"
+        help
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+   esac
+done        
+
+debmsg "Start $progname - v$ver"
+
+tracemsg "  logfile: $logfile"
+shortlog=${logfile%%.*}
+tracemsg "  short logfile: $shortlog"
+
+
+if [ "!$server" == "!" ]; then
+   echo 
+   echo "ERROR: Please give me a server (param -s)"
+   echo 
+   help
+fi
+
+function upd_esxi4() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local user=$2
+   local password=$3
+   local datadir=$4
+   local updlst="$datadir/update.lst"
+   local cmd=""
+   
+   tracemsg "$ls  server: $server"
+   tracemsg "$ls  user: $user"
+   tracemsg "$ls  pw: $password"
+   tracemsg "$ls  datadir: $datadir"
+   tracemsg "$ls  upd list: $updlst"
+   
+   if [ -z $progdir ]; then
+      errmsg "$ls var progdir not set"
+      exit 99
+   fi
+   if [ -z $datadir ]; then
+      errmsg "$ls var datadir not set - to less parameter"
+      exit 99
+   fi
+
+   if [ -f $updlst ]; then
+      infmsg "$ls  read $updlst"
+      mm_start_esxi "$server" "$password" "$user"
+      rc=$?
+               
+      if [ $rc -eq 0 ] ; then
+         while read line; do  
+            infmsg "$ls  start update for [$line] now"    
+            cmd="$progdir/esxihostupd -i --server $server --username $user --password $password -b $datadir/$line"
+            tracemsg "$ls  cmd: $cmd"
+            OUTPUT=$(2>&1 $cmd)
+            retc=$?
+            tracemsg "$ls  ==> rc=$rc"
+            tracemsg "$ls  [$OUTPUT]"
+         done < $updlst         
+      else
+         errmsg "cannot set maintenance mode"
+      fi
+
+   else
+      errmsg "cannot find update list - maybe no update needed"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function upd_esxi5() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local user=$2
+   local password=$3
+   local datadir=$4
+   local esxiupddir=$5
+   local updlst="$datadir/update.lst"
+   local cmd=""
+   local bootflag="0"                  
+   
+   tracemsg "$ls  server: $server"
+   tracemsg "$ls  user: $user"
+   tracemsg "$ls  pw: $password"
+   tracemsg "$ls  datadir: $datadir"
+   tracemsg "$ls  upd list: $updlst"
+   tracemsg "$ls  esxi source path: $esxiupddir"
+   
+   
+   if [ -z $progdir ]; then
+      errmsg "$ls var progdir not set"
+      exit 99
+   fi
+   if [ -z $datadir ]; then
+      errmsg "$ls var datadir not set - to less parameter"
+      exit 99
+   fi
+
+   if [ -f $updlst ]; then
+      infmsg "$ls  read $updlst"
+      mm_start_esxi "$server" "$password" "$user"
+      rc=$?
+
+      if [ $rc -eq 0 ] ; then
+         while read line; do  
+            infmsg "$ls  start update for [$line] now" 
+            cmd="$progdir/esxi/esxcli --server=$server --username=$user --password=$password software vib update -d $esxiupddir/$line"
+            tracemsg "$ls  cmd: $cmd"
+            OUTPUT=$(2>&1 $cmd)
+            rc=$?
+            tracemsg "$ls  ==> rc=$rc"
+            tracemsg "$ls  [$OUTPUT]"
+            if ! [ $rc -eq 0 ]; then
+               errmsg "error updating $server - abort"
+               break
+            else
+               regex_host='Message: Host is not changed'
+               regex_rebootfalse='Reboot Required: false'
+               regex_update='The update completed successfully'
+               regex_reboottrue='Reboot Required: true'
+               
+               if [[ "$OUTPUT" =~ $regex_host ]] ; then
+                  if [[ "$OUTPUT" =~ $regex_rebootfalse ]] ; then
+                     infmsg "$ls  host not changed - no reboot required!"
+                  fi
+               elif [[ "$OUTPUT" =~ $regex_update ]] ; then
+                  if [[ "$OUTPUT" =~ $regex_reboottrue ]] ; then
+                     infmsg "$ls  host changed - reboot required!"
+                     bootflag=1
+                  fi
+               else
+                  debmsg "$ls  no special return message found"
+               fi
+            fi
+         done < $updlst         
+      else
+         errmsg "cannot set maintenance mode"
+      fi
+
+   else
+      errmsg "cannot find update list - maybe no update needed"
+   fi
+
+   if [ $rc -eq 1 ]; then
+      debmsg "$ls  return code 1 means reboot - change to 2"
+      rc=2
+   fi
+   if [ $rc -eq 0 ]; then
+      if [ $bootflag -eq 1 ]; then
+         infmsg "$ls  boot flag set - reboot needed"
+         rc=1
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function upd_esxi6() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local user=$2
+   local password=$3
+   local datadir=$4
+   local esxiupddir=$5
+   local updlst="$datadir/update.lst"
+   local cmd=""
+   local bootflag="0"                  
+   
+   tracemsg "$ls  server: $server"
+   tracemsg "$ls  user: $user"
+   tracemsg "$ls  pw: $password"
+   tracemsg "$ls  datadir: $datadir"
+   tracemsg "$ls  upd list: $updlst"
+   tracemsg "$ls  esxi source path: $esxiupddir"
+   
+   
+   if [ -z $progdir ]; then
+      errmsg "$ls var progdir not set"
+      exit 99
+   fi
+   if [ -z $datadir ]; then
+      errmsg "$ls var datadir not set - to less parameter"
+      exit 99
+   fi
+
+   if [ -f $updlst ]; then
+      infmsg "$ls  read $updlst"
+      mm_start_esxi "$server" "$password" "$user"
+      rc=$?
+
+      if [ $rc -eq 0 ] ; then
+         while read line; do  
+            infmsg "$ls  start update for [$line] now" 
+            # if zip => -d <file>
+            # if vib => -v <file>
+            cmd="$progdir/esxi/esxcli --server=$server --username=$user --password=$password software vib update -d $esxiupddir/$line"
+            tracemsg "$ls  cmd: $cmd"
+            OUTPUT=$(2>&1 $cmd)
+            rc=$?
+            tracemsg "$ls  ==> rc=$rc"
+            tracemsg "$ls  [$OUTPUT]"
+            if ! [ $rc -eq 0 ]; then
+               errmsg "error updating $server - abort"
+               break
+            else
+               regex_host='Message: Host is not changed'
+               regex_rebootfalse='Reboot Required: false'
+               regex_update='The update completed successfully'
+               regex_reboottrue='Reboot Required: true'
+               
+               if [[ "$OUTPUT" =~ $regex_host ]] ; then
+                  if [[ "$OUTPUT" =~ $regex_rebootfalse ]] ; then
+                     infmsg "$ls  host not changed - no reboot required!"
+                  fi
+               elif [[ "$OUTPUT" =~ $regex_update ]] ; then
+                  if [[ "$OUTPUT" =~ $regex_reboottrue ]] ; then
+                     infmsg "$ls  host changed - reboot required!"
+                     bootflag=1
+                  fi
+               else
+                  debmsg "$ls  no special return message found"
+               fi
+            fi
+         done < $updlst         
+      else
+         errmsg "cannot set maintenance mode"
+      fi
+
+   else
+      errmsg "cannot find update list - maybe no update needed"
+   fi
+
+   if [ $rc -eq 1 ]; then
+      debmsg "$ls  return code 1 means reboot - change to 2"
+      rc=2
+   fi
+   if [ $rc -eq 0 ]; then
+      if [ $bootflag -eq 1 ]; then
+         infmsg "$ls  boot flag set - reboot needed"
+         rc=1
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function upd_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   tracemsg "$ls  server: $server"
+   tracemsg "$ls  user: $user"
+   tracemsg "$ls  pw: $password"
+
+   infmsg "$ls execute updates on $server now ..."
+   
+   local remotecommands="fsiupdate --mode inst"
+   tracemsg "$ls    cmd: $remotecommands"
+   2>&1 sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+   rc=$?
+   tracemsg "$ls  rc=$rc"
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls update ok - no reboot"
+   elif [ $rc -eq 1 ]; then
+      infmsg "$ls update ok - please reboot server and restart $progname"
+   else
+      errmsg "error updating server $server - rc=$rc"
+      errmsg "please investigate server logfile"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function upd_co() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+
+   if [ $rc -eq 0 ]; then
+      local remotecommands="yum -y upgrade"
+      tracemsg "$ls    cmd: $remotecommands"
+      2>&1 sshpass -p $password ssh $g_ssh_options $server "$remotecommands"
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         infmsg "$ls update ok - no reboot"
+      elif [ $rc -eq 1 ]; then
+         infmsg "$ls update ok - please reboot server and restart $progname"
+      else
+         errmsg "error updating server $server - rc=$rc"
+         errmsg "please investigate server logfile"
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function upd_rh() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+
+   if [ $rc -eq 0 ]; then
+      local remotecommands="yum -y upgrade"
+      tracemsg "$ls    cmd: $remotecommands"
+      2>&1 sshpass -p $password ssh $g_ssh_options $server "$remotecommands"
+      rc=$?
+      if [ $rc -eq 0 ]; then
+         infmsg "$ls update ok - no reboot"
+      elif [ $rc -eq 1 ]; then
+         infmsg "$ls update ok - please reboot server and restart $progname"
+      else
+         errmsg "error updating server $server - rc=$rc"
+         errmsg "please investigate server logfile"
+      fi
+   fi
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function reboot_rh() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls reboot server now ..."
+   
+      remotecommands="reboot"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+      rc=$?
+   fi      
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function reboot_co() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls reboot server now ..."
+   
+      remotecommands="reboot"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+      rc=$?
+   fi      
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function reboot_esxi() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+   
+   tracemsg "user: $user"
+   tracemsg "pw: $password"
+   tracemsg "server: $server"
+   
+   if [ $retc -eq 0 ] ; then
+      infmsg "$ls Reboot server $server now...."
+      $progdir/esxihostops --server $server --username $user --password $password --operation reboot
+      retc=$?
+      tracemsg "  rc=$retc"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function reboot_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   xen_host_cmd "$server" "$srv_userpw" "$srv_user" "reboot"
+   rc=$?
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function off_rh() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls reboot server now ..."
+   
+      remotecommands="poweroff"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+      rc=$?
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function off_co() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls reboot server now ..."
+   
+      remotecommands="poweroff"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+      rc=$?
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function off_esxi() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $retc -eq 0 ] ; then
+      infmsg "$ls Reboot server $server now...."
+      $progdir/esxihostops --server $server --username $user --password $password --operation shutdown
+      retc=$?
+      tracemsg "  rc=$retc"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function off_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   xen_host_cmd "$server" "$srv_userpw" "$srv_user" "shutdown"
+   rc=$?
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function xen_host_cmd() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   local job=$4
+   
+   if [ -z $server ]; then
+      errmsg "no server given - abort"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given - abort"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+   if [ -z $job ]; then
+      infmsg "$ls  don´t know what to do - abort"
+      rc=99
+   fi
+
+   if [ $rc -eq 0 ]; then
+      debmsg "$ls  all parameter found - start [$job] now"
+      local foundm=""
+      foundok=0
+      trycount=1
+      tryend=4
+      if [ $rc -eq 0 ]; then
+         while [ $trycount -le $tryend ]; do
+            tracemsg "$ls  search master in pool - attempt $trycount"
+            foundm=$($progdir/findmaster -q -l $logfile -m $server)
+            tracemsg "$ls  master=[$foundm]"
+            if [ -z $foundm ]; then
+               errmsg "cannot detect pool master"
+               sleep 10
+               trycount=$((trycount+1))
+            else
+               tracemsg "$ls  poolmaster: $foundm"
+               trycount=$((tryend+1))
+               foundok=1
+            fi
+         done
+         if [ $foundok -eq 1 ]; then
+            debmsg "$ls  found poolmaster - go on"
+         else
+            errmsg "$ls  cannot find poolmaster after $tryend attempts - abort"
+            rc=55
+         fi
+      fi
+   
+      local haon=0
+      if [ $rc -eq 0 ]; then
+         if [ "$foundm" == "$server" ]; then
+            infmsg "$ls  server is pool master"
+            tracemsg "$ls  check if ha enabled"
+            $progdir/xenha -l $logfile -s $server -c
+            haon=$?
+            if [ $haon -eq 0 ]; then
+               warnmsg "$ls   ha is on in pool $pool - turn off ha"
+               $progdir/xenha -q -l $shortlog -s $server -d
+               rc=$?
+               if [ $rc -eq 0 ]; then
+                  haon=1
+                  tracemsg "$ls  ha disabled ok"
+               else
+                  errmsg "cannot disable ha in pool $pool"
+                  rc=99
+               fi
+            fi
+         else
+            infmsg "$ls  server is not pool master"
+         fi
+      fi   
+      
+      if [ $rc -eq 0 ]; then
+         infmsg "$ls check if server is already disabled ..."   
+         remotecommands="xe host-list params=enabled --minimal hostname=$server"
+         tracemsg "$ls    cmd: $remotecommands"
+         OUTPUT=$(sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands")
+         rc=$?
+         if [ $rc -eq 0 ]; then
+            if [ "$OUTPUT" == "false" ]; then
+               debmsg "$ls  server is already in maintenance mode"
+            else
+               debmsg "$ls  server is online - start maintenance mode now"
+               infmsg "$ls disable host now ..."
+               remotecommands="xe host-disable hostname=$server"
+               tracemsg "$ls    cmd: $remotecommands"
+               OUTPUT=$(2>&1 sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands")
+               rc=$?
+               if [ $rc -ne 0 ]; then
+                  warnmsg "$ls    rc=$rc"
+                  warnmsg "$ls    [$OUTPUT]"
+                  lesssrv=".*This operation cannot be performed because it would invalidate VM failover.*"
+                  if [[ $OUTPUT =~ $lesssrv ]]; then
+                     warnmsg "$ls  to less server in pool - try to disable HA ..."
+                     infmsg "$ls  check if ha enabled"
+                     $progdir/xenha -l $logfile -s $server -c
+                     haon=$?
+                     if [ $haon -eq 0 ]; then
+                        warnmsg "$ls   ha is on in pool $pool - turn off ha"
+                        $progdir/xenha -q -l $shortlog -s $server -d
+                        rc=$?
+                        if [ $rc -eq 0 ]; then
+                           haon=1
+                           tracemsg "$ls  ha disabled ok"
+                           infmsg "$ls disable host now ..."
+                           remotecommands="xe host-disable hostname=$server"
+                           tracemsg "$ls    cmd: $remotecommands"
+                           OUTPUT=$(2>&1 sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands")
+                           rc=$?
+                           if [ $rc -ne 0 ]; then
+                              errmsg "cannot disable host $server"
+                              errmsg "[$OUTPUT]"
+                              rc=97
+                           fi
+                        else
+                           errmsg "cannot disable ha in pool $pool"
+                           rc=99
+                        fi
+                     fi
+                  else
+                     errmsg "$ls unknown error - can't set server in mm - abort"
+                     rc=98
+                  fi
+               fi
+            fi
+         else
+            errmsg "cannot check server status"
+            retc=99
+         fi
+      fi
+      
+      if [ $rc -eq 0 ]; then
+         infmsg "$ls shutdown host now ..."
+         remotecommands="xe host-$job hostname=$server"
+         tracemsg "$ls    cmd: $remotecommands"
+         sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+         rc=$?
+      fi
+   fi   
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function mm_start_esxi() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $retc -eq 0 ] ; then
+      local maintainmode=$($progdir/esxihostops --server $server --username $user --password $password --operation info | awk '/In Maintenance/{ print $5 }')
+      tracemsg "$ls   mode: $maintainmode"
+      if [ "$maintainmode" = "yes" ]; then
+         infmsg "$ls  server already in mainenance mode"
+      elif [ "$maintainmode" = "no" ]; then
+         infmsg "$ls  set $server in maintenance mode now ..."
+         $progdir/esxihostops --server $server --username $user --password $password --operation enter
+         retc=$?
+         tracemsg "$ls   ==> rc=$retc"
+      else
+         warnmsg "$ls  unknown return from esxi server for maintenance mode"
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function mm_start_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls disable host $server now ..."
+      remotecommands="xe host-disable hostname=$server"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options  $user@$server "$remotecommands"
+      rc=$?
+      tracemsg "$ls    rc=$rc"
+      if [ $rc -eq 0 ]; then
+         infmsg "$ls evacuate host ..."
+         remotecommands="xe host-evacuate hostname=$server"
+         sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+         rc=$?
+         tracemsg "$ls    rc=$rc"
+      else
+         errmsg "cannot disable host $server"
+      fi
+
+
+      # ToDo: test if disable      
+      # xe host-list params=enabled  hostname=$(hostname -s) --minimal
+      
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+function mm_exit_esxi() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $retc -eq 0 ] ; then
+      local maintainmode=$($progdir/esxihostops --server $server --username $user --password $password --operation info | awk '/In Maintenance/{ print $5 }')
+      tracemsg "$ls   mode: $maintainmode"
+      if [ "$maintainmode" = "yes" ]; then
+         infmsg "$ls  server in mainenance mode - exit now ..."
+         $progdir/esxihostops --server $server --username $user --password $password --operation exit
+         retc=$?
+         tracemsg "$ls   ==> rc=$retc"
+      elif [ "$maintainmode" = "no" ]; then
+         infmsg "$ls  $server has already left maintenance mode"
+      else
+         warnmsg "$ls  unknown return from esxi server for maintenance mode"
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function mm_exit_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      infmsg "$ls enable host $server now ..."
+      remotecommands="xe host-enable host=$server"
+      tracemsg "$ls    cmd: $remotecommands"
+      sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands"
+      rc=$?
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+function check_mm_esxi() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $retc -eq 0 ] ; then
+      local maintainmode=$($progdir/esxihostops --server $server --username $user --password $password --operation info | awk '/In Maintenance/{ print $5 }')
+      tracemsg "$ls   mode: $maintainmode"
+      if [ "$maintainmode" = "yes" ]; then
+         infmsg "$ls  server in mainenance mode"
+         rc=1
+      elif [ "$maintainmode" = "no" ]; then
+         infmsg "$ls  $server is not in maintenance mode"
+         rc=0
+      else
+         warnmsg "$ls  unknown return from esxi server for maintenance mode"
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+function check_mm_xen() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+   
+   local server=$1
+   local password=$2
+   local user=$3
+   
+   if [ -z $server ]; then
+      errmsg "no server given"
+      rc=99
+   fi
+   if [ -z $password ]; then
+      errmsg "no password given"
+      rc=99
+   fi
+   if [ -z $user ]; then
+      infmsg "$ls  no user given - take root"
+      user="root"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      debmsg "$ls get server mode ..."
+      remotecommands="xe host-list params=enabled hostname=$server --minimal"
+      tracemsg "$ls    cmd: $remotecommands"
+      mmrec=$(sshpass -p $password ssh $g_ssh_options $user@$server "$remotecommands")
+      if [ -z "$mmrec" ]; then
+         errmsg "cannot detect maintenance mode of $server"
+      elif [ "$mmrec" == "true" ]; then
+         infmsg "$ls  server $server is not in maintenance mode"   # ToDo: evtl. noch other-config auf maintenance mode: true überprüfen
+      elif [ "$mmrec" == "false" ]; then   
+         infmsg "$ls  server $server is in maintenance mode"
+         rc=1
+      else
+         errmsg "unknown result - cannot detect maintenance mode of $server"
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+
+
+
+
+debmsg "$ls get server typ esxi/xen/centos"
+get_srv_data $server
+retc=$?
+
+if [ $retc -eq 0 ] ; then
+   tracemsg "$ls found server data"
+   tracemsg "$ls   typ: $srv_typ"
+   srvonline $server
+   retc=$?
+   if [ $retc -ne 0 ] ; then
+      errmsg "server $server not online - abort update"
+      retc=3
+   fi
+fi
+
+if [ $retc -eq 0 ] ; then
+   infmsg "$ls  server $server online"      
+   
+   if [ -z $cli_user ]; then
+      tracemsg "$ls  no user override"
+   else
+      infmsg "$ls  override user from command line"
+      srv_user=$cli_user
+   fi
+   if [ -z $cli_userpw ]; then
+      tracemsg "$ls  no user password override"
+   else
+      infmsg "$ls  override user password from command line"
+      srv_userpw=$cli_userpw
+   fi
+   
+   tracemsg "$ls   job: $job"
+   case "$job" in
+      "update")
+         infmsg "$ls   start update"
+         case "$srv_typ" in
+            "esxi")
+               if [[ "$srv_ver" =~ ^4 ]]; then
+                  infmsg "    update esxi 4 server now"
+                  upd_esxi4 "$server" "$srv_user" "$srv_userpw" "$instdir/esxi$srv_ver/ks/upd"
+                  retc=$?
+               elif [[ "$srv_ver" =~ ^5 ]]; then
+                  infmsg "    update esxi 5 server now"
+                  tracemsg "    mount point: /vmfs/esxi$srv_ver/upd"
+                  upd_esxi5 "$server" "$srv_user" "$srv_userpw" "$instdir/esxi$srv_ver/ks/upd" "/vmfs/volumes/nfs_fsi_esxi$srv_ver/upd"
+                  retc=$?
+               elif [[ "$srv_ver" =~ ^6 ]]; then
+                  infmsg "    update esxi 6 server now"
+                  tracemsg "    mount point: /vmfs/esxi$srv_ver/upd"
+                  upd_esxi6 "$server" "$srv_user" "$srv_userpw" "$instdir/esxi$srv_ver/ks/upd" "/vmfs/volumes/nfs_fsi_esxi$srv_ver/upd"
+                  retc=$?
+               else
+                  errmsg "    unknown/unsupported esxi version - abort"
+                  exit 3
+               fi
+              ;;
+            "xen")
+               upd_xen "$server" "$srv_userpw" "$srv_user"
+               retc=$?
+              ;;
+            "co")
+               upd_co "$server" "$srv_user" "$srv_userpw"
+               retc=$?
+              ;;
+            "rh")
+               upd_rh "$server" "$srv_user" "$srv_userpw"
+               retc=$?
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac   
+        ;;
+     "exit")   
+         infmsg "$ls   exit maintenance mode"
+         case "$srv_typ" in
+            "esxi")
+               mm_exit_esxi "$server" "$srv_userpw" "$srv_user"
+               retc=$?
+              ;;
+            "xen")
+               mm_exit_xen "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "co")
+               tracemsg "$ls  centos has no maintenance mode - ignore"
+              ;;
+            "rh")
+               tracemsg "$ls  redhat has no maintenance mode - ignore"
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac            
+        ;;
+     "maintain")   
+         infmsg "$ls   start maintenance mode"
+         case "$srv_typ" in
+            "esxi")
+               mm_start_esxi "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "xen")
+               mm_start_xen "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "co")
+               tracemsg "$ls  centos has no maintenance mode - ignore"
+              ;;
+            "rh")
+               tracemsg "$ls  redhat has no maintenance mode - ignore"
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac
+        ;;
+     "reboot")   
+         infmsg "$ls   reboot server"
+         case "$srv_typ" in
+            "esxi")
+               reboot_esxi "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "xen")
+               reboot_xen "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "co")
+               reboot_co "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "rh")
+               reboot_rh "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac            
+        ;;
+     "poweroff")   
+         infmsg "$ls   power off server"
+         case "$srv_typ" in
+            "esxi")
+               off_esxi "$server" "$srv_userpw" "$srv_user"
+               retc=$?
+              ;;
+            "xen")
+               off_xen "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "co")
+               off_co "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "rh")
+               off_rh "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac            
+        ;;
+     "check")   
+         debmsg "$ls   check if server is in maintenance mode"
+         case "$srv_typ" in
+            "esxi")
+               check_mm_esxi "$server" "$srv_userpw" "$srv_user"
+               retc=$?
+              ;;
+            "xen")
+               check_mm_xen "$server" "$srv_userpw" "$srv_user" 
+               retc=$?
+              ;;
+            "co")
+               tracemsg "CentOS Server has no maintenance mode"
+               retc=0
+              ;;
+            "rh")
+               tracemsg "RedHat Server has no maintenance mode"
+               retc=0
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac            
+        ;;
+     "no")   
+         warnmsg "$ls   no job given - what shall I do ?"
+        ;;
+     *)
+         errmsg "Unknown job [$job]"
+         exit 4
+        ;;
+   esac   
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

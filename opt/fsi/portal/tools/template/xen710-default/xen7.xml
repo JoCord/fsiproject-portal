@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<installation mode="fresh">
+   <primary-disk gueststorage="yes">sda</primary-disk>
+   <keymap>de-latin1</keymap>
+   <hostname>##HOSTNAME##</hostname>
+   <root-password type="hash">##PWH##</root-password>
+   <source type="nfs">##FSISRV##:/opt/fsi/inst/xen710/source/</source>
+   <script stage="filesystem-populated" type="nfs">##FSISRV##:/opt/fsi/inst/xen710/ks/create-customize.sh</script>
+   <admin-interface name="eth0" proto="static">
+     <ip>##IP##</ip>
+     <subnet-mask>##NETMASK##</subnet-mask>
+     <gateway>##GATEWAY##</gateway>
+   </admin-interface>
+   <timezone>Europe/Berlin</timezone>

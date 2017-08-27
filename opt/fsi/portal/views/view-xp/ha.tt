@@ -1,0 +1,36 @@
+<br />
+[% IF haon == "H" %]
+   <div class="alert alert-success">
+   Info: HA is configure and enabled in this pool
+   </div>
+   [% TRY %]
+      <div style="display: none;">[% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.mhf_disabled"  %]</div><div class="alert alert-danger"> => Disable Flagfile with MHF exist! </div>
+   [% CATCH %]
+      </div><div class="alert alert-success">Disable Flagfile is correct</div>
+   [% END %]
+[% ELSIF haon == "h" %]
+   <div class="alert alert-warning">
+   Info: HA is configure, but disabled in this pool
+   </div>
+   [% TRY %]
+      <div style="display: none;">[% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.mhf"  %]</div><div class="alert alert-danger"> => No disable Flagfile with MHF exist! </div>
+   [% CATCH %]
+      </div><div class="alert alert-success">Disable Flagfile is correct</div>
+   [% END %]
+[% END %]
+
+   <h2>MHF:[% TRY %][% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.mhf"  %][% CATCH %][% TRY %][% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.mhf_disabled"  %][% CATCH %] no mhf file found[% END %][% END %]</h2>   
+<br />
+<br />
+[% IF session.role.match('XenAdmin') OR session.role.match('Admin') OR  session.role == "Master" %]
+   Actions:
+   <br>
+   <br>
+   [% IF haon == "H" %]
+         <a href="#myHAoff" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_two-arrow.png" alt="" /> DisableHA </a>
+         Disable HA
+   [% ELSIF haon == "h" %]
+         <a href="#myHAon" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_two-arrow.png" alt="" /> EnableHA </a>
+         Enable HA in this pool
+   [% END %]   
+[% END %]      

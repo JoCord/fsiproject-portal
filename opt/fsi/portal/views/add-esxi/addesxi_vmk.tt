@@ -1,0 +1,71 @@
+<table border="0" style="text-align: left">
+[% IF rzconfig.rz.${vienv}.esxi.vmm.size %]
+ <td style="text-align: left">
+   &nbsp;&nbsp;Choose main management port:
+   <select class="btn-group-sm selectpicker show-tick" style="display: none;" name="esxmgmt" data-width="auto">
+    [% FOREACH name IN rzconfig.rz.${vienv}.esxi.vmm.keys.sort %]
+       [% IF rzconfig.rz.${vienv}.esxi.vmm.$name.default %]
+          <option value="[% name %]" selected>[% name %] 
+          [% IF rzconfig.rz.${vienv}.esxi.vmm.$name.descr %]&nbsp;&nbsp;&nbsp;=> [% rzconfig.rz.${vienv}.esxi.vmm.$name.descr %]
+          [% END %]
+          </option>
+       [% ELSE %]
+          <option value="[% name %]" selected>[% name %]
+          [% IF rzconfig.rz.${vienv}.esxi.vmm.$name.descr %]&nbsp;&nbsp;&nbsp;=> [% rzconfig.rz.${vienv}.esxi.vmm.$name.descr %]
+          [% END %]
+          </option>
+       [% END %]
+    [% END %]
+   </select>
+  </td>
+  
+[% ELSE %]
+  <td>No management network ports configure in fsi - please contact Support Team !!!</td>
+[% END %]
+</table>
+<br/>
+<div class="scrolltable">
+   <table class="table table-striped table-condensed table-hover table-striped">
+      [% IF rzconfig.rz.${vienv}.esxi.vmk.size %]   
+         <caption style="text-align: left">&nbsp;&nbsp;Please add IP to additional vm kernel port networks attacht to this esxi server:</caption>
+         <thead>
+           <tr class="fsitableheader">
+              <td style="width: 200px;">Name</td>
+              <td style="width: 170px;">Assign with IP</td>
+              <td style="width: 50px;">vSw.</td>
+              <td style="width: 50px;">VLAN</td>
+              <td style="width: 50px;">flags</td>
+              <td style="width: 50px;">flags</td>
+              <td style="width: 110px;">netmask</td>
+              <td style="width: 110px;">gateway</td>
+              <td style="width: 120px;">loadbalance</td>
+              <td style="width: 150px;">nic</td>
+              <td style="width: 178px;">descr.</td>
+           </tr>
+         </thead>
+   
+         <tbody style="height:501px;" >    
+               [% FOREACH port IN rzconfig.rz.${vienv}.esxi.vmk.keys.sort %]
+                  <tr>
+                     <td style="width: 200px;">[% port %] : </td>
+                     <td style="width: 170px;"><input type="text" name="[% port %]" autocomplete="on" 
+                      [% IF rzconfig.rz.${vienv}.esxi.vmk.$port.cnet %]placeholder="[% rzconfig.rz.${vienv}.esxi.vmk.$port.cnet %]"
+                      [% END %]
+                     /></td>
+                     <td style="width: 50px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.sw %]</td>
+                     <td style="width: 50px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.vlan %]</td>
+                     <td style="width: 50px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.flags %]</td>
+                     <td style="width: 50px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.cf %]</td>
+                     <td style="width: 110px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.nm %]</td>
+                     <td style="width: 110px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.gw %]</td>
+                     <td style="width: 120px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.lb %]</td>  
+                     <td style="width: 150px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.nics %]</td>
+                     <td style="width: 178px;">[% rzconfig.rz.${vienv}.esxi.vmk.$port.descr %]</td>
+                  </tr>
+               [% END %]
+         </tbody> 
+      [% ELSE %]
+         <tr><td>&nbsp;&nbsp;&nbsp;No management vmkernel network ports configure in fsi - please contact Support Team !!!</td></tr>
+      [% END %]
+   </table>
+</div>

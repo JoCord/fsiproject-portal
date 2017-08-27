@@ -1,0 +1,45 @@
+<div id="myUpdateVIScriptsESXi" class="modal fade bs-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Update ESXi fsi Scripts</h2>
+   </div>
+
+   <div class="modal-body">
+       <div class="alert alert-warning">
+         Do you really want to update the tool scripts on server [% entries.db_srv %] ?
+       </div>
+   </div>
+   
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="UpdateVIScriptsESXi" value="[% entries.db_srv %]" ><img src="/images/16_Apps-system-software-update-icon2.png" alt="" /> UpdateScripts</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+
+[% use MAC = String entries.db_mac %]
+[% macadr = MAC.replace(':','-') %]
+[% kscfg = "/opt/fsi/pxe/sys/$macadr/ks-${entries.item('db_typ')}.cfg" %]
+[% rcini = "/opt/fsi/portal/etc/sys/$macadr/rc.ini" %]
+
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   &nbsp;&nbsp;<a href="#myUpdateVIScriptsESXi" role="button" class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="modal"><img src="/images/16_Apps-system-software-update-icon2.png" alt="" /> UpdScripts</a>
+   &nbsp;&nbsp;Update and copy all fsi Management Scripts to server
+
+   [% IF session.role.match('Admin') OR  session.role == "Master" %]
+   <br><br>
+   &nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% kscfg  %]:[% entries.db_srv %]:space" ><img src="/images/16_edit-file-icon.png" alt="" /> EditConfig</button> 
+   &nbsp;&nbsp;Edit ESXi server configuration file
+      <br><br><br>
+      &nbsp;&nbsp;<button class="btn [% global.button_typ %] [% global.button_size %]" name="EditFile" value="[% rcini %]:[% entries.db_srv %]:space" ><img src="/images/16_edit-file-icon.png" alt="" /> Edit RC&nbsp;&nbsp;&nbsp;</button> 
+      &nbsp;&nbsp;Edit Remote Control config file
+   [% END %]
+   
+   <br>
+
+</div>

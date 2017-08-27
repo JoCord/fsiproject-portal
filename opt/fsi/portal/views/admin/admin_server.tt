@@ -1,0 +1,122 @@
+<table class="table borderless">
+  <tbody>
+   <tr>
+      <td style="width: 150px;">
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="ImportSrv" value="yes" ><img src="/images/16_upload-server-icon.png" alt="" /> Import server from</button></span>
+      </td>
+      <td>
+          <div style="position:relative;">
+            <a class='btn [% global.button_typ %] [% global.button_size %]' href='javascript:;'>
+               Choose File...
+               <input type="file" style='position:absolute;z-index:2;top:0;left:0;filter: alpha(opacity=0);-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";opacity:0;background-color:transparent;color:transparent;' name="file" size="40"  onchange='$("#upload-file-info").html($(this).val());'>
+            </a>
+            &nbsp;<span class='label label-warning' id="upload-file-info">
+         </div>      
+      </td>
+      <td>
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td>
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="CleanSSHKeysXen" value="yes" ><img src="/images/16_pan-icon.png" alt=""       > Clean XenServer keys</button>
+      </td>
+      <td>
+         Clean all XenServer SSH keys
+      </td>
+   </tr>
+   <tr>
+      <td>
+         <button class="btn [% global.button_typ %] [% global.button_size %]" name="CleanSSHKeysESXi" value="yes" ><img src="/images/16_pan-icon.png" alt=""       > Clean ESXi keys</button>
+      </td>
+      <td>
+         Clean all ESXi SSH keys
+      </td>
+   </tr>
+   [% IF session.role.match('AddServer') OR  session.role == "Master" OR session.role.match('Admin') %]
+   <tr>
+      <td>
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td>
+             [% IF rzconfig.rz.${vienv}.xensrv.size %]
+                <a class="btn [% global.button_typ %] [% global.button_size %]" href="/addxen"><img src="/images/ctrl/xen.png" style="width:20px;height:19px;" alt="" > Add XenServer</a>
+             [% END %]
+      </td>
+      <td>
+         Add a new Citrix XenServer
+      </td>
+   </tr>
+   <tr>
+      <td>
+         <div class="btn-group [% global.action_button_group %]">
+           <button class="btn [% global.button_typ %] [% global.button_size %] dropdown-toggle" data-toggle="dropdown"><img src="/images/16_edit-file-icon.png" alt="" > Edit update files <span class="caret"></button>
+              <ul class="dropdown-menu" style="height: auto;max-height: 200px; overflow-x: hidden;">
+                 [% FOREACH ver IN rzconfig.rz.${vienv}.xensrv.ver.keys.sort %]
+                     <li class="menubut"><button class="menubut" name="EditFile" value="/opt/fsi/inst/xen[% ver %]/ks/upd/update.lst:XenServer [% ver %]:space" >edit for XenServer v[% ver %]</button>
+                 [% END %]
+              </ul>
+         </div>
+      </td>
+      <td>
+         edit XenServer update file on fsi deploy server or create a new one if no exist
+      </td>
+   </tr>
+   <tr>
+      <td>
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td>
+             [% IF rzconfig.rz.${vienv}.esxi.size %]
+                <a class="btn [% global.button_typ %] [% global.button_size %]" href="/addesxi"><img src="/images/ctrl/vmware.png" style="width:20px;height:19px;" alt="" > Add ESXi Server</a>
+             [% END %]
+      </td>
+      <td>
+         Add a new VMware ESXi Server
+      </td>
+   </tr>
+   <tr>
+      <td>
+         <div class="btn-group [% global.action_button_group %]">
+           <button class="btn [% global.button_typ %] [% global.button_size %]" data-toggle="dropdown"><img src="/images/16_edit-file-icon.png" alt="" > Edit update files <span class="caret"></button>
+              <ul class="dropdown-menu" style="height: auto;max-height: 200px; overflow-x: hidden;">
+                 [% FOREACH ver IN rzconfig.rz.${vienv}.esxi.ver.keys.sort %]
+                     <li class="menubut"><button class="menubut" name="EditFile" value="/opt/fsi/inst/esxi[% ver %]/ks/upd/update.lst:ESXi [% ver %]:space" >edit for ESXi v[% ver %]</button>
+                 [% END %]
+              </ul>
+         </div>
+      </td>
+      <td>
+         edit ESXi update file on fsi deploy server or create a new one if no exist
+      </td>
+   </tr>
+   <tr>
+      <td>
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td>
+             [% IF rzconfig.rz.${vienv}.lx.size %]
+                <a class="btn [% global.button_typ %] [% global.button_size %]" href="/addlx"><img src="/images/ctrl/linux.png" style="width:20px;height:19px;" alt="" > Add Linux Server</a>
+             [% END %]
+      </td>
+      <td>
+         Add a new RedHat or CentOS Linux Server
+      </td>
+   </tr>
+ 
+   [% END %]
+   
+  </tbody>
+</table>
+

@@ -1,0 +1,46 @@
+<div id="myUserHelp" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+        <h2 id="myModalLabel">Help: User Profile Edit</h2>
+      </div>
+   
+      <div class="modal-body">
+         <table border="0" style="width: 100%">
+           <tbody>
+             <tr>
+               <td style="width: 150px">
+                  Role:
+               </td>
+               <td>show the users access roles</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>
+                  Password: <input type="text" autocomplete="on" placeholder="ple..." size=8/> 
+               </td>
+               <td>user can change his password</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>
+                  <button class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_Sign-Select-icon.png" alt=""        > Change Password </button><br>
+               </td>
+               <td>commit user password change</td>
+             </tr>
+             <tr><td><br></td></tr>
+
+
+
+
+           </tbody>
+         </table>
+      </div>
+   
+      <div class="modal-footer">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+   </div>
+ </div>
+</div>

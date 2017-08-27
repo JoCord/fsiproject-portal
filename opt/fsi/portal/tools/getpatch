@@ -1,0 +1,551 @@
+#!/bin/sh
+#
+#   getpatch - get patch level of server
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.8 - 27.1.2017"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]; do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   #clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  get patch level for specify server(s)"
+   echo
+   tput setaf 3
+   echo "  Server only parameter:"
+   tput sgr0
+   echo "   -s <server>       server to get patche list"
+   echo
+   tput setaf 3
+   echo "  Multiple server parameter:"
+   tput sgr0
+   echo "   -c <vc>           clean all esxi server on virtual center or ALL"
+   echo "   -m <model>        clean all linux server for model or ALL"
+   echo "   -t <tree>         clean all server for specify source tree"
+   echo "   -y <typ>          clean all server for specify typ"
+   echo "   -p <pool>         clean all xen server in specify pool or ALL"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -n                do not clean - only list server"
+   echo
+   echo "   -q                quiet mode"
+   echo "   -0/1/2            info/debug/trace mode"
+   echo "   -l <logfile>      other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no server "
+   echo "    3 = offline"
+   echo "    4 = wrong ssh key"
+   echo "    5 = connection refused"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -s esx1.lab.local"
+   echo "    $progname -s esx1.lab.local"
+   echo "    $progname -s esx1"
+   echo "    $progname -c vcdev.lab.local"
+   echo "    $progname -m base"
+   echo "    $progname -t xen620_hp"
+   echo "    $progname -y rh"
+   echo "    $progname -v ALL"
+   echo "    $progname -p EDV_620_XA_01"
+   echo
+}
+
+
+server=""
+model=""
+tree=""
+pool=""
+vc=""
+typ=""
+nocheck=0
+
+while getopts ":s:l:hHq012c:m:t:p:y:in" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "get the patch level of a server"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         #debmsg " quiet mode"
+         quietmode=" -q "
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server="$OPTARG"
+         debmsg " srv: $server"
+        ;;
+      "c")
+         vc="$OPTARG"
+         debmsg " vc: $vc"
+        ;;
+      "m")
+         model="$OPTARG"
+         debmsg " model: $model"
+        ;;
+      "n")
+         nocheck=1
+         debmsg " no check - only list"
+        ;;
+      "y")
+         typ="$OPTARG"
+         debmsg " typ: $typ"
+        ;;
+      "t")
+         tree="$OPTARG"
+         debmsg " source tree: $tree"
+        ;;
+      "p")
+         pool="$OPTARG"
+         debmsg " xen pool: $pool"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+if [ -z "$typ" ] && [ -z "$pool" ] && [ -z "$tree" ] && [ -z "$model" ] && [ -z "$vc" ] && [ -z "$server" ]; then
+   help
+   exit 2
+fi
+
+getpatch_xen() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local fqdn=$1
+   local shortname=$2
+   local user=$3
+   local passwort=$4
+   
+   if [ $retc -eq 0 ]; then
+      debmsg "$ls get uuid from host $fqdn"
+      local cmd='sshpass -p '$passwort' ssh '$g_ssh_options' '$user'@'$fqdn' "xe host-list name-label='$shortname' --minimal" 2>&1 | tail -1'
+      tracemsg "$ls cmd: $cmd"
+      uuid=$(sshpass -p $passwort ssh $g_ssh_options $user@$fqdn "xe host-list name-label=$shortname --minimal" 2>&1 | tail -1)
+      retc=$?
+      debmsg "$ls uuid: $uuid"
+      if [ $retc -ne 0 ]; then
+         debmsg "$ls cannot get patchlist [$patchlist]"
+      else
+         if [ -z "$uuid" ]; then
+            debmsg "ERROR: return uuid empty - abort"
+            retc=99
+         else
+            case $uuid in
+              *"Host key verification failed"*) 
+                 debmsg "ERROR: cannot connect to server $fqdn - SSH keys wrong"
+                 retc=4            
+               ;;
+              *"Connection refused"*) 
+                 debmsg "ERROR: cannot connect to server $fqdn - connection refused"
+                 retc=5            
+               ;;
+              *"INTERNAL_ERROR"*) 
+                 debmsg "ERROR: cannot connect to server $fqdn - connection refused"
+                 retc=5
+               ;;
+              *)
+                 debmsg "$ls get patch list"
+                 list=$(sshpass -p $passwort ssh $g_ssh_options $user@$fqdn "xe patch-list params=name-label,hosts" 2>/dev/nul| grep -i -B2 $uuid | grep -i "name-label" | sort -f | awk '{print $5}' )
+                 plist=$(echo $list | tr -d '\r')
+                 if [ "$quietmode" == " -q " ]; then
+                    echo $list
+                 else
+                    infmsg "$ls srv: $shortname => patches: [$plist]"
+                 fi
+               ;;
+            esac
+         fi
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+   getpatch_esxi() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+   local user=$4
+   local userpw=$5
+
+   if [ $retc -eq 0 ]; then
+      debmsg "$ls get patch level from $shortname"
+      cmd="sshpass -p $userpw ssh $g_ssh_options $user@$fqdn vmware -v "
+      tracemsg "$ls  cmd $cmd"
+      patchlist=$($cmd)
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         debmsg "$ls got patch levels"
+      elif [ $retc -eq 6 ] || [ $retc -eq 255 ]; then
+         warnmsg "$ls   maybe problem with ssh key - call sshkeyclean"
+         $progdir/sshkeyclean -s $fqdn $quietmode
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            infmsg "$ls   try again ..."
+            patchlist=$($cmd)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               infmsg "$ls  got patch levels"
+            else
+               errmsg "unknown error - abort"
+               errmsg "$patchlist"
+            fi
+         fi
+      else
+         errmsg "unknown error - abort"
+         errmsg "$patchlist"
+      fi
+   fi  
+   
+   if [ $retc -eq 0 ]; then
+      if [ -z "$patchlist" ]; then
+         errmsg "something wrong getting patch level from $srv"
+         retc=99
+      else
+         tracemsg "$ls  cut uneeded words from $patchlist"
+         # VMware ESXi 5.1.0 build-1483097      
+         patchlist=${patchlist#VMware}
+         patchlist=${patchlist/build-/}   
+         if [ "$quietmode" == " -q " ]; then
+            echo $patchlist
+         else
+            infmsg "$ls  srv: $shortname => patchlist: $patchlist"
+         fi
+      fi 
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+getpatch_co() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+   local user=$4
+   local userpw=$5
+
+   if [ $retc -eq 0 ]; then
+      infmsg "$ls  get patch level from $server"
+      cmd="sshpass -p $userpw ssh $g_ssh_options $user@$fqdn cat /etc/redhat-release"
+      tracemsg "$ls  cmd $cmd"
+      patchlist=$($cmd)
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         infmsg "$ls  got patch levels"
+      elif [ $retc -eq 6 ] || [ $retc -eq 255 ]; then
+         warnmsg "$ls   maybe problem with ssh key - call sshkeyclean"
+         $progdir/sshkeyclean -s $srv_fqdn $quietmode
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            infmsg "$ls   try again ..."
+            patchlist=$($cmd)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               infmsg "$ls  got patch levels"
+            else
+               errmsg "unknown error - abort"
+               errmsg "$patchlist"
+            fi
+         fi
+      else
+         errmsg "unknown error - abort"
+         errmsg "$patchlist"
+      fi
+   fi  
+   
+   if [ $retc -eq 0 ]; then
+      if [ -z "$patchlist" ]; then
+         errmsg "something wrong getting patch level from $server"
+         rc=99
+      else
+         tracemsg "$ls    cut uneeded words from $patchlist"
+         patchlist="${patchlist//[!0-9\.]/}"
+         if [ "$quietmode" == " -q " ]; then
+            echo $patchlist
+         else
+            infmsg "$ls  patchlist: $patchlist"
+         fi
+      fi 
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+getpatch_rh() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local shortname=$1
+   local fqdn=$2
+   local ip=$3
+   local user=$4
+   local userpw=$5
+
+   if [ $retc -eq 0 ]; then
+      infmsg "$ls  get patch level from $server"
+      cmd="sshpass -p $userpw ssh $g_ssh_options $user@$fqdn cat /etc/redhat-release"
+      tracemsg "$ls  cmd $cmd"
+      patchlist=$($cmd)
+      retc=$?
+      if [ $retc -eq 0 ]; then
+         infmsg "$ls  got patch levels"
+      elif [ $retc -eq 6 ] || [ $retc -eq 255 ]; then
+         warnmsg "$ls   maybe problem with ssh key - call sshkeyclean"
+         $progdir/sshkeyclean -s $srv_fqdn $quietmode
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            infmsg "$ls   try again ..."
+            patchlist=$($cmd)
+            retc=$?
+            if [ $retc -eq 0 ]; then
+               infmsg "$ls  got patch levels"
+            else
+               errmsg "unknown error - abort"
+               errmsg "$patchlist"
+            fi
+         fi
+      else
+         errmsg "unknown error - abort"
+         errmsg "$patchlist"
+      fi
+   fi  
+   
+   if [ $retc -eq 0 ]; then
+      if [ -z "$patchlist" ]; then
+         errmsg "something wrong getting patch level from $server"
+         rc=99
+      else
+         tracemsg "$ls    cut uneeded words from $patchlist"
+         patchlist="${patchlist//[!0-9\.]/}"
+         if [ "$quietmode" == " -q " ]; then
+            echo $patchlist
+         else
+            infmsg "$ls  patchlist: $patchlist"
+         fi
+      fi 
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+getpatch() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local servertyp=$2
+   local serverfqdn=$3
+   local serverip=$4
+   local rootuser=$5
+   local rootpw=$6
+   
+   
+   if [ $retc -eq 0 ]; then
+      tracemsg "$ls detect online status for [$fqdn]"
+      srvonline $serverfqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         tracemsg "$ls  server online"
+         
+         case "$servertyp" in
+            "esxi")
+               getpatch_esxi $server $serverfqdn $serverip $rootuser $rootpw
+               retc=$?
+              ;;
+            "xen")
+               getpatch_xen $serverfqdn $server $rootuser $rootpw
+               retc=$?
+              ;;
+            "co")
+               getpatch_co $server $serverfqdn $serverip $rootuser $rootpw
+               retc=$?
+              ;;
+            "rh")
+               getpatch_rh $server $serverfqdn $serverip $rootuser $rootpw
+               retc=$?
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi/xen/co possible"
+               exit 2
+              ;;
+         esac   
+
+      else
+         warnmsg "$ls server [$serverfqdn] is not online - ignore"
+         retc=3
+      fi
+   fi
+   
+   
+   
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+   
+debmsg "Start $progname - $ver"
+
+if [ -z "$server" ]; then
+   for dirmac in $macdir/* ; do
+      mac="${dirmac##*/}"
+      mac=$(echo $mac | tr 'A-Z' 'a-z')
+      if [[ ! $mac =~ $regex_mac ]]; then
+         tracemsg "$ls [$mac] is not a valid MAC / Config directory - ignore"
+      else
+         get_srv_data $mac
+         retc=$?
+         if [ $retc -eq 0 ]; then
+            if [ "$tree" != "" ] && [ "$tree" == "$srv_tree" ] && [ "$srv_tree" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for tree $srv_tree"
+               if [ $nocheck -eq 0 ]; then
+                  getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+                  retc=$?
+               fi
+            elif [ "$typ" != "" ] && [ "$typ" == "$srv_typ" ] && [ "$srv_typ" != "" ]; then
+               infmsg "$ls  server $srv_shortname found for typ $srv_typ"
+               if [ $nocheck -eq 0 ]; then
+                  getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+                  retc=$?
+               fi
+            elif [ "$model" != "" ] && [ "$srv_model" != "-" ]; then   
+               if [ "$model" == "ALL" ] || [ "$model" == "$srv_model" ]; then
+                  infmsg "$ls  linux server $srv_shortname found for model $srv_model"
+                  if [ $nocheck -eq 0 ]; then
+                     getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+                     retc=$?
+                  fi
+               fi
+            elif [ "$vc" != "" ] && [ "$srv_vc" != "-" ]; then
+               if [ "$vc" == "ALL" ] || [ "$vc" == "$srv_vc" ]; then
+                  infmsg "$ls  esxi server $srv_shortname found for vc $srv_vc"
+                  if [ $nocheck -eq 0 ]; then
+                     getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+                     retc=$?
+                  fi
+               fi
+            elif [ "$pool" != "" ] && [ "$srv_pool" != "-" ]; then   
+               if [ "$pool" == "ALL" ] || [ "$pool" == "$srv_pool" ]; then
+                  infmsg "$ls  xen server $srv_shortname found for pool $srv_pool"
+                  if [ $nocheck -eq 0 ]; then
+                     getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+                     retc=$?
+                  fi
+               fi
+            else
+               tracemsg "$ls  server $srv_shortname not in filter - ignore"
+            fi
+         fi
+      fi
+   done
+else
+   get_srv_data $server
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      warnmsg "$ls cannot find server data for $server - abort"
+   else
+      getpatch $srv_shortname $srv_typ $srv_fqdn $srv_ip $srv_user $srv_userpw
+      retc=$?
+   fi
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc
+
+
+

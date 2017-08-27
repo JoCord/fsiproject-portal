@@ -1,0 +1,81 @@
+<br />
+[% IF nets.size %]
+   <div class="list" style="width:1238px;"> 
+      <table id="fsi_xpnet" class="tablesorter table table-condensed table-hover table-striped">
+        <thead>
+          <tr class="fsitableheader">
+               <th width="400px">network name</th>
+               <th width="290px">uuid</th>
+               <th width="40px">mtu</th>
+               <th width="60px">bridge</th>
+               <th width="448px">description</th>
+          </tr>
+       </thead>
+         <tbody id="fsi_xpnetbody">
+            [% FOREACH uuid IN nets.keys.sort %]
+              [% found = 0 %]
+              [% newtr = "" %]
+              [% FOREACH keyvalue IN nets.$uuid.item('other-config').split(';') %]
+                 [% FOREACH key IN keyvalue.split(':') %]
+                    [% IF found == 1 %]
+                        [% IF key == " true" %]
+                             [% newtr = "success" %]
+                        [% END %]   
+                        [% found = 0 %]
+                    [% END %]
+                    [% IF found == 2 %]
+                        [% IF key == " true" %]
+                             [% newtr = "warning" %]
+                        [% END %]   
+                        [% found = 0 %]
+                    [% END %]
+                    [% IF found == 3 %]
+                        [% IF key == " false" %]
+                             [% newtr = "" %]
+                        [% END %]   
+                        [% found = 0 %]
+                    [% END %]
+                    [% IF key.match('^is_guest_installer_network____wird ned verwendet____$') %]
+                        [% found = 1 %]
+                    [% END %]   
+                    [% IF key.match('^is_host_internal_management_network____wird ned verwendet____$') %]
+                        [% found = 2 %]
+                    [% END %]   
+                    [% IF key.match('^automatic$') %]
+                        [% found = 3 %]
+                    [% END %]   
+                 [% END %]
+              [% END %]   
+              [% IF nets.$uuid.item('bridge').match('^xenbr') %]         
+               [% newtr = "info" %]              
+              [% END %]
+              
+              [% IF nets.$uuid.item('bridge') != "xenapi" %]
+               <tr class="[% newtr %]">
+                  <td width="400px">[% nets.$uuid.item('name-label') %]</td>
+                  <td width="290px">[% uuid %]</td>
+                  <td width="40px">[% nets.$uuid.item('MTU') %]</td>
+                  <td width="60px">[% nets.$uuid.item('bridge') %]</td>
+                  <td width="448px">[% nets.$uuid.item('name-description') %]</td>
+               </tr>
+              [% END %]
+            [% END %]
+            [% FOREACH uuid IN nets.keys.sort %]
+              [% IF nets.$uuid.item('bridge') == "xenapi" %]
+               <tr class="danger">
+                  <td width="400px">[% nets.$uuid.item('name-label') %]</td>
+                  <td width="290px">[% uuid %]</td>
+                  <td width="40px">[% nets.$uuid.item('MTU') %]</td>
+                  <td width="60px">[% nets.$uuid.item('bridge') %]</td>
+                  <td width="448px">[% nets.$uuid.item('name-description') %]</td>
+               </tr>
+              [% END %]
+            [% END %]
+
+         </tbody>
+      </table>
+   </div>
+
+[% ELSE %]
+   <br/> no xenserver networks found or pool master not detected
+[% END %]   

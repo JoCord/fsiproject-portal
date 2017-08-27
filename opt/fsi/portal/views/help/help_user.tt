@@ -1,0 +1,65 @@
+<div id="myUserHelp" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+        <h2 id="myModalLabel">Help: User Administration</h2>
+      </div>
+   
+      <div class="modal-body">
+         <table border="0" style="width: 100%">
+           <tbody>
+             <tr>
+               <td>control:</td>
+             </tr>
+             <tr>
+               <td style="width: 150px">
+                  <button class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_Sign-Error-icon.png" alt=""        > Remove </button> 
+               </td>
+               <td>remove user</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>
+                  <button class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_Sign-Select-icon.png" alt=""        > Take Change </button>
+               </td>
+               <td>Commit changes and write config file</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>
+                  <button class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_add-icon.png" alt=""                > User Add </button>
+               </td>
+               <td>add new (empty) user to config - change after add login name</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>
+                  <button class="btn [% global.button_typ %] [% global.button_size %]"><img src="/images/16_Sign-Stop-icon.png" alt=""          > Abort </button>
+               </td>
+               <td>Abort user administration</td>
+             </tr>
+             <tr><td><br></td></tr>
+             <tr><td><br></td></tr>
+             <tr>
+               <td>login:</td>
+               <td>user login name</td>
+             </tr>
+             <tr>
+               <td>password:</td>
+               <td>if starts with {SSHA} it is a password hash, to change easy enter new password</td>
+             </tr>
+             <tr>
+               <td>role:</td>
+               <td>change the roles the user have access to</td>
+             </tr>
+           </tbody>
+         </table>
+      </div>
+   
+      <div class="modal-footer">
+        <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+   </div>
+ </div>
+</div>

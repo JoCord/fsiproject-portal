@@ -1,0 +1,79 @@
+<table>
+   <tbody>
+      <tr>
+         <td>
+            <table style="width:960px">
+               <caption><h2>Linux server list:</h2>&nbsp;<input type="checkbox" name="Marked" value="0" onclick="CheckTable(this,'[% lxmodel %]')" />&nbsp;mark all</caption>
+               <tbody>               
+                  <tr>
+                     <td valign="top">
+                        <div class="scrolltable">
+                         <table style="width: 950px" class="table table-striped table-condensed table-hover table-striped">
+                           <tbody style="height:570px;" >    
+                              [% FOREACH id IN entries.keys.nsort.reverse %]
+                                 [% IF entries.$id.db_control == lxmodel %]
+                                 
+                                    [% INCLUDE 'include/inc_srv_liste_marker.tt' %]
+                                    
+                                 [% END %]   
+                              [% END %]
+                           </tbody> 
+                         </table>
+                        </div>
+                     </td>
+                  </tr>
+               </tbody>    
+            </table>
+         </td>
+
+         <td valign="top">
+            <table style="width:280px">
+               <caption><h2>Info:</h2></caption>
+               <tbody>
+               <td valign="top">
+                  </br>
+                  [% FOREACH id IN entries.keys.nsort.reverse %]
+                    [% IF entries.$id.db_control == lxmodel %]
+                       [% IF entries.$id.s_instrun == 'R' %]
+                          <div class="alert alert-success">
+                           [% entries.$id.db_srv %] running installation 
+                          </div>
+                       [% END %]
+                    [% END %]
+                  [% END %]
+                  
+                  [% FOREACH id IN entries.keys.nsort.reverse %]
+                     [% IF entries.$id.db_control == lxmodel %]
+                        [% IF entries.$id.s_instrun == "w" %]
+                           <div class="alert alert-success">
+                           Warning: installation waiting on [% entries.$id.db_srv %]
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_instrun == "r" %]
+                           <div class="alert alert-success">
+                           Info: installation running on [% entries.$id.db_srv %]
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_block == "b" %]
+                           <div class="alert alert-info">
+                           Attention: server [% entries.$id.db_srv %] is blocked
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_msg %]
+                           <div class="alert alert-danger">
+                           [% entries.$id.s_msg %]
+                           </div>
+                           [% LAST %]
+                        [% END %]
+                     [% END %]
+                  [% END %]
+
+      
+               </td>
+               </tbody>
+            </table>
+         </td>   
+      </tr>
+   <tbody>
+</table>   
+[% INCLUDE include/action_markserver.tt %]   

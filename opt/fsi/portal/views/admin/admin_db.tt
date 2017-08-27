@@ -1,0 +1,16 @@
+<table class="table borderless">
+   <tbody>
+      <tr>
+       <td style="width: 140px;"><button class="btn [% global.button_typ %] [% global.button_size %]" name="dbdel" value="yes" ><img src="/images/16_Misc-Delete-Database-icon.png" alt="" />DelDB</input> </td>
+       <td style="width: 1108px;">Delete database - please stay in admin menu until a new db is created</td>
+      </tr>
+      <tr>
+       <td style="width: 140px;"><button class="btn [% global.button_typ %] [% global.button_size %]" name="dbnew" value="yes" ><img src="/images/16_Apps-system-software-update-icon.png" alt="" />NewDB</input> </td>
+       <td style="width: 1108px;">Create new database and delete old one</td>
+      </tr>
+      <tr>
+       <td style="width: 140px;"><button class="btn [% global.button_typ %] [% global.button_size %]" name="dbupdate" value="yes"><img src="/images/16_Zoom-In-icon.png" alt="" />UpdateDB</input> </td>
+       <td style="width: 1108px;">Search for new server configs and add to database</td>
+      </tr>
+   </tbody>
+</table>

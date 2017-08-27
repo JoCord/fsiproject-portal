@@ -1,0 +1,417 @@
+#!/bin/sh
+#
+#   findmaster - find master in xen pool
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.19 - 13.9.2016"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+g_poolmaster=""
+g_printmode="short"
+poolmaster=""
+poolname=""
+foundmaster=""
+quietmode=""
+
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  find and return master"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -m <pool master>   give ip or longname - control if this" 
+   echo "                      master and return true master if not"
+   echo "   -p <pool name>     poolname - return current master (high prio)"
+   echo
+   echo "   -s                 print short name of master server (default)"
+   echo "   -f                 print fqdn of master server"
+   echo "   -i                 print ip of master server"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no pool member / master"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -m test22.lab.local -i"
+   echo "    $progname -m test23 -f"
+   echo "    $progname -m 10.10.10.81"
+   echo "    $progname -m 10.10.10.81 -p KEIN_POOL_KEIN_ERGEBNIS "
+   echo "    $progname -m unknownserver.aber.poolok -p EDV_620_XA_01"
+   echo
+   exit 1
+}
+
+function printmaster() {
+   local rc=0
+   tracemsg "$ls Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local poolmaster=$1
+   local getmaster=""
+   
+   if [ -z $poolmaster ]; then
+      rc=99
+      debmsg "ERROR: no poolmaster parameter given"
+   else
+      debmsg "$ls entered server to test: $poolmaster"
+   fi
+   if [ $rc -eq 0 ]; then
+      get_srv_data $poolmaster
+      rc=$?
+   fi      
+   
+   if [ $rc -eq 0 ]; then
+      tracemsg "$ls detect online status for [$srv_fqdn]"
+      srvonline $srv_fqdn
+      srvon=$?
+      if [ $srvon -eq 0 ]; then
+         debmsg "$ls test if $srv_fqdn master ?"
+         tracemsg "$ls  cmd: sshpass -p ****** ssh $g_ssh_options $srv_user@$srv_fqdn xe host-list uuid=\$(xe pool-list params=master --minimal) params=name-label --minimal"
+         getmaster="$(sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$srv_fqdn xe host-list uuid=\$\(xe pool-list params=master --minimal\) params=name-label --minimal)"
+         rc=$?
+         if [ $rc -eq 0 ]; then
+            if [ ! -z $getmaster ]; then
+               tracemsg "$ls  get master: $getmaster"
+               if [ "$getmaster" == "$srv_shortname" ]; then
+                  debmsg "$ls found master same as searched server"
+                  tracemsg "$ls  cmd: sshpass -p ***** ssh $g_ssh_options $srv_user@$srv_fqdn xe pool-list params=name-label --minimal"
+                  getpool="$(sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$srv_fqdn xe pool-list params=name-label --minimal)"
+                  if [ -z $getpool ]; then
+                     debmsg "$ls  $getmaster is standalone or not master"
+                  else
+                     if [ "$getpool" == "$srv_pool" ]; then
+                        debmsg "$ls given server $srv_fqdn is a poolmaster from $getpool"
+                        if [ $g_printmode == "ip" ]; then
+                           if [ "$quietmode" == " -q " ]; then
+                              echo $srv_ip
+                           else
+                              infmsg "$ls  pool master: $srv_ip"
+                           fi   
+                           foundmaster=$srv_ip
+                        elif [ $g_printmode == "full" ]; then
+                           if [ "$quietmode" == " -q " ]; then
+                              echo $srv_fqdn
+                           else
+                              infmsg "$ls  pool master: $srv_fqdn"
+                           fi
+                           foundmaster=$srv_fqdn
+                        else # default short
+                           if [ "$quietmode" == " -q " ]; then
+                              echo $srv_shortname
+                           else
+                              infmsg "$ls  pool master: $srv_shortname"
+                           fi
+                           foundmaster=$srv_shortname
+                        fi
+                     else
+                        warnmsg "$ls pool get from server [$getpool] is not configured pool [$srv_pool]"
+                        rc=65
+                     fi
+                  fi
+               else
+                  debmsg "$ls found master NOT same as searched server"
+                  printmaster $getmaster
+                  rc=$?
+               fi
+            else
+               debmsg "$ls Server is not in a pool"
+               rc=2
+            fi
+         else
+           debmsg "ERROR: unknown return code $rc for xe command"
+         fi
+      else
+         warnmsg "$ls Cannot connect to $srv_fqdn - try to find other server in pool"
+         if [ ! -z $srv_pool ]; then
+            getserver $srv_pool
+            rc=$?
+            if [ $rc -ne 0 ]; then
+               debmsg "$ls no server found for pool $poolname3"
+#            else
+#               debmsg "$ls try new server $newmaster"
+#               printmaster $foundmaster
+#               rc=$?
+            fi
+         else
+            warnmsg "$ls no pool configure - may be standalone server"   
+         fi
+      fi
+   fi   
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+function getserver() {
+   local rc=0
+   tracemsg "$ls Function [$FUNCNAME] startet"
+   ls="$ls  "
+   local poolname=$1
+   local found=""
+   
+   
+   if [ -z $poolname ]; then
+      rc=99
+      debmsg "ERROR: no pool name parameter given"
+   else
+      debmsg "$ls entered pool: $poolname"
+   fi
+
+   if [ $rc -eq 0 ]; then
+      tracemsg "$ls search for pools configured ..."
+      poollist=$(ls -d $instdir/xen*/ks/pool/* 2>/dev/null)
+      rc=$?
+   fi   
+   
+   if [ $rc -eq 0 ]; then
+      debmsg "$ls found pools"
+      #tracemsg "$ls  pools: [$poollist]"
+      for pooldir in $poollist; do 
+         tracemsg "$ls pool dir found : $pooldir"
+         poolname2=${pooldir##*'/'}
+         tracemsg "$ls pool name found: $poolname2"
+         if [ "$poolname" == "$poolname2" ]; then
+            debmsg "$ls found pool entered"
+            if [ -f "$pooldir/pool.master" ]; then
+               debmsg "$ls found pool.master file - pool ok"
+               found="$pooldir"
+               break
+            else  
+               debmsg "$ls pool has no master flagfile - try if other pool exist"
+            fi
+         fi
+      done
+      if [ -z $found ]; then
+         debmsg "$ls no pool dir found for $poolname"
+      else
+         debmsg "$ls found $pooldir for $poolname"
+         read -r configmaster < "$pooldir/pool.master"
+         debmsg "$ls found config master: $configmaster"
+         srvonline $configmaster
+         srvon=$?
+         if [ $srvon -eq 0 ]; then
+            debmsg "$ls server [$configmaster] from pool.master file is online - call to detect master"
+            printmaster $configmaster
+            rc=$?
+            if [ $rc -eq 0 ]; then
+               debmsg "$ls found master - jump to end"
+               found=$foundmaster
+            else 
+               debmsg "$ls cannot find master - try other server"
+               found=""
+               rc=0
+            fi   
+         else
+            debmsg "$ls $configmaster not online - try other server"
+            found=""
+            rc=0
+         fi
+      fi
+   else
+     tracemsg "$ls no configured pools found"   
+   fi
+
+   if [ $rc -eq 0 ]; then    
+      if [ -z $found ]; then
+         debmsg "$ls try to find server in config dir for pool $poolname"
+         srvexist=$(grep -il "\\bpool.*$poolname\\b" $macdir/*/xen*.conf | wc -l)
+         if [ $srvexist -eq 0 ]; then
+            debmsg "$ls cannot find any server config for pool $poolname - abort"
+            rc=23
+         else
+            debmsg "$ls found server(s) - test if online or master"
+            for serverdir in $(grep -il "\\bpool.*$poolname\\b" $macdir/*/xen*.conf); do 
+               tracemsg "$ls grep return [$serverdir]"
+               tempmacdir="${serverdir%%'/xen6.conf'*}"
+               tempmacdir="${serverdir%%'/xen7.conf'*}"
+               
+               tracemsg "$ls found config dir [$tempmacdir]"
+               
+               if [ -f $tempmacdir/xen6.xml ]; then
+                  servername="$(cat "$tempmacdir/xen6.xml"| grep -i "<hostname>"| sed -e 's/\(^.*>\)\(.*\)\(<.*$\)/\2/')"
+               elif [ -f $tempmacdir/xen7.xml ]; then
+                  servername="$(cat "$tempmacdir/xen7.xml"| grep -i "<hostname>"| sed -e 's/\(^.*>\)\(.*\)\(<.*$\)/\2/')"
+               fi
+               
+               if [ -z $servername ]; then
+                  debmsg "$ls cannot find hostname in $tempmacdir - try next"
+               else
+                  debmsg "$ls find hostname $servername"
+                  srvonline $servername
+                  srvon=$?
+                  if [ $srvon -eq 0 ]; then
+                     debmsg "$ls server online - call to detect master"
+                     printmaster $servername
+                     rc=$?
+                     if [ $rc -eq 0 ]; then
+                        debmsg "$ls found master - jump to end"
+                        found=$foundmaster
+                        break
+                     else 
+                        debmsg "$ls cannot find master - try other server"
+                        rc=0
+                     fi   
+                  else
+                     debmsg "$ls $servername not online - try other server"
+                     found=""
+                     rc=0
+                  fi
+               fi   
+            done
+         fi
+      fi
+   fi   
+
+   foundmaster=$found
+   tracemsg "$ls ==> foundmaster=$foundmaster"
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+
+# ---------------------------------- Main ----------------------------------
+
+while getopts ":p:l:q0129:m:hHsfi" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "print master of a xen pool"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg "$ls  log: $logfile"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg "$ls  info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg "$ls  debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg "$ls  trace mode"
+        ;;
+      "9")
+         printf -v ls '%*s' $OPTARG
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "p")
+         poolname=$OPTARG
+         debmsg "$ls  pool: $poolname"
+        ;;
+      "m")
+         poolmaster=$OPTARG
+         debmsg "$ls  pool master: $poolmaster"
+        ;;
+      "s")
+         g_printmode="short"
+        ;;
+      "f")
+         g_printmode="full"
+        ;;
+      "i")
+         g_printmode="ip"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ -z $poolmaster ] && [ -z $poolname ]; then
+   help
+fi
+
+
+debmsg "$ls Start $progname - $ver"
+
+if [ ! -z $poolname ]; then
+   if [ ! -z $poolname ] && [ ! -z $poolmaster ]; then
+      debmsg "$ls  ignore entered poolmaster first"
+   fi
+   getserver $poolname
+   retc=$?
+   if [ $retc -ne 0 ]; then
+      debmsg "$ls  cannot find poolmaster for $poolname - try entered server $poolmaster"
+      printmaster $poolmaster
+      retc=$?         
+   fi
+else
+   debmsg "$ls  no pool given, only a server to test = $poolmaster"
+   printmaster $poolmaster
+   retc=$?
+fi
+
+debmsg "$ls End $progname - $ver - $retc"
+exit $retc
+

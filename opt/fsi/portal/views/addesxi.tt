@@ -1,0 +1,74 @@
+[% INCLUDE 'layouts/global.tt' %] 
+
+<div id="page">
+   <form action="addesxi" method=post>
+     [% INCLUDE 'headerline/back.tt' %]
+      
+      <div style="width:1238px;">
+          <table>
+            [% INCLUDE 'include/inc_envhead.tt' %]
+             <tr class="fsitableheader">
+                <td style="width: 100%;"><div>Add new ESXi Server</div></td>
+             </tr>      
+          </table> 
+          
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#config_srv" data-toggle="tab">Server Base</a></li>  
+            <li><a href="#config_remote" data-toggle="tab">Remote Control</a></li>
+            <li><a href="#config_vs" data-toggle="tab">Virtual Switch</a></li>  
+            <li><a href="#config_vmk" data-toggle="tab">VM Kernel Ports</a></li>  
+            <li><a href="#config_vmn" data-toggle="tab">VM Network Ports</a></li>  
+            <li><a href="#config_store" data-toggle="tab">Datastore</a></li>  
+            <li><a href="#config_vc" data-toggle="tab">VirtualCenter</a></li>  
+            <li><a href="#config_log" data-toggle="tab">Syslog/Log</a></li>
+            <li><a href="#config_user" data-toggle="tab">User/Roles</a></li>
+            <li><a href="#config_adv" data-toggle="tab">Advanced Config</a></li>  
+          </ul>
+
+          <div id="myTabs" class="tab-content">
+            <br>
+            <div style="height: 620px;" class="tab-pane active srvadd" id="config_srv">
+               [% INCLUDE 'add-esxi/addesxi_srv.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_remote">
+               [% INCLUDE 'add-esxi/addesxi_remote.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vs">
+               [% INCLUDE 'add-esxi/addesxi_vs.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vmn">
+               [% INCLUDE 'add-esxi/addesxi_vmn.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vmk">
+               [% INCLUDE 'add-esxi/addesxi_vmk.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_store">
+               [% INCLUDE 'add-esxi/addesxi_store.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_vc">
+               [% INCLUDE 'add-esxi/addesxi_vc.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_log">
+               [% INCLUDE 'add-esxi/addesxi_log.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_user">
+               [% INCLUDE 'add-esxi/addesxi_user.tt' %]
+            </div>
+            <div style="height: 620px;" class="tab-pane srvadd" id="config_adv">
+               [% INCLUDE 'add-esxi/addesxi_adv.tt' %]
+            </div>
+          </div>
+     </div>
+ 
+     </div>
+         <div>
+            <span style="font-weight: bold;"><br />Create this server config now:</span>
+            <div class="btn-group">
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="OK" value="yes"><img src="/images/16_Sign-Select-icon.png" alt="" />OK</button> 
+               <button class="btn [% global.button_typ %] [% global.button_size %]" name="Abort" value="no" formnovalidate><img src="/images/16_abort-icon.png" alt="" />Abort</button> 
+            </div>
+         </div>
+     </div>
+
+  </form>
+</div>

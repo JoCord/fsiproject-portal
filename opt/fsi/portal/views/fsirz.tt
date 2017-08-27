@@ -1,0 +1,36 @@
+<div id="fsiRZ" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+   <div class="modal-content">
+
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">RZ Information</h2>
+   </div>
+
+   <div class="modal-body">
+      This fsi portal is running in [% vienv %]<br/>
+      [% USE urlhost = String %]
+      [% urlhost=request.host %] 
+      [% sshhost=urlhost.remove(':3000') %]
+      [% IF sshhost == vitemp %]
+           <br/>fsi server: <a href="ssh://[% vitemp %]" target="_blank" rel="tooltip" title="click to start ssh session">[% vitemp %] </a>
+      [% ELSE %]
+           <br/>fsi server (url): <a href="ssh://[% sshhost %]" target="_blank" rel="tooltip" title="click to start ssh session to fsi server with url adress">[% sshhost %] </a>
+           <br/>fsi server (dns): <a href="ssh://[% vitemp %]" target="_blank" rel="tooltip" title="click to start ssh session">[% vitemp %] </a>
+      [% END %]
+      <br/>fsi portal url: [% request.uri_base %]
+      <br/><br/>This system is running with: [% TRY %]
+         [% INCLUDE  "/etc/redhat-release"  %]
+      [% CATCH %]
+ unknown
+      [% END %]
+      
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true">Close</button>
+   </div>
+   
+  </div>
+ </div> 
+</div>

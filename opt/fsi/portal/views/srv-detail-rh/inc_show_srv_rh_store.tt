@@ -1,0 +1,16 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>Local Storage: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/dfext"  %]</pre>
+   [% CATCH %]
+ No local storage info found</pre>
+   [% END %]
+   
+   <h2>Mounts: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/dfnfs"  %]</pre>
+   [% CATCH %]
+ No mount points found</pre>
+   [% END %]
+</div>

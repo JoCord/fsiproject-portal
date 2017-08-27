@@ -1,0 +1,37 @@
+<div style="width:1238px;height:642px;">
+   <br>
+   <table>
+         <tr>
+            <td valign="top" style="width: 600px">
+               <h2>&nbsp;Service Boot Config: </h2>            
+            </td>
+            <td valign="top" style="width: 638px">
+               <h2>&nbsp;&nbsp;Service Status: </h2>            
+            </td>
+         </tr>
+   </table>
+   
+   <div style="width:1238px;height:588px;overflow:auto;">
+   <table>
+      <tr>
+         <td valign="top" style="width: 600px">
+            [% TRY %]
+               <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/serviceconf"  %]</pre>
+            [% CATCH %]
+ No service boot config information found</pre>
+            [% END %]
+         </td>
+
+         <td>&nbsp;&nbsp;</td>
+
+         <td valign="top" style="width: 638px">
+            [% TRY %]
+               <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/servicestat"  %]</pre>
+            [% CATCH %]
+ No service status information found</pre>
+            [% END %]
+         </td>
+      </tr>
+   </table>
+   </div>
+</div>

@@ -1,0 +1,18 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>VM Kernel NICs: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/vmknics"  %]</pre>
+   [% CATCH %]
+ No vmkernel nic info found</pre>
+   [% END %]
+   
+   <h2>vSwitch: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/vswitch"  %]</pre>
+   [% CATCH %]
+ No vswitch config info found</pre>
+   [% END %]
+   
+
+</div>

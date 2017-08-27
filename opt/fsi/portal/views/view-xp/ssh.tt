@@ -1,0 +1,23 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <table>
+      <tr>
+         <td>
+            [% SET masterpath="/opt/fsi/inst/" _ entries.$masterid.db_typ _ "/ks/pool/" _ entries.$masterid.db_control _ "/info/" _ mastersrv _ "/" %]
+            <h2>Master authorized_keys (remote): </h2>
+            [% SET akeys=masterpath _ "ssh_authorized_keys" %]
+            [% SET khosts=masterpath _ "ssh_known_hosts" %]
+            [% SET resolvfile=masterpath _ "resolv" %]
+            <pre>[% TRY %][% INCLUDE  $akeys %]</pre>[% CATCH %]No authorized_keys file found</pre>[% END %]
+            <br>
+         </td>
+      </tr>
+
+      <tr>
+         <td>
+            <h2>Master known_hosts (remote): </h2>
+            <pre>[% TRY %][% INCLUDE  $khosts %]</pre>[% CATCH %]No known_hosts file found</pre>[% END %]
+            <br>
+         </td>
+      </tr>
+    </table>
+</div>

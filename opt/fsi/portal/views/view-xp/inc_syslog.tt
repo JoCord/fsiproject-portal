@@ -1,0 +1,46 @@
+<div id="myChangeSyslog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+   <div class="modal-content">
+   <div class="modal-header">
+     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">X</button>
+     <h2 id="myModalLabel">Change Syslog Settings</h2>
+   </div>
+
+   <div class="modal-body">
+   
+         Please choose the Syslog server for this pool [[% pool %]] or enter new:
+         <br>
+         <br>
+         
+         <select class="btn-group-sm selectpicker" style="display: none;" name="syslogserver" data-width="400px">
+           [% FOREACH srv IN rzconfig.rz.${vienv}.xensrv.syslog.keys.sort %]
+              [% IF rzconfig.rz.${vienv}.xensrv.syslog.$srv.default %]
+                 <option value="[% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]" selected>[% srv %] - [% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]</option>
+              [% ELSE %]
+                 <option value="[% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]" >[% srv %] - [% rzconfig.rz.${vienv}.xensrv.syslog.$srv.ip %]</option>
+              [% END %]
+           [% END %]
+         </select>
+         <br/>
+         <br/>
+         <input type="text" name="syslogsrv" placeholder="manual: <syslog server>" maxlength="255" autocomplete="on" size="51"/> 
+         <br>
+   </div>
+
+   <div class="modal-footer">
+     <button class="btn [% global.button_typ %] [% global.button_size %]" name="ChangeSyslog" value="[% pool %]" ><img src="/images/16_text-x-log.png" alt="" /> ChangeSyslog</button>
+     <button class="btn [% global.button_typ %] [% global.button_size %]" data-dismiss="modal" aria-hidden="true"> Close</button>
+   </div>
+  </div>
+ </div>
+</div>
+[% IF BLOCKRELOAD=="NO" %]
+<script>
+    $('#myChangeDNS').on('show.bs.modal', function (e) {
+        clearInterval(GetInfoID); 
+    })
+    $('#myChangeDNS').on('hide.bs.modal', function (e) {
+        var GetInfoID = setInterval ( "GetInfo('xp','[% pool %]')", [% global.inforeload %] );
+    })
+</script>
+[% END %]

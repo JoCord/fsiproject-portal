@@ -1,0 +1,70 @@
+<form action="showsrv" method=post>
+[% IF session.logged_in %]
+  [% INCLUDE 'layouts/global.tt' %]   
+  [% INCLUDE 'help/help_showsrv.tt' %] 
+   <div class=headerline>
+    [% INCLUDE 'headerline/normal.tt' %]
+   </div>
+      <div style="width:1238px;">
+
+      <table>
+        [% INCLUDE 'include/inc_envhead.tt' %]
+           <tr class="fsitableheader">
+           <td style="width: 800px;"><div>Detailed info for server : [% entries.db_srv %]</div></td>
+            [% TRY %]
+               [% SET BLOCKRELOAD="YES" %]
+               [% IF entries.db_typ.match('^xen') %]
+                  <td style="text-align: right; font-weight: normal;">[% INCLUDE  "$global.pathinst/$entries.db_typ/ks/pool/$entries.db_control/info/$entries.db_srv/info.last"  %] &nbsp;<button class="btn btn-link" style="padding: 0px 0px;" name="DelReadFlag" value="[% srvid %]" ><i class="fa fa-refresh fa-fw"></i></button>&nbsp;</td>
+               [% ELSIF entries.db_typ.match('^esxi') %]
+                  <td style="text-align: right; font-weight: normal;">[% INCLUDE  "$global.pathinst/$entries.db_typ/ks/log/info/$entries.db_srv/info.last"  %] &nbsp;<button class="btn btn-link" style="padding: 0px 0px;" name="DelReadFlag" value="[% srvid %]" ><i class="fa fa-refresh fa-fw"></i></button>&nbsp;</td>
+               [% ELSIF entries.db_typ.match('^co') %]
+                  <td style="text-align: right; font-weight: normal;">[% INCLUDE  "$global.pathinst/$entries.db_typ/ks/log/info/$entries.db_srv/info.last"  %] &nbsp;<button class="btn btn-link" style="padding: 0px 0px;" name="DelReadFlag" value="[% srvid %]" ><i class="fa fa-refresh fa-fw"></i></button>&nbsp;</td>
+               [% ELSIF entries.db_typ.match('^rh') %]
+                  <td style="text-align: right; font-weight: normal;">[% INCLUDE  "$global.pathinst/$entries.db_typ/ks/log/info/$entries.db_srv/info.last"  %] &nbsp;<button class="btn btn-link" style="padding: 0px 0px;" name="DelReadFlag" value="[% srvid %]" ><i class="fa fa-refresh fa-fw"></i></button>&nbsp;</td>
+               [% ELSE %]
+                  unknown server typ
+               [% END %]
+
+            [% CATCH %]
+               [% SET BLOCKRELOAD="NO" %]
+               <td style="text-align: right; font-weight: normal;">reading ...&nbsp;<i class="fa fa-refresh fa-spin fa-fw"></i>&nbsp;</td>
+               <script>
+                  var GetInfoID = setInterval( "GetInfo('srv','[% entries.db_srv %]')", [% global.inforeload %] );
+                  $('#ShowOverviewPage').on('show.bs.dropdown', function (e) {
+                      clearInterval(GetInfoID); 
+                  });
+                  $('#ShowOverviewPage').on('hide.bs.dropdown', function (e) {
+                      var GetInfoID = setInterval ( "GetInfo('srv','[% entries.db_srv %]')", [% global.inforeload %] );
+                  });
+               </script>
+            [% END %]
+        </tr>
+      </table>
+      
+      <script type="text/javascript">
+         $(document).ready(function(){
+            $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+               localStorage.setItem('activeTab', $(e.target).attr('href'));
+            });
+            var activeTab = localStorage.getItem('activeTab');
+            if(activeTab){
+               $('#mySrvTabs a[href="' + activeTab + '"]').tab('show');
+            }
+         });
+      </script>
+      
+         [% IF entries.db_typ.match('^xen') %]
+            [% INCLUDE 'srv-detail-xen/inc_show_srv_xen.tt' %]
+         [% ELSIF entries.db_typ.match('^esxi') %]
+            [% INCLUDE 'srv-detail-esxi/inc_show_srv_esxi.tt' %]
+         [% ELSIF entries.db_typ.match('^co') %]
+            [% INCLUDE 'srv-detail-co/inc_show_srv_co.tt' %]
+         [% ELSIF entries.db_typ.match('^rh') %]
+            [% INCLUDE 'srv-detail-rh/inc_show_srv_rh.tt' %]
+         [% ELSE %]
+            unknown server typ
+         [% END %]
+      </div>
+[% END %]
+
+</form>

@@ -1,0 +1,34 @@
+<div class="btn-group">
+   <button class="btn [% global.button_typ %] [% global.button_size %]" name="Back" value="yes" ><img src="/images/16_go-back-icon.png" alt="" /> Back </button>
+</div>
+<div class="list" style="width:1238px;">
+   <table>
+      [% INCLUDE include/inc_envhead.tt %]
+      <tbody>
+           <tr class="fsitableheader">
+              <td style="width: 330px;"><div>VM name</div></td>
+              <td style="width: 330px;"><div>Host</div></td>
+              <td style="width: 330px;"><div>UUID</div></td>
+              <td style="width: 239px;"><div>&nbsp;</div></td>
+           </tr>
+      </tbody>
+   </table>
+</div>
+<div class="list" style="width:1238px; height:685px; overflow:auto;">
+   <table class="table table-striped table-condensed table-hover" style="width:1230px;">
+      <tbody>    
+         [% IF vms.size %]
+            [% FOR vm = vms.sort %]
+               <tr>
+                  [% FOREACH vmdata IN vm.split(':') %]
+                     <td style="width: 330px;">[% vmdata %]</td>
+                  [% END %]
+                  <td style="width: 239;">&nbsp;</td>
+               </tr>
+            [% END %]
+         [% ELSE %]
+            <em>No vm marked to do something - please select vm on the poolview site</em>
+         [% END %]
+      </tbody>
+   </table>
+</div>

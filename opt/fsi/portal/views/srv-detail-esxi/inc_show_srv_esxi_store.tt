@@ -1,0 +1,10 @@
+<div style="width:1238px;height:642px;overflow:auto;">
+   <br>
+   <h2>Datastore: </h2>
+   [% TRY %]
+      <pre>[% INCLUDE  "/opt/fsi/inst/$entries.db_typ/ks/log/info/$entries.db_srv/datastore"  %]</pre>
+   [% CATCH %]
+ No datastore info found</pre>
+   [% END %]
+
+</div>

@@ -1,0 +1,301 @@
+#!/bin/sh
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.5 - 26.6.2014"
+retc=0
+ls=""
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+. $progdir/etc/func.sh
+export deb2scr="yes"
+export debug="debug"   # write to file
+
+function help() {
+   clear
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  add data storage to esxi"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -r           run script - from list or if -s given to server"
+   echo "   -c           check run - only echo lines"
+   echo "   -s <srv>     server to add"
+   echo "   -t <srv>     target server name or ip"
+   echo "   -e <export>  export"
+   echo "   -n <ds name> data store name - if not give join from settings"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q           quiet mode"
+   echo "   -0/1/2       info/debug/trace mode"
+   echo "   -l <file>    alternativ host list file"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -r"
+   echo "    $progname -c -l test"
+   echo
+   exit 1
+}
+
+run=0
+hostlist="$progdir/../etc/esxiadddslst"
+server=""
+target=""
+export=""
+dsname=""
+quietmode=""
+
+while getopts ":rcs:t:e:n:l:hHq12" optname; do
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "add data storage to a esxi server"
+         exit 1
+      ;;
+      "h")
+         help
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "r")
+         run=1
+        ;;
+      "s")
+         server="$OPTARG"
+        ;;
+      "t")
+         target="$OPTARG"
+        ;;
+      "e")
+         export="$OPTARG"
+        ;;
+      "n")
+         dsname="$OPTARG"
+        ;;
+      "l")
+         hostlist="$OPTARG"
+        ;;
+      "c")
+         run=2
+        ;;
+      "?")
+        echo "Unknown option $OPTARG"
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+   esac
+done
+
+if [ $run -eq 0 ] && [ -z $server ] ; then
+   help
+fi
+
+infmsg "Start $progname - $ver"
+
+if ! [ -z $server ]; then
+   if [ $run -eq 0 ]; then
+      run=1
+   fi
+   if [ -z $target ]; then
+      errmsg "no target server given - if -s $server used in command line"
+      exit 99
+   fi
+   if [ -z $export ]; then
+      errmsg "no export given - if -s $server used in command line"
+      exit 99
+   fi
+   if [ -z $dsname ]; then
+      mod=${orig//[xyz]/_}
+      exportstring=${export//\//_}
+      dsname="nfs_"$target"_"$exportstring
+      infmsg " no data store name given - join from settings to [$dsname]"
+   fi
+fi
+
+function addds() {
+   local retc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local server=$1
+   local target=$2
+   local export=$3
+   local dsname=$4
+   local run=$5
+
+   tracemsg "$ls  server: $server"
+   tracemsg "$ls  target: $target"
+   tracemsg "$ls  export: $export"
+   tracemsg "$ls  dsname: $dsname"
+
+   if [ $run -eq 1 ]; then
+      srvonline $server
+      retc=$?
+      if [ $retc -ne 0 ] ; then
+         errmsg "server $server not online - abort update"
+         retc=3
+      fi
+      
+      if [ $retc -eq 0 ] ; then
+         get_srv_data $server
+         retc=$?
+         if [ $retc -eq 0 ] ; then
+            tracemsg "$ls  srv typ: [$srv_typ]"
+         else
+            errmsg "no server data found in config dirs"
+         fi      
+      fi
+      
+      if [ $retc -eq 0 ] ; then
+         tracemsg "$ls found server data"
+         case "$srv_typ" in
+            "esxi")
+               if [[ "$srv_ver" =~ ^4 ]] || [[ "$srv_ver" =~ ^5 ]]; then
+                  infmsg "$ls add data store to esxi"
+                  OUTPUT=$(2>&1 sshpass -p $srv_userpw ssh $g_ssh_options $srv_user@$server esxcfg-nas -a $dsname -o $target -s $export)
+                  retc=$?
+                  if [ $retc -eq 0 ]; then
+                     infmsg "$ls add ds ok"
+                     warte 10 1
+                  else
+                     regex_output='is already exported by a volume with the name'
+                     if [[ "$OUTPUT" =~ $regex_output ]]; then
+                        warnmsg "$ls data store already exist - ignore"
+                        retc=0
+                     else
+                        errmsg "add ds failed"
+                        errmsg "ERROR Message: $OUTPUT"
+                     fi
+                  fi
+               else
+                  errmsg "    unknown/unsupported esxi version - abort"
+                  exit 3
+               fi
+              ;;
+            "xen")
+               errmsg "XenServer is not supported - abort"
+               retc=99
+              ;;
+            "co")
+               upd_co "CentOS is not supported - abort"
+               retc=99
+              ;;
+            *)
+               errmsg "Unknown error server type [$servertyp] found - only esxi possible"
+               exit 2
+              ;;
+         esac   
+
+      fi
+   else
+      debmsg " Run this command: sshpass -p ****** ssh -q $server esxcfg-nas -a $dsname -o $target -s $export"
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$retc"
+   return $retc
+}
+
+
+
+if [ -z $server ]; then
+   infmsg " no server given - search server config list"
+   if ! [ -e "$hostlist" ]; then
+     errmsg "cannot find file [$hostlist]"
+     exit 99
+   fi
+
+   # esx1.lab.local nfs_teststore_blabla 10.10.10.60 /nfs-esxi
+
+   count=0
+   while read srvname storename nfsserver nfsexport; do
+      if [ -z $srvname ]; then
+         debmsg " ignore empty line"
+      elif [[ "$srvname" =~ ^# ]]; then
+         debmsg " ignore comment line"
+      else
+         count=$((count + 1)) 
+         host[$count]=$srvname
+         sname[$count]=$storename
+         nfssrv[$count]=$nfsserver
+         nfsexp[$count]=$nfsexport
+      fi
+   done < $hostlist 
+   
+   for (( i=1; i<=$count; i++ )); do
+      infmsg " Host: ${host[$i]} add ds ${sname[$i]} on ${nfssrv[$i]} export ${nfsexp[$i]}"
+
+      if [ $run -eq 1 ]; then
+         addds ${host[$i]} ${nfssrv[$i]} ${nfsexp[$i]} ${sname[$i]} $run
+         retc=$?
+      else
+         debmsg " Run this command: sshpass -p ****** ssh -q ${host[$i]} esxcfg-nas -a ${sname[$i]} -o ${nfssrv[$i]} -s ${nfsexp[$i]}"
+      fi
+   done
+else
+   infmsg " server given - take command line parameter"
+   addds $server $target $export $dsname $run
+fi
+
+
+
+infmsg "End $progname rc=$retc"
+exit $retc

@@ -1,0 +1,214 @@
+#!/bin/sh
+#
+#   delinfodir - delete all info file and dir for server
+#
+#   This program is free software; you can redistribute it and/or modify it under the 
+#   terms of the GNU General Public License as published by the Free Software Foundation;
+#   either version 3 of the License, or (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#   See the GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along with this program; 
+#   if not, see <http://www.gnu.org/licenses/>.
+#
+ver="1.0.3 - 12.8.2015"
+retc=0
+progname=${0##*/}
+SOURCE="${BASH_SOURCE[0]}"
+DIR="$( dirname "$SOURCE" )"
+SCRIPTSTART=$(date +%s.%N)
+while [ -h "$SOURCE" ]
+do 
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
+done
+
+export progdir="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+. $progdir/etc/func.sh
+
+function help() {
+   echo
+   tput setaf 2
+   echo " Help for $progname - $ver"    
+   tput sgr0
+   echo
+   echo "  delete all info files and dir for server"
+   echo
+   tput setaf 3
+   echo "  Parameter:"
+   tput sgr0
+   echo "   -s <server name>   server to delete logfiles"
+   echo
+   tput setaf 3
+   echo "  Optional Parameter:"
+   tput sgr0
+   echo "   -q                 quiet mode"
+   echo "   -0/1/2             info/debug/trace mode"
+   echo "   -l <logfile>       other logfile"
+   echo
+   tput setaf 3
+   echo "  Return Code:"
+   tput sgr0
+   echo "    1 = help"
+   echo "    2 = no server given "
+   echo "    > = different meaning"
+   echo
+   tput setaf 3
+   echo "  Example:"
+   tput sgr0
+   echo "    $progname -p test05"
+   echo
+}
+
+
+server=""
+
+while getopts ":s:l:hH012q" optname; do
+   #tracemsg "Option $optname has value $OPTARG"
+   case "$optname" in
+      "H")
+         printf '%20s - %s\n' "$progname" "delete all info files and dir for a server"
+         exit 1
+      ;;
+      "h")
+         help
+         exit 1
+        ;;
+      "q")
+         export deb2scr="no"
+         quietmode=" -q "
+         #debmsg " quiet mode"
+        ;;
+      "0")
+         export deb2scr="yes"
+         export debug="info"
+         quietmode=" -0 "
+         debmsg " info mode"
+        ;;
+      "1")
+         export deb2scr="yes"
+         export debug="debug"
+         quietmode=" -1 "
+         debmsg " debug mode"
+        ;;
+      "2")
+         export deb2scr="yes"
+         export debug="trace"
+         quietmode=" -2 "
+         debmsg " trace mode"
+        ;;
+      "l")
+         export logfile="$OPTARG"
+         debmsg " log: $logfile"
+        ;;
+      "s")
+         server=$OPTARG
+         debmsg " server: $server"
+        ;;
+      "?")
+        errmsg "Unknown option $OPTARG"
+        ;;
+      ":")
+        errmsg "No argument value for option $OPTARG"
+        ;;
+      *)
+      # Should not occur
+        errmsg "Unknown error while processing options"
+        ;;
+   esac
+done
+
+
+del_infodir() {
+   local rc=0
+   tracemsg "$ls  Function [$FUNCNAME] startet"
+   ls="$ls  "
+
+   local idir=$1
+   local infopfad=$2
+   
+   if [ -z "$infopfad" ]; then
+      errmsg "no path to delete given - abort"
+      rc=99
+   fi
+
+   if [ $rc -eq 0 ]; then
+      tracemsg "$ls  test if info dir [$idir$infopfad] exist"
+      if [ -d $idir$infopfad ]; then
+         debmsg "$ls  info dir exist - delete it too"
+         delcmd="rm -fR \"$idir$infopfad/\""
+         tracemsg "$ls   cmd: $delcmd"
+         OUTPUT=$(2>&1 eval $delcmd)
+         rc=$?
+         if [ $rc -eq 0 ]; then
+            tracemsg "$ls  del info dir ok"
+         else
+            errmsg "cannot delete info dir [$idir$infopfad]"
+            errmsg "out: [$OUTPUT]"
+         fi
+      else
+         debmsg "$ls  no info dir exist"
+      fi
+   fi
+
+   ls=${ls:0:${#ls}-2}
+   tracemsg "$ls  Function [$FUNCNAME] ended - rc=$rc"
+   return $rc
+}
+
+
+
+debmsg "Start $progname - $ver"
+
+if [ -z "$server" ]; then
+   help
+   exit 2
+fi
+
+
+debmsg "Start $progname - $ver"
+
+infmsg "$ls server $server check now ..."
+if [ $retc -eq 0 ]; then
+   get_srv_data $server
+   rc=$?
+fi
+      
+if [ $retc -eq 0 ] ; then
+   debmsg "$ls  found server $server in $srv_mac"
+   if [[ "$srv_typ"  =~ ^xen ]]; then
+      tracemsg "$ls  found xen in [$srv_mac]"
+      xenpath="/$srv_tree/ks/pool/$srv_pool/info/$server"
+      del_infodir "$instdir" "$xenpath"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^esxi ]]; then
+      tracemsg "$ls  found esxi in [$mac]"
+      esxpath="/$srv_tree/ks/log/info/$server"
+      del_infodir "$instdir" "$esxpath"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^co ]]; then
+      tracemsg "$ls  found centos config"
+      lxpath="/$srv_tree/ks/log/info/$server"
+      del_infodir "$instdir" "$lxpath"
+      retc=$?
+   elif [[ "$srv_typ" =~ ^rh ]]; then
+      tracemsg "$ls  found redhat config"
+      lxpath="/$srv_tree/ks/log/info/$server"
+      del_infodir "$instdir" "$lxpath"
+      retc=$?
+   else
+      tracemsg " unsupported typ [$srv_typ] - abort"
+   fi
+else
+   warnmsg "$ls   cannot find server [$server] in pxe sys dir"
+   retc=10
+fi
+
+SCRIPTEND=$(date +%s.%N)
+runningtime=$(echo "$SCRIPTEND - $SCRIPTSTART" | bc)
+debmsg "End $progname rc=$retc run=$runningtime"
+exit $retc

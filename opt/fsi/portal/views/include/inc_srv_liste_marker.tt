@@ -1,0 +1,12 @@
+[% IF entries.$id.s_insterr == 'E' %]
+  <tr class="danger">
+[% ELSIF entries.$id.s_insterr == 'W' %]   
+  <tr class="warning">
+[% ELSE %]
+  <tr>
+[% END %]   
+     <td style="vertical-align: top; width: 5px;"> 
+       <input type="checkbox" id="[% entries.$id.db_control %]_SRVID_[% entries.$id.id %]" name="Marked" value="[% entries.$id.id %]" />
+     </td>                     
+     [% INCLUDE 'include/inc_srv_liste_marker_rest.tt' %]
+  </tr>

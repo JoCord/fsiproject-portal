@@ -1,0 +1,146 @@
+<table>
+   <tbody>
+      <tr>
+         <td>
+            <table style="width:910px"> 
+               <tbody>  
+                  <tr>
+                     <td>
+                        <br />
+                        &nbsp;Master:
+                     </td>
+                  </tr>
+                  <tr>
+                     <td valign="top">
+                        <table class="table table-striped table-condensed table-hover">
+                           <tbody>    
+                              [% master = 'none' %]
+                              [% FOREACH id IN entries.keys.nsort.reverse %]
+                                 [% IF entries.$id.db_control == pool %]
+                                    [% IF entries.$id.s_xenmaster == 'M' %]
+                                       [% master = entries.$id.db_srv %]
+                                       [% INCLUDE 'include/inc_srv_liste_marker_no.tt' %]
+                                    [% END %]
+                                 [% END %]
+                              [% END %]
+                              [% IF master=='none' %]
+                                 <tr>
+                                    <td>unknown</td>
+                                 </tr>
+                              [% END %]
+                           </tbody>
+                        </table>
+                     </td>
+                  </tr>
+               </tbody>
+            </table>
+            
+            <table style="width:940px">
+               <tbody>               
+                  <tr>
+                       &nbsp;Members:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="Marked" value="0" onclick="CheckTable(this,'[% pool %]')" />&nbsp;mark all                  
+                  </tr>  
+                  <tr>
+                     <td valign="top">
+                        <div class="scrolltable">
+                         <table class="table table-striped table-condensed table-hover table-striped"  style="width:930px">
+                           <tbody style="height:528px;" >    
+                              [% FOREACH id IN entries.keys.nsort.reverse %]
+                                 [% IF entries.$id.db_control == pool %]
+                                    [% IF master != entries.$id.db_srv %]
+                                       [% INCLUDE 'include/inc_srv_liste_marker.tt' %]
+                                    [% END %]   
+                                 [% END %]
+                              [% END %]
+                           </tbody> 
+                         </table>
+                        </div>
+                     </td>
+                  </tr>
+               </tbody>    
+            </table>
+         </td>
+
+         <td valign="top">
+            <table style="width:290px">
+               <td valign="top">
+                  <br />
+                  Info:<br>
+                  [% IF xenvererr == "yes" %] 
+                     <div class="alert alert-danger">
+                     ATTENTION: this pool has various xen version !
+                     </div>
+                  [% ELSE %]
+                     <div class="alert alert-info">
+                     Master xenserver from pooldir: 
+                     [% TRY %]
+                        [% INCLUDE  "/opt/fsi/inst/$xenver/ks/pool/$pool/pool.master"  %]
+                     [% CATCH %]
+                        No pool master config file found in pooldir                         
+                     [% END %]
+                     </div>
+                  [% END %]
+                  
+                  [% IF poolblock == "B" %]
+                     <div class="alert alert-info">
+                     Attention: This pool is blocked by [% poolblockuser %] !
+                     </div>
+                  [% END %]
+                  
+                  [% FOREACH id IN entries.keys.nsort.reverse %]
+                    [% IF entries.$id.db_control == pool %]
+                       [% IF entries.$id.s_instrun == 'R' %]
+                          <div class="alert alert-success">
+                           [% entries.$id.db_srv %] running installation 
+                          </div>
+                       [% END %]
+                    [% END %]
+                  [% END %]
+                  
+                  [% FOREACH id IN entries.keys.nsort.reverse %]
+                     [% IF entries.$id.db_control == pool %]
+                        [% IF entries.$id.s_instrun == "w" %]
+                           <div class="alert alert-success">
+                           Warning: installation waiting on [% entries.$id.db_srv %]
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_instrun == "r" %]
+                           <div class="alert alert-success">
+                           Info: installation running on [% entries.$id.db_srv %]
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_block == "b" %]
+                           <div class="alert alert-info">
+                           Attention: server [% entries.$id.db_srv %] is blocked
+                           </div>
+                        [% END %]
+                        [% IF entries.$id.s_msg %]
+                           <div class="alert alert-danger">
+                           [% entries.$id.s_msg %]
+                           </div>
+                           [% LAST %]
+                        [% END %]
+                     [% END %]
+                  [% END %]
+                  [% IF haon == "H" %]
+                     <div class="alert alert-success">
+                     Info: HA is enabled in this pool
+                     </div>
+                  [% ELSIF haon == "h" %]
+                     <div class="alert alert-warning">
+                     Info: HA is disabled in this pool
+                     </div>
+                  [% ELSE %]                              
+                     <div class="alert alert-warning">
+                        Info: HA is not configured in this pool
+                     </div>
+                  [% END %]
+      
+               </td>
+            </table>
+         </td>   
+      </tr>
+   <tbody>
+</table>   
+   
+[% INCLUDE include/action_markserver.tt %]   

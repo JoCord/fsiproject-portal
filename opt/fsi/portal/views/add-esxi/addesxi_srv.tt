@@ -1,0 +1,205 @@
+<table border="0" style="text-align: left">
+   <tr>
+       <td style="text-align: right">MAC: </td>
+       <td><input type="text" name="MACAdr" required="required" maxlength="17" autocomplete="on" /> </td>
+      <td style="text-align: right">Servername: </td>  
+      <td><input type="text" name="Server" data-required required="required" autocomplete="on" placeholder="servername" size="20"/>
+      [% IF rzconfig.rz.${vienv}.esxi.esxisuffix %]
+         <input type="text" name="ServerSuffix" autocomplete="on" placeholder="[% rzconfig.rz.${vienv}.esxi.esxisuffix %]" size="40"/></td>
+      [% ELSE %]
+         <input type="text" name="ServerSuffix" data-required required="required" autocomplete="on" placeholder="server dns suffix" size="50"/></td>
+      [% END %]
+       <td><br /></td>
+       <td><br /></td>
+   </tr>
+   <tr>
+       <td style="text-align: right">Server Mgmt IPv4: </td>
+       <td> <input type="text" name="SrvIP"   required="required" maxlength="15" autocomplete="on" /> </td>
+       <td><br /></td>
+       <td><br /></td>
+   </tr>
+   <tr>
+       <td style="text-align: right">Server Mgmt Netmask IPv4: </td>
+       <td>
+          [% SET auswahl="not" %]
+          [% FOREACH suche IN rzconfig.rz.${vienv}.esxi.vmm.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.vmm.$suche.nm %]
+               [% SET auswahl="found" %]
+            [% END %]   
+          [% END %]
+          [% IF auswahl == "found" %]
+            <select class="btn-group-sm selectpicker" style="display: none;" name="Netmask" data-width="300px" >
+            [% FOREACH net IN rzconfig.rz.${vienv}.esxi.vmm.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.esxi.vmm.$net.nm %]
+                  <option value="[% rzconfig.rz.${vienv}.esxi.vmm.$net.nm %]" >[% rzconfig.rz.${vienv}.esxi.vmm.$net.nm %]</option>
+               [% END %]
+            [% END %]
+            </select>
+            <br/>
+            <input type="text" name="nm_manuel" maxlength="15" autocomplete="on" placeholder="enter here if manual change needed" style="width:300px;" /> 
+         [% ELSE %]
+            <input type="text" name="nm_manuel" maxlength="15" autocomplete="on" placeholder="255.255.255.0" data-required required="required" style="width:300px;" /> 
+         [% END %]
+       </td>
+       <td style="text-align: right">Server Mgmt Gateway IPv4: </td>
+       <td>
+          [% SET auswahl="not" %]
+          [% FOREACH suche IN rzconfig.rz.${vienv}.esxi.vmm.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.vmm.$suche.gw %]
+               [% SET auswahl="found" %]
+            [% END %]   
+          [% END %]
+          [% IF auswahl == "found" %]
+            <select class="btn-group-sm selectpicker" style="display: none;" name="Gateway" data-width="300px" >
+            [% FOREACH net IN rzconfig.rz.${vienv}.esxi.vmm.keys.sort %]
+               [% IF rzconfig.rz.${vienv}.esxi.vmm.$net.gw %]
+                  <option value="[% rzconfig.rz.${vienv}.esxi.vmm.$net.gw %]" >[% rzconfig.rz.${vienv}.esxi.vmm.$net.gw %]</option>
+               [% END %]
+            [% END %]
+            </select>
+            <br/>
+            <input type="text" name="gw_manuel"    maxlength="15" autocomplete="on" placeholder="enter here if manual change needed" style="width:300px;" />
+         [% ELSE %]
+            <input type="text" name="gw_manuel"   required="required" maxlength="15" autocomplete="on" style="width:300px;" />
+         [% END %]
+       </td>
+   </tr>
+   <tr>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /></td>
+       <td><br /> &nbsp;</td>
+   </tr>
+   <tr>
+      <td style="text-align: right">ESXi Version: </td>
+      <td style="text-align: left">
+         [% SET showversion="" %]
+        <select id="esxiver" class="btn-group-sm selectpicker show-tick" style="display: none;" name="esxiver" data-width="auto">
+         [% FOREACH esxi_ver IN rzconfig.rz.${vienv}.esxi.ver.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.ver.$esxi_ver.default %]
+               [% showversion=esxi_ver %]
+               <option value="[% esxi_ver %]" selected>[% esxi_ver %]</option>
+            [% ELSE %]
+               <option value="[% esxi_ver %]" >[% esxi_ver %]</option>
+            [% END %]
+         [% END %]
+        </select>
+       </td>
+      <td style="text-align: right">ESXi License: </td>
+      <td style="text-align: left">
+        <select id="esxilic" class="btn-group-sm selectpicker show-tick" style="display: none;" name="esxlic" data-width="auto">
+         [% FOREACH lic IN rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.keys.sort %]
+            [% IF rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.$lic.default %]
+               <option value="[% lic %]" selected>[% lic %] 
+               [% IF rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.$lic.descr %] => [% rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.$lic.descr %]
+               [% END %]
+               </option>
+            [% ELSE %]
+               <option value="[% lic %]" >[% lic %]
+               [% IF rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.$lic.descr %] => [% rzconfig.rz.${vienv}.esxi.ver.${showversion}.lic.$lic.descr %]
+               [% END %]
+               </option>
+            [% END %]
+         [% END %]
+        </select>
+        <br/>
+        <input type="text" name="license" placeholder="manual change license" maxlength="255" autocomplete="on" size="58"/>
+       </td>
+   </tr>
+   <tr>
+      <td style="text-align: right">ESXi Install Template: [% esxibasetemp %] </td>
+      <td>
+           [% SET esxibasetempl="esxi$showversion" %]
+           <select id="esxitemplchoose" class="btn-group-sm selectpicker show-tick" style="display: none;" name="esxitemplate" data-width="auto">
+
+                [% FOREACH esxitempl IN rzconfig.rz.${vienv}.templ.${esxibasetempl}.keys.sort %]
+                 [% IF rzconfig.rz.${vienv}.templdefault.${esxibasetempl}.$esxitempl.default == "true" %]  
+                      <option value="[% esxitempl %]" selected>[% esxitempl %]</option>
+                 [% ELSE %]  
+                      <option value="[% esxitempl %]" >[% esxitempl %]</option>
+                 [% END %]
+                [% END %]'');
+           </select>
+      
+       </td>
+       <td><br /></td>
+       <td><br /> &nbsp;</td>
+   </tr>
+   <tr>
+      <td > </td>
+      <td > </td>
+      <td > </td>
+      <td > &nbsp;</td>
+   </tr>
+   
+</table>
+
+<script type="text/javascript">
+   $(document).ready(function() {
+    $("#esxiver").change(function() {
+        var esxiverval = $(this).val();
+         [% FOREACH esxiver IN rzconfig.rz.${vienv}.esxi.ver.keys.sort %]
+            if (esxiverval == "[% esxiver %]") {
+               $("#esxilic").html(''+
+                  [% FOREACH lic IN rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.keys.sort %]
+                     [% IF rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.$lic.default %]
+                        '<option value="[% lic %]" selected>[% lic %]'+
+                        [% IF rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.$lic.descr %]' => [% rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.$lic.descr %]'+
+                        [% END %]
+                        '</option>'+
+                     [% ELSE %]
+                        '<option value="[% lic %]" >[% lic %]'+
+                        [% IF rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.$lic.descr %]' => [% rzconfig.rz.${vienv}.esxi.ver.${esxiver}.lic.$lic.descr %]'+
+                        [% END %]
+                        '</option>'+
+                     [% END %]
+                 [% END %]'');
+            }
+         [% END %]
+         $('#esxilic').selectpicker('refresh');
+         
+         var optionsvar="";
+         [% FOREACH place IN rzconfig.rz.${vienv}.esxi.logloc.keys.sort %]
+            var loglocversions="[% rzconfig.rz.${vienv}.esxi.logloc.$place.ver %]";
+            var loglocdisable="[% rzconfig.rz.${vienv}.esxi.logloc.$place.disable %]";
+            [% use PLACE_ = String place %]
+            [% place_show = PLACE_.replace('_',' ') %]
+
+            if (loglocversions.indexOf(esxiverval) > -1 || loglocdisable == "true") {
+                  [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.default == "true" %]
+                     [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.ver %]
+                        optionsvar=optionsvar+'<option value="[% place %]" selected>[% place_show %]  (v[% rzconfig.rz.${vienv}.esxi.logloc.$place.ver %])</option>'
+                     [% ELSE %]   
+                        optionsvar=optionsvar+'<option value="[% place %]" selected>[% place_show %]</option>'
+                     [% END %]
+                  [% ELSE %]
+                     [% IF rzconfig.rz.${vienv}.esxi.logloc.$place.ver %]
+                        optionsvar=optionsvar+'<option value="[% place %]" >[% place_show %]  (v[% rzconfig.rz.${vienv}.esxi.logloc.$place.ver %])</option>'
+                     [% ELSE %]      
+                        optionsvar=optionsvar+'<option value="[% place %]" >[% place_show %]</option>'
+                     [% END %]
+                  [% END %];
+            }
+         [% END %]
+         $("#logloc").html(optionsvar);
+         $('#logloc').selectpicker('refresh');  
+         
+         esxitemplval= 'esxi' + esxiverval;
+         [% FOREACH esxityp IN rzconfig.rz.${vienv}.templ.keys.sort %]
+            if (esxitemplval == "[% esxityp %]") {
+            $("#esxitemplchoose").html(''+
+                [% SET esxibasetempl=esxityp %]
+                [% FOREACH esxitempl IN rzconfig.rz.${vienv}.templ.${esxibasetempl}.keys.sort %]
+                 [% IF rzconfig.rz.${vienv}.templdefault.${esxibasetempl}.$esxitempl.default == "true" %]  
+                      '<option value="[% esxitempl %]" selected>[% esxitempl %]</option>'+
+                 [% ELSE %]  
+                      '<option value="[% esxitempl %]" >[% esxitempl %]</option>'+
+                 [% END %]
+                [% END %]'');
+            }
+         [% END %]
+         $('#esxitemplchoose').selectpicker('refresh');
+         
+    });
+   });
+</script>
