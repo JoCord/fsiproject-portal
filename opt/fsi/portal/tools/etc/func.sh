@@ -13,7 +13,7 @@
 #   if not, see <http://www.gnu.org/licenses/>.
 #
 #
-export funcver="1.1.31 - 03.03.2017"
+export funcver="1.1.32 - 07.09.2017"
 export ls=""
 export hostname=$(hostname -s)
 export vitemp=$(/sbin/ifconfig eth0 | sed -n "2s/[^:]*:[ \t]*\([^ ]*\) .*/\1/p")
@@ -266,7 +266,7 @@ function getsrvbyname() {
          mgmt_pwc=""
          mgmt_user=""
          
-         findfile=$(find $dirmac -type f -name '*.pxe' -printf "%f")
+         findfile=$(find $dirmac -maxdepth 1 -type f -name '*.pxe' -printf "%f")
          tracemsg "$ls  file: $findfile"
          if [ -z $findfile ]; then
             continue
@@ -332,7 +332,7 @@ function getsrvbyname() {
                   
                   if [ $rc -eq 0 ]; then
                      srv_typ="xen"
-                     srvver=$(grep -i "post-install-script" "$sfile")
+                     srvver=$(grep -iE 'script stage|post-install-script' "$sfile")
                      srvver=${srvver%%'/ks/'*}
                      srvver=${srvver##*'/inst/'}
                      srv_ver=${srvver#xen}
@@ -727,7 +727,7 @@ function get_srv_data() {
          if [ -d $macdir/$tosearch ]; then
             tracemsg "$ls  found server config for mac [$tosearch]"
             srv_mac=$tosearch
-            findfile=$(find $macdir/$tosearch -type f -name '*.pxe' -printf "%f")
+            findfile=$(find $macdir/$tosearch -maxdepth 1 -type f -name '*.pxe' -printf "%f")
             tracemsg "$ls  file: $findfile"
             findfile=${findfile%%.*}
             typ=${findfile##*-}
